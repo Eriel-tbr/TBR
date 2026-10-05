@@ -15,7 +15,8 @@ const ICON = {
   check:'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   star:'<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg>',
   left:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
-  right:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>'
+  right:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
 };
 
 /* ---------- Estado ---------- */
@@ -142,40 +143,49 @@ function shelfRuns(list){
 }
 function bookItem(b, u, th, sctx){
   const a = spineArt(b, u, th, { series:sctx });
-  let html = a.html.replace('<div class="it">', `<div class="it" data-id="${b.id}">`)
+  let html = a.html.replace('<div class="it">', `<div class="it" data-id="${b.id}" data-shelf="${b.shelfId}">`)
     .replace('<div class="bk', `<button type="button" data-id="${b.id}" data-s="${b.status || 'pendiente'}" aria-label="${esc(b.title)}${b.author ? ', ' + esc(b.author) : ''}" class="bk`);
   const end = html.lastIndexOf('</div></div></div>');
   html = html.slice(0, end) + '</div>' + (b.next ? '<i class="bk-next"></i>' : '') + `<span class="bk-flag">${ICON.check}</span></button></div>` + html.slice(end + 18);
   return { w:a.w + 1, html };
 }
-function decoItem(k, th, r){
-  const d = DECO[k](th.decoC), s = Math.min(.82 + r() * .26, 150 / d.h, 1.15);
-  return { w:Math.round(d.w * s) + 8, html:`<div class="dc"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * s}" height="${d.h * s}" aria-hidden="true">${d.s}</svg></div>` };
+function decoItem(k, th, size, id){
+  if(!DECO[k]) return null;
+  const d = DECO[k](th.decoC), s = Math.min(size || 1, 150 / d.h, 1.35);
+  const svg = `<svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * s}" height="${d.h * s}" aria-hidden="true">${d.s}</svg>`;
+  return { w:Math.round(d.w * s) + 8, html:id ? `<div class="dc dcm" data-dec="${id}" role="button" tabindex="0" aria-label="${esc(DECO_NAMES[k] || 'Decoración')}">${svg}</div>` : `<div class="dc">${svg}</div>` };
 }
+/* Libros visibles de la estantería, en orden: baldas seguidas */
+function unitSeq(u){ const seq = []; u.shelves.forEach(sh => sortedBooks(sh).filter(b => matches(b)).forEach(b => seq.push(b))); return seq; }
+/* Colocación automática de objetos (determinista) */
+function autoPlan(u, th, seq){
+  const list = themeDecor(u, th); if(!list.length) return [];
+  const r = rng(hash(u.id)), plan = []; let next = 2 + Math.floor(r() * 3);
+  seq.forEach((b, idx) => { const nb = seq[idx + 1], inRun = nb && serKey(nb) && serKey(nb) === serKey(b);
+    if(idx + 1 >= next && !inRun){ plan.push({ k:list[Math.floor(r() * list.length)], after:b.id, size:.82 + r() * .26 }); next = idx + 5 + Math.floor(r() * 4); } });
+  if(seq.length < 6) plan.push({ k:list[Math.floor(r() * list.length)], after:seq.length ? seq[seq.length - 1].id : null, size:.9 });
+  return plan;
+}
+const decorOfUnit = id => { for(const u of state.units){ const d = (u.decorItems || []).find(x => x.id === id); if(d) return { u, d }; } return null; };
 function innerWidth(th){ const c = $('#carousel'); const slide = Math.min((c.clientWidth || 360) - 28, 420); return slide - 2 * th.P - 20; }
 function cabinetHtml(u, i){
-  const th = themeOf(u), W = innerWidth(th), decorOn = state.settings.decor !== false, list = themeDecor(u, th);
-  let rowsHtml = '';
-  u.shelves.forEach(sh => {
-    const all = sortedBooks(sh), vis = all.filter(b => matches(b)), sctx = shelfRuns(vis), r = rng(hash(sh.id)), items = [];
-    let next = 2 + Math.floor(r() * 3);
-    vis.forEach((b, idx) => {
-      items.push(bookItem(b, u, th, sctx.get(b.id)));
-      const nb = vis[idx + 1], inRun = nb && serKey(nb) && serKey(nb) === serKey(b);
-      if(decorOn && list.length && idx + 1 >= next && !inRun){ items.push(decoItem(list[Math.floor(r() * list.length)], th, r)); next = idx + 5 + Math.floor(r() * 4); }
-    });
-    if(decorOn && list.length && vis.length < 5) items.push(decoItem(list[Math.floor(r() * list.length)], th, r));
-    const rows = packRows(items, W, th.mullion);
-    rows.forEach((row, ri) => {
-      const last = ri === rows.length - 1;
-      rowsHtml += `<div class="row" data-row="${sh.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>`
-        + (!vis.length && ri === 0 ? `<div class="empty-hint">${all.length ? 'Ningún libro coincide con el filtro' : 'Balda vacía · ' + esc(sh.name)}</div>` : '')
-        + (last ? `<button class="shelf-btn" type="button" data-act="sort" data-shelf="${sh.id}" aria-label="Opciones de la balda ${esc(sh.name)}">${ICON.dots}</button>` : '') + '</div>';
-    });
-  });
+  const th = themeOf(u), W = innerWidth(th), decorOn = state.settings.decor !== false, manual = u.decorMode === 'manual';
+  const seq = unitSeq(u), total = u.shelves.reduce((n, sh) => n + state.books.filter(b => b.shelfId === sh.id).length, 0), shown = seq.length;
+  // Las baldas (subgéneros) se colocan seguidas: solo hay tantas filas como hagan falta.
+  const plan = !decorOn ? [] : manual ? (u.decorItems || []) : autoPlan(u, th, seq);
+  const ids = new Set(seq.map(b => b.id)), after = new Map(), tail = [];
+  plan.forEach(p => { if(p.after === null || p.after === undefined){ (after.get(null) || after.set(null, []).get(null)).push(p); } else if(ids.has(p.after)){ (after.get(p.after) || after.set(p.after, []).get(p.after)).push(p); } else tail.push(p); });
+  const items = [], deco = p => { const it = decoItem(p.k, th, p.size, manual ? p.id : null); if(it) items.push(it); };
+  (after.get(null) || []).forEach(deco);
+  const runsByShelf = new Map(); u.shelves.forEach(sh => runsByShelf.set(sh.id, shelfRuns(seq.filter(b => b.shelfId === sh.id))));
+  seq.forEach(b => { items.push(bookItem(b, u, th, runsByShelf.get(b.shelfId).get(b.id))); (after.get(b.id) || []).forEach(deco); });
+  tail.forEach(deco);
+  const rows = packRows(items, W, th.mullion);
+  const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro desde arriba'}</div>` : '';
+  const rowsHtml = rows.map((row, ri) => `<div class="row" data-row="${u.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>${ri === 0 ? hint : ''}</div>`).join('');
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';
   return `<section class="slide" data-unit="${u.id}" data-i="${i}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
-    <button class="unit-btn" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Editar la estantería ${esc(u.name)}">${ICON.dots}</button>${crownHtml(u, th)}
+    <button class="unit-btn" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Editar la estantería ${esc(u.name)}">${ICON.dots}</button>${manual && decorOn ? `<button class="unit-btn deco-add" type="button" data-act="addDecor" data-unit="${u.id}" aria-label="Añadir decoración">${ICON.plus}</button>` : ''}${crownHtml(u, th)}
     <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${rowsHtml}</div><div class="pil r"></div></div>
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
 }
@@ -346,6 +356,31 @@ function openSort(shelfId){
   });
 }
 
+/* ---------- Decoración colocada a mano ---------- */
+function decoThumbs(th, cur, attr){
+  return `<div class="decor-grid">${Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC), s = Math.min(.9, 50 / d.h);
+    return `<button class="decor-opt" type="button" ${attr}="${k}" aria-pressed="${cur === k}" aria-label="${DECO_NAMES[k]}" title="${DECO_NAMES[k]}" style="opacity:1"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * s}" height="${d.h * s}">${d.s}</svg></button>`; }).join('')}</div>`;
+}
+function openAddDecor(unitId){
+  const u = unitOf(unitId); if(!u) return; const th = themeOf(u);
+  const sh = openSheet(sheetT('Añadir decoración', `<p class="note">Elige un objeto. Aparecerá al final de la estantería: mantenlo pulsado y arrástralo a donde quieras.</p>${decoThumbs(th, '', 'data-addk')}`));
+  sh.addEventListener('click', async e => { const b = e.target.closest('[data-addk]'); if(!b) return;
+    u.decorItems = u.decorItems || []; const seq = unitSeq(u);
+    u.decorItems.push({ id:uid(), k:b.dataset.addk, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); save(); renderAll(); await closeSheet(); toast('Mantén pulsado el objeto para moverlo'); });
+}
+function openDecor(decId){
+  const f = decorOfUnit(decId); if(!f) return; const { u, d } = f, th = themeOf(u);
+  const sizes = [['.75', 'Pequeño'], ['1', 'Mediano'], ['1.25', 'Grande']];
+  const draw = () => `<p class="note">Mantén pulsado el objeto en la estantería para cambiarlo de sitio.</p><div class="sec"><span class="lbl">Tamaño</span><div class="chips">${chipsHtml(sizes, String(d.size || 1), 'data-dsize')}</div></div>
+    <div class="sec"><span class="lbl">Cambiar por</span>${decoThumbs(th, d.k, 'data-dk')}</div><button class="btn danger" type="button" data-do="drm">Quitar este objeto</button>`;
+  const sh = openSheet(sheetT(DECO_NAMES[d.k] || 'Decoración', '<div id="decbody" style="display:flex;flex-direction:column;gap:16px"></div>'));
+  const paint = () => { $('#decbody', sh).innerHTML = draw(); $('.sheet-head h2', sh).textContent = DECO_NAMES[d.k] || 'Decoración'; }; paint();
+  sh.addEventListener('click', async e => { const g = s => e.target.closest(s);
+    if(g('[data-dsize]')) d.size = +g('[data-dsize]').dataset.dsize; else if(g('[data-dk]')) d.k = g('[data-dk]').dataset.dk;
+    else if(g('[data-do="drm"]')){ u.decorItems = u.decorItems.filter(x => x.id !== d.id); save(); renderAll(); await closeSheet(); toast('Objeto quitado'); return; } else return;
+    save(); renderAll(); paint(); });
+}
+
 /* ---------- Formulario de libro ---------- */
 function lastLoc(){
   const l = ui.lastShelf && shelfOf(ui.lastShelf);
@@ -369,7 +404,7 @@ function openBookForm({ book, item }){
   let coverTrios = null, coverTriosSrc = null;
   const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => `<option value="${s.id}" ${s.id === d.shelfId ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
   const body = `
-    <div id="fnote" class="notice" ${isNew && item ? '' : 'hidden'}>Datos rellenados automáticamente. Revísalos antes de guardar.<span id="fload"> Completando sinopsis e idiomas…</span></div>
+    <div id="fnote" class="notice" ${isNew && item ? '' : 'hidden'}>Datos rellenados automáticamente. Revísalos antes de guardar.<span id="fload"> Completando sinopsis, idiomas y serie…</span></div>
     <div class="hero"><div class="cover-box" id="fcover"></div><div class="meta" style="flex:1">
       <button class="btn sm" type="button" data-do="upload">Subir portada</button><button class="btn sm" type="button" data-do="nocover">Quitar portada</button>
       <input id="fupload" type="file" accept="image/*" hidden></div></div>
@@ -516,7 +551,10 @@ function openBookForm({ book, item }){
     if(!d.synopsis && it.desc){ d.synopsis = it.desc; q('#f-syn').value = d.synopsis; }
     if(!d.pages && it.pages){ d.pages = it.pages; q('#f-pages').value = d.pages; }
     if(!d.year && it.year){ d.year = it.year; q('#f-year').value = d.year; }
-    if(!d.langs.length){ d.langs = detectLangs(it); drawLangs(); }
+    { const L = detectLangs(it); if(L.some(x => !d.langs.includes(x))){ d.langs = [...new Set([...d.langs, ...L])]; drawLangs(); } }
+    if(!d.series && it.wd && it.wd.series){ d.series = { ...it.wd.series }; serNote = 'según Wikidata'; serStyle = { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) };
+      const ex = state.books.find(b => serKey(b) === norm(d.series.name) && b.series.total); if(!d.series.total && ex) d.series.total = ex.series.total;
+      q('#f-sname').value = d.series.name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); }
     if(!d.cover && !d.coverData && (it.covers || []).length){ d.cover = it.covers[0]; d.cover2 = it.covers[1] || ''; drawCover(); }
     if(!d.series && it.seriesN){ const same = state.books.find(b => b.series && b.series.name && lastName(b.author) === lastName(it.author || d.author)); if(same){ d.series = { name:same.series.name, n:+it.seriesN, total:same.series.total || '' }; serNote = 'según Google Books y tus otros libros de esta autora o autor'; q('#f-sname').value = d.series.name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); } }
     sugTags = [...new Set([...sugTags, ...suggestTags(it)])]; drawTags();
@@ -575,14 +613,14 @@ function openUnitForm(unitId){
   const u = isNew ? { id:uid(), name:'', tipo:'', preset:'auto', wood:'', decor:null, shelves:[] } : JSON.parse(JSON.stringify(orig));
   if(!isNew && !PRESETS[u.preset]) u.preset = u.preset || 'gen';
   let presetSel = isNew ? 'auto' : (u.preset || 'gen'); const del = new Set();
-  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}"><input class="field" value="${esc(s.name)}" data-sname aria-label="Nombre de la balda"><button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
+  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}"><input class="field" value="${esc(s.name)}" data-sname aria-label="Nombre de la balda"><button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
   const body = `
     <div class="sec"><label for="u-name">Nombre</label><input class="field" id="u-name" value="${esc(u.name)}" placeholder="Fantasía, Terror, Psicología…" data-autofocus></div>
     <div class="sec"><label for="u-tipo">Tipo de libros (para elegir estilo y decoración)</label><input class="field" id="u-tipo" value="${esc(u.tipo || '')}" placeholder="Opcional: fantasía gótica, ciencia ficción, viajes…"></div>
     <div class="sec"><span class="lbl">Estilo</span><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div><div class="chips" id="u-presets"></div></div>
     <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>
-    <div class="sec"><span class="lbl">Decoración</span><div class="chips"><button class="chip" type="button" id="u-decor-auto">Automática</button></div><div class="decor-grid" id="u-decor"></div></div>
-    <div class="sec"><span class="lbl">Baldas</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
+    <div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>
+    <div class="sec"><span class="lbl">Baldas (grupos dentro de la estantería: ordenan los libros, no se ven como rótulos)</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
       ${isNew ? '<input class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras">' : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
     ${isNew || state.units.length < 2 ? '' : `<div class="sec"><span class="lbl">Eliminar estantería</span>${state.books.some(b => b.unitId === u.id) ? `<select class="field" id="u-moveto" aria-label="Mover los libros a">${state.units.filter(x => x.id !== u.id).map(x => `<option value="${x.id}">Mover sus libros a ${esc(x.name)}</option>`).join('')}</select>` : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button></div>`}`;
   const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>'));
@@ -599,15 +637,29 @@ function openUnitForm(unitId){
     const on = new Set(themeDecor(t, th));
     q('#u-decor').innerHTML = Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC); return `<button class="decor-opt" type="button" data-decor="${k}" aria-pressed="${on.has(k)}" aria-label="${DECO_NAMES[k]}" title="${DECO_NAMES[k]}"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * Math.min(.9, 50 / d.h)}" height="${d.h * Math.min(.9, 50 / d.h)}">${d.s}</svg></button>`; }).join('');
     q('#u-decor-auto').setAttribute('aria-pressed', u.decor ? 'false' : 'true');
+    const man = u.decorMode === 'manual';
+    q('#u-dmode').innerHTML = chipsHtml([['auto', 'Automática'], ['manual', 'La elijo y la coloco yo']], man ? 'manual' : 'auto', 'data-dmode');
+    q('#u-dnote').textContent = man ? 'Toca un objeto para añadirlo al final. Luego, en la estantería, mantenlo pulsado para moverlo, o tócalo para cambiar su tamaño o quitarlo.' : 'Marca qué objetos puede usar; se reparten solos entre los libros.';
+    q('#u-dauto').hidden = man;
+    if(man){ q('#u-decor').innerHTML = Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC), s = Math.min(.9, 50 / d.h); return `<button class="decor-opt" type="button" data-dadd="${k}" aria-label="Añadir ${DECO_NAMES[k]}" style="opacity:1"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * s}" height="${d.h * s}">${d.s}</svg></button>`; }).join('');
+      const items = u.decorItems || [];
+      q('#u-dplaced').innerHTML = items.length ? `<div class="chips">${items.map(it => `<span class="chip on">${esc(DECO_NAMES[it.k] || it.k)} <button type="button" data-drm="${it.id}" aria-label="Quitar" style="all:unset;cursor:pointer">×</button></span>`).join('')}</div>` : '<span class="note">Aún no hay objetos colocados.</span>'; }
+    else q('#u-dplaced').innerHTML = '';
   }
   drawStyle();
   sh.addEventListener('input', e => { if(e.target.id === 'u-name' || e.target.id === 'u-tipo') drawStyle(); });
   sh.addEventListener('click', async e => {
     const t = e.target, g = s => t.closest(s);
+    if(g('[data-sortshelf]')){ openSort(g('[data-sortshelf]').dataset.sortshelf); return; }
     if(g('[data-preset]')){ presetSel = g('[data-preset]').dataset.preset; if(presetSel === 'gen') u.hue = u.hue ?? Math.floor(Math.random() * 360); drawStyle(); }
     else if(g('[data-wood]')){ u.wood = g('[data-wood]').dataset.wood; drawStyle(); }
     else if(g('[data-decor]')){ const k = g('[data-decor]').dataset.decor; const cur = [...themeDecor(tmp(), themeOf(tmp()))]; const i = cur.indexOf(k); if(i >= 0) cur.splice(i, 1); else cur.push(k); u.decor = cur.length ? cur : null; drawStyle(); }
     else if(g('#u-decor-auto')){ u.decor = null; drawStyle(); }
+    else if(g('[data-dmode]')){ const m = g('[data-dmode]').dataset.dmode;
+      if(m === 'manual' && u.decorMode !== 'manual' && !(u.decorItems || []).length && orig){ u.decorItems = autoPlan(orig, themeOf(tmp()), unitSeq(orig)).map(p => ({ ...p, id:uid(), size:Math.round(p.size * 100) / 100 })); }
+      u.decorMode = m; drawStyle(); }
+    else if(g('[data-dadd]')){ u.decorItems = u.decorItems || []; const seq = orig ? unitSeq(orig) : []; u.decorItems.push({ id:uid(), k:g('[data-dadd]').dataset.dadd, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); drawStyle(); toast('Añadido al final de la estantería'); }
+    else if(g('[data-drm]')){ u.decorItems = (u.decorItems || []).filter(x => x.id !== g('[data-drm]').dataset.drm); drawStyle(); }
     else if(g('#u-addshelf')){ const id = uid(); const d = document.createElement('div'); d.innerHTML = shelfRow({ id, name:'Nueva balda' }); q('#u-shelves').append(d.firstChild); u.shelves.push({ ...mkShelf('Nueva balda'), id }); q('#u-shelves').lastElementChild.querySelector('input').select(); }
     else if(g('[data-up]')){ const r = g('.shelf-edit'); r.previousElementSibling && r.previousElementSibling.before(r); }
     else if(g('[data-down]')){ const r = g('.shelf-edit'); r.nextElementSibling && r.nextElementSibling.after(r); }
@@ -626,7 +678,7 @@ function openUnitForm(unitId){
     }
     else if(g('#u-save')){
       const name = q('#u-name').value.trim(); if(!name){ toast('Ponle un nombre a la estantería'); return; }
-      const key = curKey(), data = { name, tipo:q('#u-tipo').value.trim(), preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue };
+      const key = curKey(), data = { name, tipo:q('#u-tipo').value.trim(), preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue, decorMode:u.decorMode || 'auto', decorItems:u.decorItems || [] };
       if(isNew){
         const names = (q('#u-newshelves').value || '').split(',').map(s => s.trim()).filter(Boolean);
         Object.assign(u, data); u.shelves = (names.length ? names : ['General']).map(mkShelf); state.units.push(u); ui.active = state.units.length - 1;
@@ -761,11 +813,11 @@ async function shareJson(){
 
 /* ---------- Arrastrar y soltar ---------- */
 let pend = null, drag = null, noClickUntil = 0, lastPt = { x:0, y:0 }, autoRaf = 0;
-document.addEventListener('contextmenu', e => { if(e.target.closest && e.target.closest('.bk')) e.preventDefault(); });
+document.addEventListener('contextmenu', e => { if(e.target.closest && e.target.closest('.bk, .dcm')) e.preventDefault(); });
 document.addEventListener('touchmove', e => { if(drag) e.preventDefault(); }, { passive:false });
 document.addEventListener('pointerdown', e => {
-  if(e.button > 0) return; const bk = e.target.closest && e.target.closest('#carousel .bk'); if(!bk) return;
-  pend = { bk, id:bk.dataset.id, x:e.clientX, y:e.clientY, type:e.pointerType, timer:setTimeout(startDrag, 380) }; lastPt = { x:e.clientX, y:e.clientY };
+  if(e.button > 0) return; const bk = e.target.closest && e.target.closest('#carousel .bk, #carousel .dcm'); if(!bk) return;
+  pend = { bk, id:bk.dataset.id || bk.dataset.dec, dec:!!bk.dataset.dec, x:e.clientX, y:e.clientY, type:e.pointerType, timer:setTimeout(startDrag, 380) }; lastPt = { x:e.clientX, y:e.clientY };
 });
 addEventListener('pointermove', e => {
   lastPt = { x:e.clientX, y:e.clientY };
@@ -776,7 +828,7 @@ addEventListener('pointermove', e => {
 function startDrag(){
   if(!pend) return; clearTimeout(pend.timer);
   const ghost = document.createElement('div'); ghost.className = 'ghost'; ghost.appendChild(pend.bk.cloneNode(true)); document.body.appendChild(ghost);
-  pend.bk.classList.add('dragging'); drag = { id:pend.id, bk:pend.bk, ghost, target:null, marker:null }; pend = null;
+  pend.bk.classList.add('dragging'); drag = { id:pend.id, dec:pend.dec, bk:pend.bk, ghost, target:null, marker:null }; pend = null;
   $('#carousel').style.scrollSnapType = 'none'; navigator.vibrate && navigator.vibrate(12); moveGhost(); updateTarget(); autoLoop();
 }
 function moveGhost(){ drag.ghost.style.left = lastPt.x + 'px'; drag.ghost.style.top = lastPt.y + 'px'; }
@@ -800,18 +852,24 @@ function updateTarget(){
   if(!drag.marker){ drag.marker = document.createElement('div'); drag.marker.className = 'ins'; row.appendChild(drag.marker); }
   Object.assign(drag.marker.style, { left:x + 'px', top:Math.max(0, top - 4) + 'px', height:'168px' });
   const rowsOf = $$(`.row[data-row="${row.dataset.row}"]`), before = rowsOf.slice(0, rowsOf.indexOf(row)).reduce((n, r) => n + $$('.it[data-id]', r).filter(it => it.dataset.id !== drag.id).length, 0);
-  const vis = rowsOf.flatMap(r => $$('.it[data-id]', r).filter(it => it.dataset.id !== drag.id).map(it => it.dataset.id));
-  drag.target = { shelfId:row.dataset.row, idx:before + idx, vis };
+  const all = rowsOf.flatMap(r => $$('.it[data-id]', r).filter(it => it.dataset.id !== drag.id)), gi = before + idx, nxt = all[gi], prv = all[gi - 1];
+  const u = unitOf(row.dataset.row), shelfId = prv ? prv.dataset.shelf : nxt ? nxt.dataset.shelf : (u ? u.shelves[0].id : null);
+  drag.target = drag.dec ? { unitId:row.dataset.row, after:prv ? prv.dataset.id : null } : shelfId ? { shelfId, beforeId:nxt && nxt.dataset.shelf === shelfId ? nxt.dataset.id : null } : null;
 }
 function endDrag(drop){
   if(!drag) return; cancelAnimationFrame(autoRaf);
   const d = drag; drag = null; d.ghost.remove(); d.bk.classList.remove('dragging'); d.marker && d.marker.remove(); $$('.row.drop').forEach(r => r.classList.remove('drop'));
   $('#carousel').style.scrollSnapType = ''; noClickUntil = Date.now() + 450;
-  if(drop && d.target) moveBook(d.id, d.target);
+  if(drop && d.target){ if(d.dec) moveDecor(d.id, d.target); else moveBook(d.id, d.target); }
+}
+function moveDecor(id, t){
+  const f = decorOfUnit(id), to = unitOf(t.unitId); if(!f || !to) return;
+  if(f.u !== to){ f.u.decorItems = f.u.decorItems.filter(x => x.id !== id); to.decorItems = to.decorItems || []; to.decorItems.push(f.d); if(to.decorMode !== 'manual') to.decorMode = 'manual'; }
+  f.d.after = t.after; const arr = to.decorItems, i = arr.indexOf(f.d); arr.splice(i, 1); arr.push(f.d); save(); renderAll();
 }
 function moveBook(id, t){
   const b = bookOf(id), to = shelfOf(t.shelfId), from = shelfOf(b.shelfId); if(!b || !to) return;
-  const order = sortedBooks(to.s).map(x => x.id).filter(x => x !== id), before = t.vis[t.idx], pos = before ? order.indexOf(before) : order.length;
+  const order = sortedBooks(to.s).map(x => x.id).filter(x => x !== id), pos = t.beforeId ? order.indexOf(t.beforeId) : order.length;
   order.splice(pos < 0 ? order.length : pos, 0, id);
   if(from && from.s !== to.s) from.s.order = from.s.order.filter(x => x !== id);
   b.unitId = to.u.id; b.shelfId = to.s.id; ui.lastShelf = to.s.id; to.s.order = order;
@@ -825,10 +883,11 @@ addEventListener('pointercancel', () => { if(pend){ clearTimeout(pend.timer); pe
 document.addEventListener('click', e => {
   const g = s => e.target.closest(s);
   if(g('#carousel .bk')){ if(Date.now() < noClickUntil) return; openDetail(g('.bk').dataset.id); return; }
+  if(g('#carousel .dcm')){ if(Date.now() < noClickUntil) return; openDecor(g('.dcm').dataset.dec); return; }
   if(g('[data-open]')){ openDetail(g('[data-open]').dataset.open); return; }
   const act = g('[data-act]'); if(act && !g('.sheet')){
     const a = act.dataset.act;
-    if(a === 'sort') openSort(act.dataset.shelf); else if(a === 'editUnit') openUnitForm(act.dataset.unit); else if(a === 'newUnit') openUnitForm(null);
+    if(a === 'sort') openSort(act.dataset.shelf); else if(a === 'addDecor') openAddDecor(act.dataset.unit); else if(a === 'editUnit') openUnitForm(act.dataset.unit); else if(a === 'newUnit') openUnitForm(null);
     else if(a === 'clearFilters'){ ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); }
     else if(a === 'clearExamples'){ const n = state.books.filter(b => b.ejemplo).length; state.books = state.books.filter(b => !b.ejemplo); state.units.forEach(u => u.shelves.forEach(s => s.order = s.order.filter(id => bookOf(id)))); save(); renderAll(); toast(`${n} libros de ejemplo borrados`); }
     return;

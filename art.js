@@ -120,21 +120,21 @@ function spineArt(b, u, th, ctx = {}){
   switch(style){
     case 'nervios': spec = { type:0, base:B, foil:F, accent:darken(B, .5), tex:'tex-leather', up:1, ls:.08, max:12 }; break;
     case 'marco': spec = { type:1, base:B, foil:F, motif:th.motif, tex:'tex-leather', phase:o.phase, max:14 }; break;
-    case 'jaspeado': spec = { type:2, base:mix(F, '#ffffff', .55), accent:B, m1:darken(F, .35), m2:A, m3:F, foil:F, numPos:'top', max:14 }; break;
+    case 'jaspeado': spec = { type:2, base:mix(F, '#ffffff', .55), accent:B, m1:darken(F, .35), m2:A, m3:F, foil:F, numPos:'mid', max:14 }; break;
     case 'acuarela': spec = { type:3, base:'#f7f1ea', accent:lighten(A, .25), accent2:lighten(B, .45), ink:darken(B, .25), foil:darken(B, .25), tex:'tex-paper', font:'pag', wt:600, max:13 }; break;
-    case 'ilustrado': spec = { type:4, scene, base:darken(B, .35), accent:mix(B, A, .55), sky2:lighten(A, .3), sil:darken(B, .72), sil2:mix(darken(B, .45), A, .25), moon:'#ffe8a8', foil:lighten(F, .55), font:'pag', max:13 }; break;
+    case 'ilustrado': spec = { type:4, scene, base:darken(B, lum(B) > .45 ? .62 : .35), accent:mix(B, A, .55), sky2:lighten(A, .3), sil:darken(B, .72), sil2:mix(darken(B, .45), A, .25), moon:'#ffe8a8', foil:lum(F) > .6 ? F : lighten(F, .7), font:'pag', max:13 }; break;
     case 'deco': spec = { type:5, base:B, foil:F, font:'deco', up:1, ls:.06, max:11 }; break;
     case 'grimorio': spec = { type:6, base:darken(B, .25), foil:F, gem:A, tex:'tex-leather', max:14 }; break;
     case 'escamas': spec = { type:7, base:B, accent:lighten(A, .2), foil:F, font:'pag', max:11 }; break;
     case 'estrellado': spec = { type:8, base:B, foil:lighten(F, .2), tex:'tex-gloss', font:'script', wt:400, max:16 }; break;
     case 'enredadera': spec = { type:9, base:mix(B, '#ffffff', .8), leaf:'#5b7f4a', bloom:lighten(A, .15), ink:darken(B, .35), foil:darken(B, .35), tex:'tex-paper', font:'script', wt:400, max:15 }; break;
     case 'saga': { const sc = ser.scene || ['castle','sea','dragon'][ser.seed % 3];
-      spec = { type:4, saga:sc, base:darken(B, .35), accent:mix(B, A, .5), sky2:lighten(A, .3), moon:'#ffe8a8', sil:darken(B, .75), sil2:mix(darken(B, .45), A, .2), foil:lighten(F, .55), font:'pag', max:12,
+      spec = { type:4, saga:sc, base:darken(B, lum(B) > .45 ? .62 : .35), accent:mix(B, A, .5), sky2:lighten(A, .3), moon:'#ffe8a8', sil:darken(B, .75), sil2:mix(darken(B, .45), A, .2), foil:lum(F) > .6 ? F : lighten(F, .7), font:'pag', max:12,
         cont:{ off:ser.off, total:ser.totalW, seed:ser.seed } }; break; }
     default: { // estilos de ciencia ficción
       const kind = SF_KIND[style] || 'foil';
       const oo = { w, h, title:o.title, c1:B, c2:A, c3:F, font:kind === 'glass' ? 'pop' : 'deco', up:1, ls:.08, max:14, wt:700 };
-      const num = o.num ? `<span class="num" style="--f:#fff;top:${h - 30}px">${o.num}</span>` : '';
+      const num = o.num ? `<span class="num" style="--f:#fff;top:${h - (kind === 'orbit' || kind === 'glass' ? 21 : 30)}px">${o.num}</span>` : '';
       return { w, h, style, html:`<div class="it"><div class="bk" style="--w:${w}px;--h:${h}px;--b:#111"><div class="face">${SF[kind](oo, w, h, hash(o.title + kind))}${num}</div></div></div>` };
     }
   }

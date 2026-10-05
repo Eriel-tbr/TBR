@@ -192,3 +192,6 @@ textarea.field{min-height:110px;resize:vertical}
 .switch input{width:22px;height:22px;accent-color:var(--acc)}
 .three{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
 .decor-opt svg{max-height:52px;width:auto}
+
+#dbody,#qbody{display:flex;flex-direction:column;gap:18px}
+#dbody .hero{margin-bottom:2px}

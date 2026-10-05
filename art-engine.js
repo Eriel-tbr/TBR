@@ -266,7 +266,7 @@ const FONT = { serif: "'GFS Baskerville','Caladea',Georgia,serif", pag: "'TeX Gy
 const cvx = document.createElement('canvas').getContext('2d');
 const tlen = (t, o) => { cvx.font = `${o.it ? 'italic ' : ''}${o.wt} 100px ${FONT[o.font]}`; const s = o.up ? t.toUpperCase() : t; return cvx.measureText(s).width / 100 + o.ls * s.length; };
 function fit(text, len, wid, o) {
-  const lh = 1.12, one = Math.min(o.max, len / tlen(text, o), wid / lh);
+  len *= .93; const lh = 1.12, one = Math.min(o.max, len / tlen(text, o), wid / lh);
   let best = { lines: [text], fs: one };
   const w = text.split(' ');
   if (w.length > 1) {
@@ -281,7 +281,7 @@ const hs = s => { let h = 7; for (const ch of s) h = Math.imul(h ^ ch.charCodeAt
 function ttl(o, b, extra = {}) {
   const O = { font: o.font || 'serif', wt: o.wt || 700, up: !!o.up, ls: o.ls ?? .04, it: !!o.it, max: o.max || 15 };
   const f = fit(o.title, b.h, b.w, O);
-  return `<div class="tbox" style="left:${b.l}px;top:${b.t}px;width:${b.w}px;height:${b.h}px"><div class="tt ${b.fx ? 'fx fxs' : ''}" style="font-family:${FONT[O.font]};font-weight:${O.wt};${O.it ? 'font-style:italic;' : ''}font-size:${f.fs}px;letter-spacing:${O.ls}em;${O.up ? 'text-transform:uppercase;' : ''}color:${b.c || o.foil}">${f.lines.map(l => `<span>${esc(l)}</span>`).join('')}</div></div>`;
+  return `<div class="tbox" style="left:${b.l}px;top:${b.t}px;width:${b.w}px;height:${b.h}px"><div class="tt ${b.fx ? 'fxs' : ''}" style="font-family:${FONT[O.font]};font-weight:${O.wt};${O.it ? 'font-style:italic;' : ''}font-size:${f.fs}px;letter-spacing:${O.ls}em;${O.up ? 'text-transform:uppercase;' : ''}color:${b.c || o.foil}">${f.lines.map(l => `<span>${esc(l)}</span>`).join('')}</div></div>`;
 }
 const MOTIF = {
   star: 'M8 1l2 4.800 5 .4-3.800 3.300 1.200 5L8 11.800 3.600 14.500l1.200-5L1 6.200l5-.4z', moon: 'M10 1.500A6.500 6.500 0 1 0 14 12a5.200 5.200 0 1 1-4-10.500z',
@@ -330,7 +330,7 @@ function spine(o) {
     case 5: { // art déco
       const rays = [...Array(7)].map((_, i) => { const a = (-70 + i * 23.3) * Math.PI / 180; return `<path d="M${w / 2} 0L${w / 2 + Math.sin(a) * 40} ${Math.cos(a) * 40}" stroke="${foil}" stroke-width=".8" opacity=".8"/>`; }).join('');
       f = `<div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.06) 3px 4px)"></div><svg width="${w}" height="34" style="position:absolute;left:0;top:0;z-index:2;overflow:hidden">${rays}<circle cx="${w / 2}" cy="0" r="7" fill="${foil}"/><circle cx="${w / 2}" cy="0" r="10" fill="none" stroke="${foil}" stroke-width=".8"/></svg>` +
-        `<div style="position:absolute;left:4px;right:4px;top:38px;bottom:42px;border:1px solid ${foil};border-radius:${Math.min(14, w / 2 - 2)}px;box-shadow:inset 0 0 0 2px ${o.base},inset 0 0 0 3px color-mix(in srgb,${foil} 60%,transparent);z-index:2"></div>` + ttl(o, { l: 9, t: 42, w: w - 18, h: h - 42 - 46, fx: 1 }) +
+        `<div style="position:absolute;left:4px;right:4px;top:38px;bottom:42px;border:1px solid ${foil};border-radius:${Math.min(14, w / 2 - 2)}px;box-shadow:inset 0 0 0 2px ${o.base},inset 0 0 0 3px color-mix(in srgb,${foil} 60%,transparent);z-index:2"></div>` + ttl(o, { l: 9, t: 42, w: w - 18, h: h - 42 - 46 - (o.num ? 30 : 0), fx: 1 }) +
         `<svg width="${w}" height="30" style="position:absolute;left:0;bottom:4px;z-index:2"><path d="M4 8L${w / 2} 20 ${w - 4} 8M4 15L${w / 2} 27 ${w - 4} 15" fill="none" stroke="${foil}" stroke-width="1.200"/></svg>`; break; }
     case 6: { // capitular
       const d = Math.min(w - 8, 30);
@@ -479,7 +479,7 @@ function spine(o) {
       const r = rng(seed), top = Math.round(h * .6), bot = h - 9; let wv = '';
       const cols = [o.m1 || lighten(o.base, .45), o.m2 || darken(o.base, .2), o.m3 || '#f3e6cc'];
       for (let i = 0; i < 16; i++) { const y = top + r() * (bot - top), a = 1.500 + r() * 3, ph = r() * 6, fr = 3 + r() * 4; let p = `M-2 ${y}`; for (let x = 0; x <= w + 2; x += 2) p += `L${x} ${y + Math.sin(x / fr + ph) * a}`; wv += `<path d="${p}" stroke="${cols[i % 3]}" stroke-width="${.8 + r() * 2.400}" fill="none" opacity="${.6 + r() * .4}"/>`; }
-      numTop = o.numPos === 'top' ? 13 : top + 6;
+      numTop = o.numPos === 'top' ? 13 : o.numPos === 'mid' ? Math.round(top + (bot - top) / 2 - 7.5) : top + 6;
       f = `<svg width="${w}" height="${h}" style="position:absolute;inset:0"><rect y="${top}" width="${w}" height="${bot - top}" fill="${o.base}"/>${wv}</svg><div style="position:absolute;left:0;right:0;top:0;height:${top}px;background:${acc};box-shadow:0 1px 2px rgba(0,0,0,.5)"></div><div style="position:absolute;left:0;right:0;top:${bot}px;bottom:0;background:${acc};box-shadow:0 -1px 2px rgba(0,0,0,.5)"></div>` +
         `<i class="band" style="top:${top - 1.500}px;height:1.500px"></i><i class="band" style="top:${bot}px;height:1.500px"></i><i class="band" style="top:7px;height:1.500px"></i>` + ttl(o, { l: 3, t: o.num && o.numPos === 'top' ? 32 : 12, w: w - 6, h: top - (o.num && o.numPos === 'top' ? 38 : 18), fx: 1 }); break; }
     case 3: { // acuarela
@@ -497,8 +497,8 @@ function spine(o) {
     case 5: {
       const rays = [...Array(7)].map((_, i) => { const a = (-70 + i * 23.3) * Math.PI / 180; return `<path d="M${w / 2} 0L${w / 2 + Math.sin(a) * 40} ${Math.cos(a) * 40}" stroke="${foil}" stroke-width=".8" opacity=".8"/>`; }).join('');
       f = `<div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.06) 3px 4px)"></div><svg width="${w}" height="34" style="position:absolute;left:0;top:0;z-index:2;overflow:hidden">${rays}<circle cx="${w / 2}" cy="0" r="7" fill="${foil}"/><circle cx="${w / 2}" cy="0" r="10" fill="none" stroke="${foil}" stroke-width=".8"/></svg>` +
-        `<div style="position:absolute;left:4px;right:4px;top:38px;bottom:42px;border:1px solid ${foil};border-radius:${Math.min(14, w / 2 - 2)}px;box-shadow:inset 0 0 0 2px ${o.base},inset 0 0 0 3px color-mix(in srgb,${foil} 60%,transparent);z-index:2"></div>` + ttl(o, { l: 9, t: 42, w: w - 18, h: h - 42 - 46, fx: 1 }) +
-        `<svg width="${w}" height="30" style="position:absolute;left:0;bottom:4px;z-index:2"><path d="M4 8L${w / 2} 20 ${w - 4} 8M4 15L${w / 2} 27 ${w - 4} 15" fill="none" stroke="${foil}" stroke-width="1.200"/></svg>`; break; }
+        `<div style="position:absolute;left:4px;right:4px;top:38px;bottom:42px;border:1px solid ${foil};border-radius:${Math.min(14, w / 2 - 2)}px;box-shadow:inset 0 0 0 2px ${o.base},inset 0 0 0 3px color-mix(in srgb,${foil} 60%,transparent);z-index:2"></div>` + ttl(o, { l: 9, t: 42, w: w - 18, h: h - 42 - 46 - (o.num ? 30 : 0), fx: 1 }) +
+        `<svg width="${w}" height="30" style="position:absolute;left:0;bottom:4px;z-index:2"><path d="M4 8L${w / 2} 20 ${w - 4} 8M4 15L${w / 2} 27 ${w - 4} 15" fill="none" stroke="${foil}" stroke-width="1.200"/></svg>`; numTop = h - 42 - 21; break; }
     case 6: { // grimorio: cantoneras de metal y cierre
       const cy = Math.round(h * .7), cn = (x, y, sx, sy) => `<path d="M${x} ${y}h${sx * 9}l${-sx * 9} ${sy * 9}z" fill="url(#gm${seed})" stroke="${darken(foil, .5)}" stroke-width=".5"/>`;
       f = `<svg width="${w}" height="${h}" style="position:absolute;inset:0;z-index:3"><defs><linearGradient id="gm${seed}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${lighten(foil, .5)}"/><stop offset=".5" stop-color="${foil}"/><stop offset="1" stop-color="${darken(foil, .45)}"/></linearGradient></defs>
@@ -528,7 +528,7 @@ function spine(o) {
         <g transform="translate(0 ${h * .78 + 6})">${[0, 1, 2, 3, 4].map(i => `<path d="M${-6 + i * 9} 14L${i * 9} 0H${4 + i * 9}L${-2 + i * 9} 14Z" fill="${o.warn || '#ffd400'}" opacity=".9"/>`).join('')}</g><rect x="0" y="${h * .78 + 6}" width="${w}" height="14" fill="none"/></svg>` +
         ttl(o, { l: 4, t: Math.round(h * .2) + 8, w: w - 14, h: Math.round(h * .58) - 16, c: o.ink || '#e8edf3', ts: '0 1px 0 rgba(0,0,0,.6)' }); numTop = h * .78 - 22; break; }
   }
-  const num = o.num ? `<span class="num" style="--f:${foil};top:${numTop}px">${o.num}</span>` : '';
+  const num = o.num ? `<span class="num" style="--f:${foil};top:${numTop}px${o.numPos === 'mid' ? ';background:' + o.accent : ''}">${o.num}</span>` : '';
   return `<div class="it"><div class="bk ${o.lean ? 'lean' : ''}" style="--w:${w}px;--h:${h}px;--b:${o.base};--f:${foil};--fa:${fa};--fb:${fb};--ac:${acc}"><div class="face ${o.tex || ''}">${f}${num}</div></div></div>`;
 }
 
@@ -537,7 +537,7 @@ function moonPhase(k, n, y, s, col, bg) { const r = s / 2 - 1, off = 2 * r * (k 
 function ttl(o, b) {
   const O = { font: o.font || 'serif', wt: o.wt || 700, up: !!o.up, ls: o.ls ?? .04, it: !!o.it, max: o.max || 15 };
   const f = fit(o.title, b.h, b.w, O);
-  return `<div class="tbox" style="left:${b.l}px;top:${b.t}px;width:${b.w}px;height:${b.h}px"><div class="tt ${b.fx ? 'fx fxs' : ''}" style="font-family:${FONT[O.font]};font-weight:${O.wt};${O.it ? 'font-style:italic;' : ''}font-size:${f.fs}px;letter-spacing:${O.ls}em;${O.up ? 'text-transform:uppercase;' : ''}color:${b.c || o.foil};${b.ts ? 'text-shadow:' + b.ts + ';' : ''}">${f.lines.map(l => `<span>${esc(l)}</span>`).join('')}</div></div>`;
+  return `<div class="tbox" style="left:${b.l}px;top:${b.t}px;width:${b.w}px;height:${b.h}px"><div class="tt ${b.fx ? 'fxs' : ''}" style="font-family:${FONT[O.font]};font-weight:${O.wt};${O.it ? 'font-style:italic;' : ''}font-size:${f.fs}px;letter-spacing:${O.ls}em;${O.up ? 'text-transform:uppercase;' : ''}color:${b.c || o.foil};${b.ts ? 'text-shadow:' + b.ts + ';' : ''}transform:translateX(${O.up ? -.1 : -.05}em)">${f.lines.map(l => `<span>${esc(l)}</span>`).join('')}</div></div>`;
 }
 
 function moonPhase2(f, y, s, col, bg) { const r = s / 2 - 1, cx = s / 2, cy = s / 2, rx = Math.abs(1 - 2 * f) * r;
