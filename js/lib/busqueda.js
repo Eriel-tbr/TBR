@@ -37,6 +37,13 @@ async function searchGoogle(q, signal, lang){
       isbn:((v.industryIdentifiers || []).find(x => x.type === 'ISBN_13') || {}).identifier || '' };
   }).filter(x => x.title);
 }
+/* Hardcover (vía API propia, con token en el servidor): muy completa en inglés, con serie y número */
+async function searchHardcover(q, signal){
+  const r = await fetchTimeout(API_BASE + 'api/hardcover?q=' + encodeURIComponent(q), signal, 6000); if(!r.ok) throw new Error('Hardcover ' + r.status);
+  const { items = [] } = await r.json();
+  return items.map(d => ({ src:'h', title:d.title, author:d.author, year:d.year, pages:d.pages, lang:'', covers:d.cover ? [d.cover] : [], subjects:d.genres || [],
+    desc:d.desc || '', descLang:d.desc ? 'en' : '', series:d.series && d.series.name ? d.series : null, seriesN:d.series ? +d.series.n || 0 : 0, users:d.users || 0 }));
+}
 async function searchOpenLib(q, signal){
   const u = 'https://openlibrary.org/search.json?limit=8&fields=key,title,author_name,first_publish_year,number_of_pages_median,language,cover_i,subject&q=' + encodeURIComponent(q);
   const r = await fetchTimeout(u, signal, 8000); if(!r.ok) throw new Error('OL ' + r.status); const j = await r.json();
@@ -49,25 +56,25 @@ async function searchBooks(q, signal, onPartial){
   // Tres búsquedas a la vez: Google (general y solo ediciones en español) y Open Library.
   // Se enseñan resultados en cuanto llega algo; Open Library (más lenta) se espera como mucho 5 s.
   const nq = norm(q), score = x => (norm(x.title).includes(nq) || nq.includes(norm(x.title)) ? 0 : 1);
-  const got = { g:null, ge:null, o:null }, fail = { g:false, ge:false, o:false };
+  const got = { g:null, ge:null, h:null, o:null }, fail = { g:false, ge:false, h:false, o:false };
   const merge = () => {
     const gi = [...(got.g || []), ...(got.ge || [])].sort((a, b) => score(a) - score(b)), map = new Map();
-    for(const x of [...gi, ...(got.o || [])]){
+    for(const x of [...gi, ...(got.h || []).sort((a, b) => score(a) - score(b)), ...(got.o || [])]){
       const k = bookKey(x), cur = map.get(k);
       if(!cur){ map.set(k, { ...x }); continue; }
       cur.covers = [...new Set([...cur.covers, ...x.covers])];
       cur.subjects = [...new Set([...(cur.subjects || []), ...(x.subjects || [])])];
       cur.pages = cur.pages || x.pages; cur.year = x.year || cur.year;
       cur.desc = cur.desc || x.desc; cur.descLang = cur.descLang || x.descLang; cur.lang = cur.lang || x.lang;
-      cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey; cur.isbn = cur.isbn || x.isbn;
+      cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey; cur.isbn = cur.isbn || x.isbn; cur.series = cur.series || x.series;
     }
-    return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 12), failed:fail.g && fail.ge && fail.o, googleDown:fail.g && fail.ge };
+    return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 12), failed:fail.g && fail.ge && fail.h && fail.o, googleDown:fail.g && fail.ge && fail.h };
   };
   const run = (k, p) => p.then(v => { got[k] = v; }, e => { if(signal.aborted) throw e; fail[k] = true; })
-    .then(() => { if(!signal.aborted && onPartial && (got.g || got.ge || got.o)) onPartial(merge()); });
-  const google = Promise.all([run('g', searchGoogle(q, signal)), run('ge', searchGoogle(q, signal, 'es'))]);
+    .then(() => { if(!signal.aborted && onPartial && (got.g || got.ge || got.h || got.o)) onPartial(merge()); });
+  const google = Promise.all([run('g', searchGoogle(q, signal)), run('ge', searchGoogle(q, signal, 'es')), run('h', searchHardcover(q, signal))]);
   const ol = run('o', searchOpenLib(q, signal));
-  await Promise.race([Promise.all([google, ol]), google.then(() => new Promise(r => setTimeout(r, (got.g || got.ge) ? 2500 : 5000)))]).catch(() => {});
+  await Promise.race([Promise.all([google, ol]), google.then(() => new Promise(r => setTimeout(r, (got.g || got.ge || got.h) ? 2500 : 5000)))]).catch(() => {});
   if(signal.aborted) return null;
   return merge();
 }
@@ -115,7 +122,20 @@ async function enrichBook(item, signal){
       }
     }
   }catch(e){}
+  // Ediciones en inglés a la venta en Books2Door
+  try{
+    const en = (item.lang === 'es' || out.descLang === 'es' && item.lang !== 'en') && out.wd && out.wd.enTitle ? out.wd.enTitle : item.title;
+    const eds = await englishEditions(en, author, signal);
+    if(eds.length){ out.edsEn = eds; out.enFound = true; }
+  }catch(e){}
   return out;
+}
+async function englishEditions(title, author, signal){
+  const r = await fetchTimeout(API_BASE + 'api/b2d?q=' + encodeURIComponent(title.replace(/\s*[(:].*$/, '') + ' ' + author), signal, 7000); if(!r.ok) return [];
+  const { items = [] } = await r.json(), last = norm(author).split(' ').pop(), nt = norm(title.replace(/\s*[(:].*$/, ''));
+  return items.filter(x => norm(x.full).includes(nt) && (!last || norm(x.author + ' ' + x.full).includes(last)))
+    .map(x => ({ title:x.title, fmt:x.fmt, publisher:x.publisher, price:x.price, url:x.url, isbn:x.isbn, available:x.available, set:/collection|box set|books set/i.test(x.full), store:'Books2Door' }))
+    .sort((a, b) => a.set - b.set).slice(0, 6);
 }
 /* ISBN de ediciones en español entre resultados de Google Books (mismo autor/a) */
 function esIsbns(list, author){
@@ -174,7 +194,7 @@ async function wikidataInfo(title, author, signal){
 function detectLangs(item){
   const set = new Set();
   if(item.wd){ if(item.wd.es) set.add('es'); if(item.wd.en) set.add('en'); }
-  if(item.esFound) set.add('es');
+  if(item.esFound) set.add('es'); if(item.enFound) set.add('en');
   for(const l of item.olLangs || []){ if(l === 'spa') set.add('es'); if(l === 'eng') set.add('en'); }
   if(item.lang === 'es') set.add('es'); if(item.lang === 'en') set.add('en');
   return [...set];

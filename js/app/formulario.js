@@ -10,6 +10,7 @@ function newDraft(item){
   const it = item || {}, sugTags = suggestTags(it), sug = suggestShelf(state, sugTags), loc = sug || lastLoc();
   const ps = parseSeries(it.title); let title = it.title || '', series = null, serNote = '';
   if(ps){ title = title.replace(/\s*\([^()]*\)\s*$/, '').trim() || title; series = { name:ps.name, n:ps.n, total:'' }; serNote = 'detectada en el título'; }
+  else if(it.series && it.series.name){ series = { name:it.series.name, n:it.series.n || '', total:it.series.total || '' }; serNote = 'según Hardcover'; }
   else if(it.seriesN){ const same = state.books.find(b => b.series && b.series.name && lastName(b.author) && lastName(b.author) === lastName(it.author)); if(same){ series = { name:same.series.name, n:+it.seriesN, total:same.series.total || '' }; serNote = 'según Google Books y tus otros libros de esta autora o autor'; } }
   return { serNote, draft:{ series, spine:null, id:uid(), title, author:it.author || '', synopsis:it.desc || '', pages:it.pages || '', year:it.year || '', langs:detectLangs(it), formats:{}, tags:[], notes:'',
     status:'pendiente', rating:0, next:false, cover:(it.covers || [])[0] || '', cover2:(it.covers || [])[1] || '', coverData:'', unitId:loc.unitId, shelfId:loc.shelfId, addedAt:Date.now() }, sugTags, sugged:!!sug };
@@ -58,9 +59,9 @@ function openBookForm({ book, item }){
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
-  const drawFmt = () => { const av = edFormats(d.eds);
-    q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av.has(k) ? 1 : ''}"${av.has(k) ? ' title="Existe en español"' : ''}>${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
-    q('#feds').innerHTML = edsHtml(d.eds); };
+  const drawFmt = () => { const av = edAvail(d);
+    q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av[k] || ''}">${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
+    q('#feds').innerHTML = edsHtml(d.eds) + edsHtml(d.edsEn, true); };
   const drawTags = () => {
     q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + '<input id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta">';
     const used = allTags().map(x => x[0]).filter(t => !d.tags.includes(t)).slice(0, 10), sug = sugTags.filter(t => !d.tags.includes(t));
@@ -173,6 +174,9 @@ function openBookForm({ book, item }){
     if(it.desc && (!d.synopsis || (d.synopsis === autoSyn && it.descLang === 'es' && d.synopsis !== it.desc))){ d.synopsis = autoSyn = it.desc; q('#f-syn').value = d.synopsis;
       q('#f-synsrc').textContent = it.descSrc ? `Sinopsis de la edición española (${it.descSrc}).` : ''; }
     if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); drawFmt(); }
+    if(it.edsEn && it.edsEn.length){ d.edsEn = it.edsEn; drawFmt(); }
+    if(!d.series && it.series && it.series.name){ d.series = { name:it.series.name, n:it.series.n || '', total:it.series.total || '' }; serNote = 'según Hardcover'; serStyle = { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) };
+      q('#f-sname').value = d.series.name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); }
     if(!d.pages && it.pages){ d.pages = it.pages; q('#f-pages').value = d.pages; }
     if(!d.year && it.year){ d.year = it.year; q('#f-year').value = d.year; }
     { const L = detectLangs(it); if(L.some(x => !d.langs.includes(x))){ d.langs = [...new Set([...d.langs, ...L])]; drawLangs(); } }

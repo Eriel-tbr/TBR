@@ -18,7 +18,7 @@ function openDetail(id){
       <dl class="kv"><dt>Páginas</dt><dd>${b.pages || '—'}</dd><dt>Publicación</dt><dd>${b.year || '—'}</dd>
         <dt>Idiomas</dt><dd>${(b.langs || []).length === 2 ? 'Español e inglés' : (b.langs || [])[0] === 'es' ? 'Solo español' : (b.langs || [])[0] === 'en' ? 'Solo inglés' : '—'}</dd>
         ${b.readAt ? `<dt>Leído</dt><dd>${new Date(b.readAt).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}</dd>` : ''}</dl>
-      ${fm || (b.eds || []).length ? `<div class="sec"><span class="lbl">Ediciones</span>${fm ? `<div class="chips">${fm}</div>` : ''}${edsHtml(b.eds)}</div>` : ''}
+      ${fm || (b.eds || []).length || (b.edsEn || []).length ? `<div class="sec"><span class="lbl">Ediciones</span>${fm ? `<div class="chips">${fm}</div>` : ''}${edsHtml(b.eds)}${edsHtml(b.edsEn, true)}</div>` : ''}
       ${(b.tags || []).length ? `<div class="sec"><span class="lbl">Etiquetas</span><div class="chips">${b.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div></div>` : ''}
       ${b.notes ? `<div class="sec"><span class="lbl">Notas</span><div class="synopsis">${esc(b.notes)}</div></div>` : ''}
       <div class="actions">

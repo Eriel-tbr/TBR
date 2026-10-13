@@ -206,6 +206,6 @@ textarea.field{min-height:110px;resize:vertical}
 .cloud-st.bad span{color:#c0392b}
 
 /* Ediciones en español */
-.chip.fmt[data-av="1"]::after{content:'ES';font-size:.6rem;font-weight:700;letter-spacing:.04em;margin-left:6px;padding:1px 4px;border-radius:4px;background:var(--surface2);color:var(--muted)}
+.chip.fmt:not([data-av=""])::after{content:attr(data-av);font-size:.6rem;font-weight:700;letter-spacing:.04em;margin-left:6px;padding:1px 4px;border-radius:4px;background:var(--surface2);color:var(--muted)}
 .eds{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .eds a{font-size:.86rem;color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}

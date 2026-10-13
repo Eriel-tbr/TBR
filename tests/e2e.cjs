@@ -26,6 +26,11 @@ function fakeOwnApi(route){
     synopsis:'Sinopsis oficial en español de la editorial, bastante más larga que la de Google Books para que se elija.' })) }) });
   if(u.pathname === '/api/buscar'){ if(googleDown) return route.fulfill({ status:429, contentType:'application/json', body:'{}' });
     return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(GB(u.searchParams.get('langRestrict') === 'es')) }); }
+  if(u.pathname === '/api/hardcover') return googleDown ? route.fulfill({ status:503, body:'{}' }) : route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[{ title:'Quicksilver', author:'Callie Hart', year:2024, pages:610, cover:'',
+    desc:'Fae romantasy.', series:{ name:'Fae & Alchemy', n:1, total:3 }, genres:['Fantasy', 'Romance'] }] }) });
+  if(u.pathname === '/api/b2d') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:/quicksilver/i.test(u.searchParams.get('q')) ? [
+    { title:'Quicksilver', full:'Quicksilver by Callie Hart - Special Edition Sprayed Edges', price:'£22.00', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/qs', isbn:'', fmt:'especial', author:'Callie Hart' },
+    { title:'Quicksilver', full:'Quicksilver by Callie Hart', price:'£9.99', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/9781399741',  isbn:'', fmt:'', author:'Callie Hart' }] : [] }) });
   if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
   return route.fulfill({ status:404, body:'' });
 }
@@ -120,16 +125,28 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     await page.waitForSelector('#feds a', { timeout:5000 });
     const r = await ev(() => ({ eds:document.querySelector('#feds').innerText, dura:document.querySelector('[data-fmt="dura"]').dataset.av,
       syn:document.querySelector('#f-syn').value, src:document.querySelector('#f-synsrc').textContent }));
-    assert(/Hidra/.test(r.eds) && r.dura === '1', JSON.stringify(r)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
+    assert(/Hidra/.test(r.eds) && r.dura === 'ES', JSON.stringify(r)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
   });
   await test('si Google no responde, salen los resultados de Open Library y se avisa', async () => {
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     googleDown = true; await page.fill('#addInput', 'wicked king'); await page.waitForSelector('#suggest [data-pick="0"]', { timeout:6000 });
     await page.waitForFunction(() => !/Buscando más/.test(document.querySelector('#suggest').innerText), null, { timeout:8000 });
     const t = await page.locator('#suggest').innerText(); googleDown = false;
-    assert(/Wicked King/.test(t) && /Google Books no ha respondido/.test(t), t);
+    assert(/Wicked King/.test(t) && /no han respondido/.test(t), t);
     await page.fill('#addInput', ''); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
     await page.click('#suggest [data-pick="0"]'); await page.waitForSelector('#feds a', { timeout:6000 });
+  });
+  await test('Hardcover: libro en inglés con serie y ediciones de Books2Door', async () => {
+    await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await page.fill('#addInput', 'quicksilver'); await page.waitForSelector('#suggest [data-pick]');
+    await page.waitForFunction(() => /Quicksilver/.test(document.querySelector('#suggest').innerText));
+    await page.locator('#suggest [data-pick]', { hasText:'Quicksilver' }).first().click(); await page.waitForSelector('#feds a', { timeout:8000 });
+    const r = await ev(() => ({ s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value, eds:document.querySelector('#feds').innerText,
+      esp:document.querySelector('[data-fmt="especial"]').dataset.av, en:document.querySelector('[data-lang="en"]').getAttribute('aria-pressed') }));
+    assert(r.s === 'Fae & Alchemy' && r.n === '1', 'serie ' + JSON.stringify(r)); assert(/Books2Door/.test(r.eds) && /£22/.test(r.eds) && r.esp === 'EN' && r.en === 'true', JSON.stringify(r));
+    await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
+    await page.locator('#suggest .sg', { hasText:'El rey malvado' }).first().click(); await page.waitForSelector('#feds a', { timeout:6000 });
   });
   await test('editar el lomo cambia la vista previa y se guarda', async () => {
     await page.click('[data-spstyle="grimorio"]'); await page.click('#fsp-pal .trio >> nth=2');
