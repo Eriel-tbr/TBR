@@ -1,6 +1,14 @@
 'use strict';
 /* Mi TBR — búsqueda en Google Books, Open Library y Wikidata */
 /* ---------- Búsqueda en Google Books y Open Library ---------- */
+/* La API propia vive en Vercel; desde GitHub Pages se llama a la de Vercel */
+const API_BASE = /github\.io$/.test(location.hostname) ? 'https://tbr-sage.vercel.app/' : '';
+const searchStatus = { google:'' };
+async function fetchTimeout(url, signal, ms){
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms), on = () => ac.abort();
+  signal && signal.addEventListener('abort', on);
+  try{ return await fetch(url, { signal:ac.signal }); } finally{ clearTimeout(t); signal && signal.removeEventListener('abort', on); }
+}
 const https = u => (u || '').replace(/^http:/, 'https:');
 function stripHtml(h){
   if(!h) return '';
@@ -14,8 +22,12 @@ async function getJson(url, signal){
   return r.json();
 }
 async function searchGoogle(q, signal, lang){
-  const u = 'https://www.googleapis.com/books/v1/volumes?printType=books&maxResults=8&q=' + encodeURIComponent(q) + (lang ? '&langRestrict=' + lang : '');
-  const j = await getJson(u, signal);
+  // Primero por la API propia (con clave, sin problemas de cuota); si no está disponible, directo a Google
+  const qs = 'printType=books&maxResults=10&q=' + encodeURIComponent(q) + (lang ? '&langRestrict=' + lang : '');
+  let j = null;
+  try{ const r = await fetchTimeout(API_BASE + 'api/buscar?' + qs, signal, 6000); if(r.ok) j = await r.json(); else searchStatus.google = 'HTTP ' + r.status; }catch(e){ if(signal && signal.aborted) throw e; }
+  if(!j){ const r = await fetchTimeout('https://www.googleapis.com/books/v1/volumes?' + qs, signal, 6000); if(!r.ok){ searchStatus.google = 'HTTP ' + r.status; throw new Error('Google ' + r.status); } j = await r.json(); }
+  searchStatus.google = 'ok';
   return (j.items || []).map(it => {
     const v = it.volumeInfo || {}, im = v.imageLinks || {};
     let cover = https(im.thumbnail || im.smallThumbnail || '').replace('&edge=curl', '').replace('zoom=1', 'zoom=2');
@@ -27,29 +39,37 @@ async function searchGoogle(q, signal, lang){
 }
 async function searchOpenLib(q, signal){
   const u = 'https://openlibrary.org/search.json?limit=8&fields=key,title,author_name,first_publish_year,number_of_pages_median,language,cover_i,subject&q=' + encodeURIComponent(q);
-  const j = await getJson(u, signal);
+  const r = await fetchTimeout(u, signal, 8000); if(!r.ok) throw new Error('OL ' + r.status); const j = await r.json();
   return (j.docs || []).map(d => ({ src:'o', title:d.title || '', author:(d.author_name || []).slice(0, 2).join(', '), year:d.first_publish_year || null,
     pages:d.number_of_pages_median || 0, olLangs:d.language || [], olKey:d.key || '', covers:d.cover_i ? ['https://covers.openlibrary.org/b/id/' + d.cover_i + '-L.jpg'] : [],
     subjects:(d.subject || []).slice(0, 25) })).filter(x => x.title);
 }
 const bookKey = x => norm(x.title).replace(/[^a-z0-9]/g, '').slice(0, 24) + '|' + norm((x.author || '').split(',')[0]).split(' ').pop();
-async function searchBooks(q, signal){
+async function searchBooks(q, signal, onPartial){
   // Tres búsquedas a la vez: Google (general y solo ediciones en español) y Open Library.
-  const [g, ge, o] = await Promise.allSettled([searchGoogle(q, signal), searchGoogle(q, signal, 'es'), searchOpenLib(q, signal)]);
-  if(signal.aborted) return null;
+  // Se enseñan resultados en cuanto llega algo; Open Library (más lenta) se espera como mucho 5 s.
   const nq = norm(q), score = x => (norm(x.title).includes(nq) || nq.includes(norm(x.title)) ? 0 : 1);
-  const gi = [...(g.status === 'fulfilled' ? g.value : []), ...(ge.status === 'fulfilled' ? ge.value : [])].sort((a, b) => score(a) - score(b)), oi = o.status === 'fulfilled' ? o.value : [];
-  const map = new Map();
-  for(const x of [...gi, ...oi]){
-    const k = bookKey(x), cur = map.get(k);
-    if(!cur){ map.set(k, { ...x }); continue; }
-    cur.covers = [...new Set([...cur.covers, ...x.covers])];
-    cur.subjects = [...new Set([...(cur.subjects || []), ...(x.subjects || [])])];
-    cur.pages = cur.pages || x.pages; cur.year = x.year || cur.year;
-    cur.desc = cur.desc || x.desc; cur.descLang = cur.descLang || x.descLang; cur.lang = cur.lang || x.lang;
-    cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey;
-  }
-  return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 10), failed: g.status === 'rejected' && ge.status === 'rejected' && o.status === 'rejected' };
+  const got = { g:null, ge:null, o:null }, fail = { g:false, ge:false, o:false };
+  const merge = () => {
+    const gi = [...(got.g || []), ...(got.ge || [])].sort((a, b) => score(a) - score(b)), map = new Map();
+    for(const x of [...gi, ...(got.o || [])]){
+      const k = bookKey(x), cur = map.get(k);
+      if(!cur){ map.set(k, { ...x }); continue; }
+      cur.covers = [...new Set([...cur.covers, ...x.covers])];
+      cur.subjects = [...new Set([...(cur.subjects || []), ...(x.subjects || [])])];
+      cur.pages = cur.pages || x.pages; cur.year = x.year || cur.year;
+      cur.desc = cur.desc || x.desc; cur.descLang = cur.descLang || x.descLang; cur.lang = cur.lang || x.lang;
+      cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey; cur.isbn = cur.isbn || x.isbn;
+    }
+    return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 12), failed:fail.g && fail.ge && fail.o, googleDown:fail.g && fail.ge };
+  };
+  const run = (k, p) => p.then(v => { got[k] = v; }, e => { if(signal.aborted) throw e; fail[k] = true; })
+    .then(() => { if(!signal.aborted && onPartial && (got.g || got.ge || got.o)) onPartial(merge()); });
+  const google = Promise.all([run('g', searchGoogle(q, signal)), run('ge', searchGoogle(q, signal, 'es'))]);
+  const ol = run('o', searchOpenLib(q, signal));
+  await Promise.race([Promise.all([google, ol]), google.then(() => new Promise(r => setTimeout(r, (got.g || got.ge) ? 2500 : 5000)))]).catch(() => {});
+  if(signal.aborted) return null;
+  return merge();
 }
 /* Completa un resultado: sinopsis en español si existe, idiomas de todas las ediciones, materias */
 async function enrichBook(item, signal){
@@ -108,8 +128,6 @@ async function olSpanishIsbns(key, signal){
   const j = await getJson('https://openlibrary.org' + key + '/editions.json?limit=60', signal);
   return (j.entries || []).filter(e => (e.languages || []).some(l => l.key === '/languages/spa')).flatMap(e => e.isbn_13 || []).slice(0, 6);
 }
-/* La API vive en Vercel; en otras direcciones (o sin conexión) simplemente no hay ediciones */
-const API_BASE = /github\.io$/.test(location.hostname) ? 'https://tbr-sage.vercel.app/' : '';
 async function spanishEditions(isbns, author, signal){
   const r = await fetch(API_BASE + 'api/edicion?isbn=' + spainFirst(isbns).slice(0, 6).join(','), { signal }); if(!r.ok) return [];
   const last = norm(author).split(' ').pop();

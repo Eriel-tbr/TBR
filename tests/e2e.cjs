@@ -24,13 +24,16 @@ function fakeOwnApi(route){
   if(u.pathname === '/api/edicion') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ eds:u.searchParams.get('isbn').split(',').map(isbn => ({ isbn, ok:true,
     url:'https://www.todostuslibros.com/libros/x_' + isbn, title:'El rey malvado', author:'Holly Black', publisher:'Editorial Hidra', binding:'Cartoné', fmt:'dura', lang:'Castellano', pages:336, year:'2019',
     synopsis:'Sinopsis oficial en español de la editorial, bastante más larga que la de Google Books para que se elija.' })) }) });
+  if(u.pathname === '/api/buscar'){ if(googleDown) return route.fulfill({ status:429, contentType:'application/json', body:'{}' });
+    return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(GB(u.searchParams.get('langRestrict') === 'es')) }); }
   if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
   return route.fulfill({ status:404, body:'' });
 }
+let googleDown = false;
 function fakeApis(route){
   const u = route.request().url(), json = b => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(b) });
-  if(u.includes('googleapis.com/books')) return json(GB(u.includes('langRestrict=es')));
-  if(u.includes('openlibrary.org/search')) return json({ docs:[] });
+  if(u.includes('googleapis.com/books')) return googleDown ? route.fulfill({ status:429, body:'{}' }) : json(GB(u.includes('langRestrict=es')));
+  if(u.includes('openlibrary.org/search')) return json({ docs:googleDown ? [{ key:'/works/OL1W', title:'The Wicked King', author_name:['Holly Black'], first_publish_year:2019, language:['eng','spa'] }] : [] });
   if(u.includes('wikidata.org')){
     if(u.includes('wbsearchentities')) return json({ search:[{ id:'Q1', description:'novel by Holly Black' }] });
     if(u.includes('ids=Q1')) return json({ entities:{ Q1:{ id:'Q1', labels:{ es:{ value:'El rey malvado' }, en:{ value:'The Wicked King' } }, sitelinks:{ eswiki:{}, enwiki:{} },
@@ -118,6 +121,15 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     const r = await ev(() => ({ eds:document.querySelector('#feds').innerText, dura:document.querySelector('[data-fmt="dura"]').dataset.av,
       syn:document.querySelector('#f-syn').value, src:document.querySelector('#f-synsrc').textContent }));
     assert(/Hidra/.test(r.eds) && r.dura === '1', JSON.stringify(r)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
+  });
+  await test('si Google no responde, salen los resultados de Open Library y se avisa', async () => {
+    await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    googleDown = true; await page.fill('#addInput', 'wicked king'); await page.waitForSelector('#suggest [data-pick="0"]', { timeout:6000 });
+    await page.waitForFunction(() => !/Buscando más/.test(document.querySelector('#suggest').innerText), null, { timeout:8000 });
+    const t = await page.locator('#suggest').innerText(); googleDown = false;
+    assert(/Wicked King/.test(t) && /Google Books no ha respondido/.test(t), t);
+    await page.fill('#addInput', ''); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
+    await page.click('#suggest [data-pick="0"]'); await page.waitForSelector('#feds a', { timeout:6000 });
   });
   await test('editar el lomo cambia la vista previa y se guarda', async () => {
     await page.click('[data-spstyle="grimorio"]'); await page.click('#fsp-pal .trio >> nth=2');
