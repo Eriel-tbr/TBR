@@ -34,6 +34,6 @@ const edFormats = eds => new Set((eds || []).map(e => e.fmt === 'bolsillo' ? 'bl
 function edsHtml(eds){
   if(!eds || !eds.length) return '';
   return `<div class="eds"><span class="note">Ediciones en español encontradas:</span>${eds.map(e => {
-    const bits = [e.publisher, FMT_NAME[e.fmt] || e.binding, e.year].filter(Boolean).map(esc).join(' · ');
+    const bind = /no definid|^libro$|otro formato/i.test(e.binding || '') ? '' : e.binding, bits = [e.publisher, FMT_NAME[e.fmt] || bind, e.year].filter(Boolean).map(esc).join(' · ');
     return `<a href="${esc(e.url)}" target="_blank" rel="noopener">${bits || esc(e.isbn)}</a>`; }).join('')}</div>`;
 }

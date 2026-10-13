@@ -114,7 +114,10 @@ async function spanishEditions(isbns, author, signal){
   const r = await fetch(API_BASE + 'api/edicion?isbn=' + spainFirst(isbns).slice(0, 6).join(','), { signal }); if(!r.ok) return [];
   const last = norm(author).split(' ').pop();
   const { eds = [] } = await r.json();
-  return eds.filter(e => e.ok && /castellano|espa/i.test(e.lang || 'castellano') && (!last || !e.author || norm(e.author).includes(last)))
+  let ok = eds.filter(e => e.ok && /castellano|espa/i.test(e.lang || 'castellano') && (!last || !e.author || norm(e.author).includes(last)));
+  // Si hay ediciones publicadas en España, solo esas (las de otros países no suelen estar a la venta aquí)
+  if(ok.some(e => /espa/i.test(e.country || ''))) ok = ok.filter(e => /espa/i.test(e.country || ''));
+  return ok
     .map(e => ({ isbn:e.isbn, title:e.title, publisher:e.publisher, binding:e.binding, fmt:e.fmt, year:e.year, pages:e.pages, url:e.url, synopsis:e.synopsis, cover:e.cover || '' }));
 }
 /* Wikidata: serie, número dentro de la serie, total y si existe en español o inglés */

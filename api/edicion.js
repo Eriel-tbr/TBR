@@ -17,7 +17,7 @@ async function ficha(isbn){
   const binding = p['encuadernación'] || p.encuadernacion || ld.bookFormat || '';
   const year = ((p[Object.keys(p).find(k => /fecha/.test(k))] || ld.datePublished || '').match(/(19|20)\d\d/) || [''])[0];
   return { isbn, ok:true, url:r.url, title, author, publisher:text(pub), translated:!!p['traducción'] || !!(p['idioma original'] && !/castellano|español/i.test(p['idioma original'])), origLang:p['idioma original'] || '',
-    binding, fmt:fmtOf(binding, title), lang:p['idioma de publicación'] || p.idioma || ld.inLanguage || '', pages:+(p['nº páginas'] || p['páginas'] || ld.numberOfPages || 0) || 0,
+    binding, fmt:fmtOf(binding, title), country:p['país de publicación'] || '', lang:p['idioma de publicación'] || p.idioma || ld.inLanguage || '', pages:+(p['nº páginas'] || p['páginas'] || ld.numberOfPages || 0) || 0,
     year, synopsis:syn, cover:ld.image ? [].concat(ld.image)[0] : meta(r.html, 'og:image') };
 }
 module.exports = async (req, res) => {
