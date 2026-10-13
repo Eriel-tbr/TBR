@@ -8,10 +8,11 @@ module.exports = async (req, res) => {
   const u = new URL('https://www.googleapis.com/books/v1/volumes');
   u.searchParams.set('q', q); u.searchParams.set('printType', 'books'); u.searchParams.set('maxResults', String(Math.min(20, +sp.get('maxResults') || 10)));
   if(/^[a-z]{2}$/.test(sp.get('langRestrict') || '')) u.searchParams.set('langRestrict', sp.get('langRestrict'));
-  if(process.env.GOOGLE_BOOKS_KEY) u.searchParams.set('key', process.env.GOOGLE_BOOKS_KEY);
+  u.searchParams.set('country', 'ES'); // los servidores no tienen país y algunas consultas lo necesitan
+  if(process.env.GOOGLE_BOOKS_KEY && !sp.has('sinclave')) u.searchParams.set('key', process.env.GOOGLE_BOOKS_KEY);
   try{
     const ac = new AbortController(), t = setTimeout(() => ac.abort(), 7000);
-    const r = await fetch(u, { signal:ac.signal, headers:{ 'accept-language':'es-ES,es;q=0.9,en;q=0.8' } }); clearTimeout(t);
+    const r = await fetch(u, { signal:ac.signal }); clearTimeout(t);
     const body = await r.text();
     if(sp.has('diag')){ let msg = ''; try{ const e = JSON.parse(body).error; msg = e && (e.message + ' [' + (e.status || '') + ']'); }catch(x){}
       return res.end(JSON.stringify({ status:r.status, conClave:!!process.env.GOOGLE_BOOKS_KEY, items:r.ok ? (JSON.parse(body).items || []).length : 0, error:msg || '' })); }
