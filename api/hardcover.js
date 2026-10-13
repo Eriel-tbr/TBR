@@ -17,7 +17,8 @@ module.exports = async (req, res) => {
     const j = await r.json().catch(() => ({}));
     if(!r.ok || j.errors){ res.statusCode = r.ok ? 502 : r.status; return res.end(JSON.stringify({ error:(j.errors && j.errors[0] && j.errors[0].message) || 'HTTP ' + r.status })); }
     const hits = (((j.data || {}).search || {}).results || {}).hits || [];
-    const items = hits.map(h => h.document || {}).filter(d => d.title).map(d => {
+    // Fuera packs y colecciones, y fichas sin autor (suelen ser duplicados incompletos)
+    const items = hits.map(h => h.document || {}).filter(d => d.title && (d.author_names || []).length && !/\b(box(ed)? set|books? set|collection set|\d+ books)\b/i.test(d.title)).map(d => {
       const fs = d.featured_series || {}, ser = fs.series || {};
       return { title:d.title, subtitle:d.subtitle || '', author:(d.author_names || []).slice(0, 2).join(', '), year:d.release_year || null, pages:d.pages || 0,
         cover:(d.image && d.image.url) || '', desc:d.description || '', isbns:(d.isbns || []).slice(0, 12),
