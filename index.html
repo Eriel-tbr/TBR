@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mi TBR</title>
-<meta name="theme-color" content="#15111a">
+<meta name="theme-color" content="#1e1428">
+<meta name="app-version" content="2026.10.13-1">
 <meta name="description" content="Mi lista de libros por leer, organizada en estanterías.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -16,8 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=Josefin+Sans:wght@600;700&family=Karla:wght@400;700&family=Lora:wght@600;700&family=Parisienne&family=Poppins:wght@600;700&display=swap">
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="furniture.css">
+<link rel="stylesheet" href="css/styles.css?v=2026.10.13-1">
+<link rel="stylesheet" href="css/furniture.css?v=2026.10.13-1">
 </head>
 <body>
 <header class="top">
@@ -43,9 +44,22 @@
 <button class="arrow l" type="button" aria-label="Estantería anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
 <button class="arrow r" type="button" aria-label="Estantería siguiente"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
-<script src="lib.js"></script>
-<script src="art-engine.js"></script>
-<script src="art.js"></script>
-<script src="app.js"></script>
+<div class="update" id="update" hidden><span>Hay una versión nueva</span><button class="btn sm primary" type="button" id="btnUpdate">Actualizar</button></div>
+<script src="js/lib/util.js?v=2026.10.13-1"></script>
+<script src="js/lib/busqueda.js?v=2026.10.13-1"></script>
+<script src="js/lib/etiquetas.js?v=2026.10.13-1"></script>
+<script src="js/art/decoracion.js?v=2026.10.13-1"></script>
+<script src="js/art/lomos.js?v=2026.10.13-1"></script>
+<script src="js/art/muebles.js?v=2026.10.13-1"></script>
+<script src="js/art/temas.js?v=2026.10.13-1"></script>
+<script src="js/app/estado.js?v=2026.10.13-1"></script>
+<script src="js/app/hojas.js?v=2026.10.13-1"></script>
+<script src="js/app/estanterias.js?v=2026.10.13-1"></script>
+<script src="js/app/ficha.js?v=2026.10.13-1"></script>
+<script src="js/app/formulario.js?v=2026.10.13-1"></script>
+<script src="js/app/anadir.js?v=2026.10.13-1"></script>
+<script src="js/app/ajustes.js?v=2026.10.13-1"></script>
+<script src="js/app/arrastrar.js?v=2026.10.13-1"></script>
+<script src="js/app/inicio.js?v=2026.10.13-1"></script>
 </body>
 </html>

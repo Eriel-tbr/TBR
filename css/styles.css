@@ -195,3 +195,5 @@ textarea.field{min-height:110px;resize:vertical}
 
 #dbody,#qbody{display:flex;flex-direction:column;gap:18px}
 #dbody .hero{margin-bottom:2px}
+.update{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:310;background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);font-size:.9rem;font-weight:700;white-space:nowrap}

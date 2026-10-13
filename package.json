@@ -1,0 +1,11 @@
+{
+  "name": "mi-tbr",
+  "private": true,
+  "scripts": {
+    "test": "node tests/e2e.cjs",
+    "version": "python3 tools/version.py"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
