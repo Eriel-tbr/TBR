@@ -83,7 +83,7 @@ async function enrichBook(item, signal){
   }
   // Ediciones en español: ISBN de Google Books y Open Library → fichas con los datos de las editoriales (API propia)
   try{
-    if(out.olKey) (await olSpanishIsbns(out.olKey, signal)).forEach(i => isbns.add(i));
+    if(out.olKey) (await Promise.race([olSpanishIsbns(out.olKey, signal).catch(() => []), new Promise(r => setTimeout(() => r([]), 4000))])).forEach(i => isbns.add(i));
     if(isbns.size){
       const eds = await spanishEditions([...isbns], author, signal);
       if(eds.length){
