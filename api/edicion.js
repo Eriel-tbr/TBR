@@ -15,7 +15,7 @@ async function ficha(isbn){
   if(syn.length < 40) syn = text(inner(r.html, /<div[^>]+class=["'][^"']*synopsis-short[^"']*["'][^>]*>/i)).replace(/\s*Leer descripci[oó]n completa\s*$/i, '');
   if(syn.length < 40) syn = text(ld.description || meta(r.html, 'og:description') || meta(r.html, 'description'));
   const binding = p['encuadernación'] || p.encuadernacion || ld.bookFormat || '';
-  const year = ((p['fecha publicación'] || p['fecha de publicación'] || ld.datePublished || '').match(/(19|20)\d\d/) || [''])[0];
+  const year = ((p[Object.keys(p).find(k => /fecha/.test(k))] || ld.datePublished || '').match(/(19|20)\d\d/) || [''])[0];
   return { isbn, ok:true, url:r.url, title, author, publisher:text(pub), translated:!!p['traducción'] || !!(p['idioma original'] && !/castellano|español/i.test(p['idioma original'])), origLang:p['idioma original'] || '',
     binding, fmt:fmtOf(binding, title), lang:p['idioma de publicación'] || p.idioma || ld.inLanguage || '', pages:+(p['nº páginas'] || p['páginas'] || ld.numberOfPages || 0) || 0,
     year, synopsis:syn, cover:ld.image ? [].concat(ld.image)[0] : meta(r.html, 'og:image') };

@@ -19,7 +19,7 @@ function jsonLd(html){
 const meta = (html, prop) => { const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*content=["']([^"']*)["']`, 'i')) || html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${prop}["']`, 'i')); return m ? decode(m[1]) : ''; };
 function pairs(html){
   const o = {};
-  for(const m of html.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/gi)) o[text(m[1]).replace(/:$/, '').toLowerCase()] = text(m[2]);
+  for(const m of html.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/gi)) o[text(m[1]).replace(/[\s:]+$/, '').replace(/\s+/g, ' ').toLowerCase()] = text(m[2]);
   return o;
 }
 /* Formato normalizado para la app: blanda, dura, bolsillo, especial, ebook, audio */
