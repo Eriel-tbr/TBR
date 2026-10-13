@@ -13,8 +13,10 @@ module.exports = async (req, res) => {
     const ac = new AbortController(), t = setTimeout(() => ac.abort(), 7000);
     const r = await fetch(u, { signal:ac.signal, headers:{ 'accept-language':'es-ES,es;q=0.9,en;q=0.8' } }); clearTimeout(t);
     const body = await r.text();
+    if(sp.has('diag')){ let msg = ''; try{ const e = JSON.parse(body).error; msg = e && (e.message + ' [' + (e.status || '') + ']'); }catch(x){}
+      return res.end(JSON.stringify({ status:r.status, conClave:!!process.env.GOOGLE_BOOKS_KEY, items:r.ok ? (JSON.parse(body).items || []).length : 0, error:msg || '' })); }
     res.statusCode = r.status; res.setHeader('x-con-clave', process.env.GOOGLE_BOOKS_KEY ? '1' : '0');
     if(r.ok) res.setHeader('cache-control', 'public, s-maxage=86400, stale-while-revalidate=604800');
     res.end(body);
-  }catch(e){ res.statusCode = 504; res.end('{"error":"sin respuesta de Google"}'); }
+  }catch(e){ if(sp.has('diag')) return res.end(JSON.stringify({ excepcion:String(e) })); res.statusCode = 504; res.end('{"error":"sin respuesta de Google"}'); }
 };
