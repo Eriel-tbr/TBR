@@ -1,4 +1,6 @@
 {
+  "installCommand": "echo sin dependencias",
+  "buildCommand": "",
   "headers": [
     { "source": "/(sw.js|version.json)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ]
