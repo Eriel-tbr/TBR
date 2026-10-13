@@ -1,7 +1,7 @@
 /* Mi TBR · /api/edicion?isbn=978...,978...
    Datos de ediciones en español a partir del ISBN: editorial, formato, idioma, páginas, fecha y sinopsis.
    Fuente: las fichas de todostuslibros.com (CEGAL), que reciben los datos que publican las propias editoriales. */
-const { get, jsonLd, meta, pairs, text, fmtOf } = require('./_lib/fichas');
+const { get, jsonLd, meta, pairs, text, fmtOf, inner } = require('./_lib/fichas');
 const clean = s => String(s || '').replace(/[^0-9Xx]/g, '').toUpperCase();
 async function ficha(isbn){
   const r = await get(`https://www.todostuslibros.com/libros/x_${isbn}`);
@@ -9,15 +9,16 @@ async function ficha(isbn){
   const ld = jsonLd(r.html).find(x => /Book|Product/i.test([].concat(x['@type']).join())) || {};
   const p = pairs(r.html);
   const pub = (ld.publisher && (ld.publisher.name || ld.publisher)) || p.editorial || '';
-  const title = text(ld.name || meta(r.html, 'og:title')).replace(/\s*\|.*$/, '');
-  let syn = text(ld.description || '');
-  if(!syn){ const m = r.html.match(/<(?:div|section|p)[^>]+class=["'][^"']*(?:synopsis|sinopsis)[^"']*["'][^>]*>([\s\S]{20,6000}?)<\/(?:div|section)>/i); if(m) syn = text(m[1]); }
-  if(!syn) syn = meta(r.html, 'og:description') || meta(r.html, 'description');
+  const title = text(inner(r.html, /<h1[^>]*class=["'][^"']*\btitle\b[^"']*["'][^>]*>/i) || ld.name || meta(r.html, 'og:title')).replace(/\s*\|.*$/, '');
+  const author = text(inner(r.html, /<h2[^>]*class=["'][^"']*\bauthor\b[^"']*["'][^>]*>/i)) || p['autoría'] || '';
+  let syn = text(inner(r.html, /<div[^>]+id=["']collapseSynopsis["'][^>]*>/i));
+  if(syn.length < 40) syn = text(inner(r.html, /<div[^>]+class=["'][^"']*synopsis-short[^"']*["'][^>]*>/i)).replace(/\s*Leer descripci[oó]n completa\s*$/i, '');
+  if(syn.length < 40) syn = text(ld.description || meta(r.html, 'og:description') || meta(r.html, 'description'));
   const binding = p['encuadernación'] || p.encuadernacion || ld.bookFormat || '';
-  const year = ((p['fecha de publicación'] || p['fecha publicación'] || ld.datePublished || '').match(/(19|20)\d\d/) || [''])[0];
-  return { isbn, ok:true, url:r.url, title, author:text([].concat(ld.author || []).map(a => a.name || a).join(', ')), publisher:text(pub),
-    binding, fmt:fmtOf(binding, title), lang:p.idioma || ld.inLanguage || '', pages:+(p['nº páginas'] || p['páginas'] || ld.numberOfPages || 0) || 0,
-    year, synopsis:syn, cover:ld.image ? [].concat(ld.image)[0] : meta(r.html, 'og:image'), labels:Object.keys(p) };
+  const year = ((p['fecha publicación'] || p['fecha de publicación'] || ld.datePublished || '').match(/(19|20)\d\d/) || [''])[0];
+  return { isbn, ok:true, url:r.url, title, author, publisher:text(pub), translated:!!p['traducción'] || !!(p['idioma original'] && !/castellano|español/i.test(p['idioma original'])), origLang:p['idioma original'] || '',
+    binding, fmt:fmtOf(binding, title), lang:p['idioma de publicación'] || p.idioma || ld.inLanguage || '', pages:+(p['nº páginas'] || p['páginas'] || ld.numberOfPages || 0) || 0,
+    year, synopsis:syn, cover:ld.image ? [].concat(ld.image)[0] : meta(r.html, 'og:image') };
 }
 module.exports = async (req, res) => {
   const u = new URL(req.url, 'http://x');

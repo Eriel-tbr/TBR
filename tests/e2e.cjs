@@ -16,7 +16,17 @@ const server = http.createServer((q, r) => {
 
 /* ---- respuestas simuladas de las APIs ---- */
 const GB = es => ({ items:[{ volumeInfo:{ title:es ? 'El rey malvado' : 'The Wicked King', authors:['Holly Black'], language:es ? 'es' : 'en', pageCount:336, publishedDate:'2019-01-08',
-  description:es ? 'Sinopsis en español.' : 'English blurb.', seriesInfo:{ bookDisplayNumber:'2' }, imageLinks:{} } }] });
+  description:es ? 'Sinopsis en español.' : 'English blurb.', seriesInfo:{ bookDisplayNumber:'2' }, imageLinks:{},
+  industryIdentifiers:es ? [{ type:'ISBN_13', identifier:'9788417390624' }] : [{ type:'ISBN_13', identifier:'9781471407352' }] } }] });
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mNkYPhfz8DAwMDIwMDAAAAiiwKBVcdhGQAAAABJRU5ErkJggg==', 'base64');
+function fakeOwnApi(route){
+  const u = new URL(route.request().url());
+  if(u.pathname === '/api/edicion') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ eds:u.searchParams.get('isbn').split(',').map(isbn => ({ isbn, ok:true,
+    url:'https://www.todostuslibros.com/libros/x_' + isbn, title:'El rey malvado', author:'Holly Black', publisher:'Editorial Hidra', binding:'Cartoné', fmt:'dura', lang:'Castellano', pages:336, year:'2019',
+    synopsis:'Sinopsis oficial en español de la editorial, bastante más larga que la de Google Books para que se elija.' })) }) });
+  if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
+  return route.fulfill({ status:404, body:'' });
+}
 function fakeApis(route){
   const u = route.request().url(), json = b => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(b) });
   if(u.includes('googleapis.com/books')) return json(GB(u.includes('langRestrict=es')));
@@ -44,6 +54,7 @@ async function newDevice(browser, { cdn = true } = {}){
   const c = await browser.newContext({ viewport:{ width:390, height:844 }, deviceScaleFactor:2, serviceWorkers:'block' });
   await c.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
   await c.route(u => u.hostname === 'cdn.jsdelivr.net', r => cdn ? r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }) : r.abort());
+  await c.route(u => u.pathname.startsWith('/api/'), fakeOwnApi);
   await c.exposeBinding('mockDb', mockDb);
   const p = await c.newPage(); p.on('pageerror', e => errors.push(e.message)); return { c, p };
 }
@@ -63,6 +74,7 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
   const browser = await chromium.launch();
   ctx = await browser.newContext({ viewport:{ width:390, height:844 }, deviceScaleFactor:2, hasTouch:false, serviceWorkers:'allow' });
   await ctx.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
+  await ctx.route(u => u.pathname.startsWith('/api/'), fakeOwnApi);
   await ctx.route(u => u.hostname === 'cdn.jsdelivr.net', r => r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }));
   await ctx.exposeBinding('mockDb', mockDb);
   page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message));
@@ -100,6 +112,12 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     const r = await ev(() => ({ s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value, t:document.querySelector('#f-st').value,
       l:[...document.querySelectorAll('#flangs [aria-pressed="true"]')].map(e => e.dataset.lang).sort().join(','), syn:document.querySelector('#f-syn').value }));
     assert(r.n === '2' && r.t === '3', 'serie ' + JSON.stringify(r)); assert(r.l === 'en,es', 'idiomas ' + r.l); assert(r.syn.includes('español'), 'sinopsis ' + r.syn);
+  });
+  await test('encuentra la edición española: editorial, formato y sinopsis oficial', async () => {
+    await page.waitForSelector('#feds a', { timeout:5000 });
+    const r = await ev(() => ({ eds:document.querySelector('#feds').innerText, dura:document.querySelector('[data-fmt="dura"]').dataset.av,
+      syn:document.querySelector('#f-syn').value, src:document.querySelector('#f-synsrc').textContent }));
+    assert(/Hidra/.test(r.eds) && r.dura === '1', JSON.stringify(r)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
   });
   await test('editar el lomo cambia la vista previa y se guarda', async () => {
     await page.click('[data-spstyle="grimorio"]'); await page.click('#fsp-pal .trio >> nth=2');

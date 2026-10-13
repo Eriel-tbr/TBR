@@ -28,3 +28,12 @@ function toast(msg, undo){
 const chipsHtml = (items, cur, attr) => items.map(([v, l]) => `<button class="chip" type="button" ${attr}="${esc(v)}" aria-pressed="${cur === v}">${esc(l)}</button>`).join('');
 const langBadges = b => { const k = langKind(b); return k === 'both' ? '<span class="badge both">ES · EN</span>' : k === 'es' ? '<span class="badge es">ES</span>' : k === 'en' ? '<span class="badge en">EN</span>' : ''; };
 const locName = b => { const l = shelfOf(b.shelfId); return l ? `${l.u.name} › ${l.s.name}` : ''; };
+/* Ediciones en español encontradas (fichas con los datos de las editoriales) */
+const FMT_NAME = { blanda:'Tapa blanda', dura:'Tapa dura', bolsillo:'Bolsillo', especial:'Edición especial', ebook:'Ebook', audio:'Audiolibro' };
+const edFormats = eds => new Set((eds || []).map(e => e.fmt === 'bolsillo' ? 'blanda' : e.fmt).filter(Boolean));
+function edsHtml(eds){
+  if(!eds || !eds.length) return '';
+  return `<div class="eds"><span class="note">Ediciones en español encontradas:</span>${eds.map(e => {
+    const bits = [e.publisher, FMT_NAME[e.fmt] || e.binding, e.year].filter(Boolean).map(esc).join(' · ');
+    return `<a href="${esc(e.url)}" target="_blank" rel="noopener">${bits || esc(e.isbn)}</a>`; }).join('')}</div>`;
+}

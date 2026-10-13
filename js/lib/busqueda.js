@@ -21,14 +21,15 @@ async function searchGoogle(q, signal, lang){
     let cover = https(im.thumbnail || im.smallThumbnail || '').replace('&edge=curl', '').replace('zoom=1', 'zoom=2');
     return { src:'g', title:v.title || '', author:(v.authors || []).join(', '), year:yearOf(v.publishedDate), pages:v.pageCount || 0,
       lang:v.language || '', covers:cover ? [cover] : [], subjects:v.categories || [], desc:stripHtml(v.description), descLang:v.language || '',
-      seriesN:(v.seriesInfo && +v.seriesInfo.bookDisplayNumber) || 0 };
+      seriesN:(v.seriesInfo && +v.seriesInfo.bookDisplayNumber) || 0, publisher:v.publisher || '',
+      isbn:((v.industryIdentifiers || []).find(x => x.type === 'ISBN_13') || {}).identifier || '' };
   }).filter(x => x.title);
 }
 async function searchOpenLib(q, signal){
   const u = 'https://openlibrary.org/search.json?limit=8&fields=key,title,author_name,first_publish_year,number_of_pages_median,language,cover_i,subject&q=' + encodeURIComponent(q);
   const j = await getJson(u, signal);
   return (j.docs || []).map(d => ({ src:'o', title:d.title || '', author:(d.author_name || []).slice(0, 2).join(', '), year:d.first_publish_year || null,
-    pages:d.number_of_pages_median || 0, olLangs:d.language || [], covers:d.cover_i ? ['https://covers.openlibrary.org/b/id/' + d.cover_i + '-L.jpg'] : [],
+    pages:d.number_of_pages_median || 0, olLangs:d.language || [], olKey:d.key || '', covers:d.cover_i ? ['https://covers.openlibrary.org/b/id/' + d.cover_i + '-L.jpg'] : [],
     subjects:(d.subject || []).slice(0, 25) })).filter(x => x.title);
 }
 const bookKey = x => norm(x.title).replace(/[^a-z0-9]/g, '').slice(0, 24) + '|' + norm((x.author || '').split(',')[0]).split(' ').pop();
@@ -46,7 +47,7 @@ async function searchBooks(q, signal){
     cur.subjects = [...new Set([...(cur.subjects || []), ...(x.subjects || [])])];
     cur.pages = cur.pages || x.pages; cur.year = x.year || cur.year;
     cur.desc = cur.desc || x.desc; cur.descLang = cur.descLang || x.descLang; cur.lang = cur.lang || x.lang;
-    cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN;
+    cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey;
   }
   return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 10), failed: g.status === 'rejected' && ge.status === 'rejected' && o.status === 'rejected' };
 }
@@ -54,15 +55,17 @@ async function searchBooks(q, signal){
 async function enrichBook(item, signal){
   const out = { ...item };
   const author = (item.author || '').split(',')[0];
-  const tasks = [];
+  const tasks = [], isbns = new Set();
+  if(item.lang === 'es' && item.isbn) isbns.add(item.isbn);
   if(!out.olLangs || !out.olLangs.length){
     tasks.push(searchOpenLib(item.title + ' ' + author, signal).then(list => {
       const m = list.find(x => bookKey(x) === bookKey(item)) || list[0];
-      if(m){ out.olLangs = m.olLangs; out.subjects = [...new Set([...(out.subjects || []), ...(m.subjects || [])])]; out.year = m.year || out.year; out.pages = out.pages || m.pages; out.covers = [...new Set([...(out.covers || []), ...m.covers])]; }
+      if(m){ out.olLangs = m.olLangs; out.olKey = out.olKey || m.olKey; out.subjects = [...new Set([...(out.subjects || []), ...(m.subjects || [])])]; out.year = m.year || out.year; out.pages = out.pages || m.pages; out.covers = [...new Set([...(out.covers || []), ...m.covers])]; }
     }).catch(() => {}));
   }
   if(!out.desc || out.descLang !== 'es'){
     tasks.push(searchGoogle('intitle:' + item.title + (author ? ' inauthor:' + author : ''), signal, 'es').then(list => {
+      esIsbns(list, author).forEach(i => isbns.add(i));
       const m = list.find(x => x.desc && bookKey(x) === bookKey(item)) || list.find(x => x.desc && norm(x.title) === norm(item.title));
       if(m){ out.desc = m.desc; out.descLang = 'es'; if(!out.covers.length) out.covers = m.covers; out.pages = out.pages || m.pages; }
     }).catch(() => {}));
@@ -73,11 +76,46 @@ async function enrichBook(item, signal){
   if(out.wd && out.wd.esTitle && (out.descLang !== 'es' || !out.esFound)){
     try{
       const list = await searchGoogle('intitle:' + out.wd.esTitle + (author ? ' inauthor:' + author : ''), signal, 'es');
+      esIsbns(list, author).forEach(i => isbns.add(i));
       const m = list.find(x => x.lang === 'es' && (!author || norm(x.author).includes(norm(author).split(' ').pop())));
       if(m){ out.esFound = true; if(m.desc){ out.desc = m.desc; out.descLang = 'es'; } }
     }catch(e){}
   }
+  // Ediciones en español: ISBN de Google Books y Open Library → fichas con los datos de las editoriales (API propia)
+  try{
+    if(out.olKey) (await olSpanishIsbns(out.olKey, signal)).forEach(i => isbns.add(i));
+    if(isbns.size){
+      const eds = await spanishEditions([...isbns], author, signal);
+      if(eds.length){
+        out.eds = eds; out.esFound = true;
+        const best = [...eds].filter(e => e.synopsis && e.synopsis.length > 60).sort((a, b) => (a.fmt === 'especial') - (b.fmt === 'especial') || b.synopsis.length - a.synopsis.length)[0];
+        if(best){ out.desc = best.synopsis; out.descLang = 'es'; out.descSrc = best.publisher; }
+        out.pages = out.pages || (eds.find(e => e.pages) || {}).pages || 0;
+        if(!(out.covers || []).length) out.covers = eds.map(e => e.cover).filter(Boolean).slice(0, 2);
+      }
+    }
+  }catch(e){}
   return out;
+}
+/* ISBN de ediciones en español entre resultados de Google Books (mismo autor/a) */
+function esIsbns(list, author){
+  const last = norm(author).split(' ').pop();
+  return list.filter(x => x.lang === 'es' && x.isbn && (!last || norm(x.author).includes(last))).map(x => x.isbn);
+}
+/* Primero los ISBN de España (978-84, 979-13): son los que tienen ficha */
+const spainFirst = l => [...new Set(l)].sort((a, b) => /^(97884|97913)/.test(b) - /^(97884|97913)/.test(a));
+async function olSpanishIsbns(key, signal){
+  const j = await getJson('https://openlibrary.org' + key + '/editions.json?limit=60', signal);
+  return (j.entries || []).filter(e => (e.languages || []).some(l => l.key === '/languages/spa')).flatMap(e => e.isbn_13 || []).slice(0, 6);
+}
+/* La API vive en Vercel; en otras direcciones (o sin conexión) simplemente no hay ediciones */
+const API_BASE = /github\.io$/.test(location.hostname) ? 'https://tbr-sage.vercel.app/' : '';
+async function spanishEditions(isbns, author, signal){
+  const r = await fetch(API_BASE + 'api/edicion?isbn=' + spainFirst(isbns).slice(0, 6).join(','), { signal }); if(!r.ok) return [];
+  const last = norm(author).split(' ').pop();
+  const { eds = [] } = await r.json();
+  return eds.filter(e => e.ok && /castellano|espa/i.test(e.lang || 'castellano') && (!last || !e.author || norm(e.author).includes(last)))
+    .map(e => ({ isbn:e.isbn, title:e.title, publisher:e.publisher, binding:e.binding, fmt:e.fmt, year:e.year, pages:e.pages, url:e.url, synopsis:e.synopsis, cover:e.cover || '' }));
 }
 /* Wikidata: serie, número dentro de la serie, total y si existe en español o inglés */
 async function wikidataInfo(title, author, signal){

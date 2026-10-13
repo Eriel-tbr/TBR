@@ -16,8 +16,8 @@ function newDraft(item){
 }
 function openBookForm({ book, item }){
   const isNew = !book; let sugTags = [], sugged = false, d;
-  let serNote = '';
-  if(isNew){ const n = newDraft(item); d = n.draft; sugTags = n.sugTags; sugged = n.sugged; serNote = n.serNote; } else d = JSON.parse(JSON.stringify(book));
+  let serNote = '', autoSyn = '';
+  if(isNew){ const n = newDraft(item); d = n.draft; sugTags = n.sugTags; sugged = n.sugged; serNote = n.serNote; autoSyn = d.synopsis; } else d = JSON.parse(JSON.stringify(book));
   d.series = d.series || null; d.spine = d.spine || null;
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
   let coverTrios = null, coverTriosSrc = null;
@@ -31,9 +31,9 @@ function openBookForm({ book, item }){
     <div class="sec"><label for="f-author">Autor/a</label><input class="field" id="f-author" data-f="author" value="${esc(d.author)}"></div>
     <div class="two"><div class="sec"><label for="f-pages">Páginas</label><input class="field" id="f-pages" data-f="pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages)}"></div>
       <div class="sec"><label for="f-year">Año de publicación</label><input class="field" id="f-year" data-f="year" type="number" inputmode="numeric" value="${esc(d.year)}"></div></div>
-    <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea></div>
+    <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea><div class="note" id="f-synsrc"></div></div>
     <div class="sec"><span class="lbl">Idiomas en los que lo puedes leer</span><div class="chips" id="flangs"></div></div>
-    <div class="sec"><span class="lbl">Ediciones (toca para alternar: quiero · tengo)</span><div class="chips" id="ffmt"></div></div>
+    <div class="sec"><span class="lbl">Ediciones (toca para alternar: quiero · tengo)</span><div class="chips" id="ffmt"></div><div id="feds"></div></div>
     <div class="sec"><span class="lbl">Etiquetas</span><div class="tagin" id="ftags"></div><div class="chips" id="ftagsug"></div></div>
     <div class="sec"><span class="lbl">Estado</span><div class="chips" id="fstatus"></div><div class="stars" id="frating" hidden></div></div>
     <div class="sec"><label for="f-notes">Notas personales</label><textarea class="field" id="f-notes" data-f="notes" placeholder="Por qué lo quieres leer, quién te lo recomendó…">${esc(d.notes)}</textarea></div>
@@ -58,7 +58,9 @@ function openBookForm({ book, item }){
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
-  const drawFmt = () => { q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}">${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join(''); };
+  const drawFmt = () => { const av = edFormats(d.eds);
+    q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av.has(k) ? 1 : ''}"${av.has(k) ? ' title="Existe en español"' : ''}>${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
+    q('#feds').innerHTML = edsHtml(d.eds); };
   const drawTags = () => {
     q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + '<input id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta">';
     const used = allTags().map(x => x[0]).filter(t => !d.tags.includes(t)).slice(0, 10), sug = sugTags.filter(t => !d.tags.includes(t));
@@ -167,7 +169,10 @@ function openBookForm({ book, item }){
   }
   function applyItem(it){
     if(!d.author && it.author){ d.author = it.author; q('#f-author').value = d.author; }
-    if(!d.synopsis && it.desc){ d.synopsis = it.desc; q('#f-syn').value = d.synopsis; }
+    // La sinopsis puesta automáticamente se cambia por la de la edición española si existe; la escrita a mano no se toca
+    if(it.desc && (!d.synopsis || (d.synopsis === autoSyn && it.descLang === 'es' && d.synopsis !== it.desc))){ d.synopsis = autoSyn = it.desc; q('#f-syn').value = d.synopsis;
+      q('#f-synsrc').textContent = it.descSrc ? `Sinopsis de la edición española (${it.descSrc}).` : ''; }
+    if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); drawFmt(); }
     if(!d.pages && it.pages){ d.pages = it.pages; q('#f-pages').value = d.pages; }
     if(!d.year && it.year){ d.year = it.year; q('#f-year').value = d.year; }
     { const L = detectLangs(it); if(L.some(x => !d.langs.includes(x))){ d.langs = [...new Set([...d.langs, ...L])]; drawLangs(); } }

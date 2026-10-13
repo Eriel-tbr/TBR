@@ -3,7 +3,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Geck
 const ENT = { amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ', laquo:'«', raquo:'»', hellip:'…', mdash:'—', ndash:'–', iexcl:'¡', iquest:'¿', rsquo:'’', lsquo:'‘', ldquo:'“', rdquo:'”' };
 const decode = s => String(s || '').replace(/&(#x?[0-9a-f]+|\w+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENT[e.toLowerCase()] ?? (/^[a-z]acute$|^[a-z]tilde$|^[a-z]uml$/i.test(e) ? decodeLetter(e) : m)));
 function decodeLetter(e){ const map = { acute:'́', tilde:'̃', uml:'̈' }; const k = e.slice(1); return (e[0] + (map[k] || '')).normalize('NFC'); }
-const text = h => decode(String(h || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').replace(/^\s+|\s+$/gm, '').trim();
+const text = h => decode(String(h || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '')).replace(/[ \t]+/g, ' ').replace(/^[ \t]+|[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
 async function get(url, ms = 7000){
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
   try{ const r = await fetch(url, { headers:{ 'user-agent':UA, 'accept-language':'es-ES,es;q=0.9' }, redirect:'follow', signal:ac.signal }); return { status:r.status, url:r.url, html:r.ok ? await r.text() : '' }; }
@@ -33,4 +33,12 @@ function fmtOf(s, title){
   if(/blanda|r[uú]stica|paperback|solapa/.test(t)) return 'blanda';
   return '';
 }
-module.exports = { UA, get, jsonLd, meta, pairs, text, decode, fmtOf };
+/* Contenido de un elemento con un id/clase dado, respetando los <div> anidados */
+function inner(html, re){
+  const m = html.match(re); if(!m) return '';
+  const tag = (m[0].match(/^<(\w+)/) || [, 'div'])[1].toLowerCase(), start = m.index + m[0].length;
+  const rx = new RegExp(`<(/?)${tag}\\b[^>]*>`, 'gi'); rx.lastIndex = start; let depth = 1, k;
+  while((k = rx.exec(html))){ depth += k[1] ? -1 : 1; if(!depth) return html.slice(start, k.index); }
+  return html.slice(start, start + 6000);
+}
+module.exports = { inner, UA, get, jsonLd, meta, pairs, text, decode, fmtOf };

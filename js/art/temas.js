@@ -199,7 +199,12 @@ function cabinetStyleVars(th){
 function crownHtml(u, th){ return scaleCrown(th.key === 'generico' ? genericCrown(u.name, th) : th.crown(esc(u.name))); }
 
 /* ---------- Colores desde la portada ---------- */
+/* Las portadas de otras webs no dejan leer sus colores: se piden a través de /api/portada (Vercel) */
 function coverPalette(src){
+  if(!src || /^data:/.test(src) || src.startsWith(location.origin) || typeof API_BASE === 'undefined') return coverPaletteRaw(src);
+  return coverPaletteRaw(API_BASE + 'api/portada?u=' + encodeURIComponent(src)).then(p => p || coverPaletteRaw(src));
+}
+function coverPaletteRaw(src){
   return new Promise(res => {
     if(!src) return res(null);
     const im = new Image(); let done = false; const fin = v => { if(!done){ done = true; res(v); } };
