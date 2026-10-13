@@ -11,8 +11,10 @@ module.exports = async (req, res) => {
   u.searchParams.set('country', 'ES'); // los servidores no tienen país y algunas consultas lo necesitan
   if(process.env.GOOGLE_BOOKS_KEY && !sp.has('sinclave')) u.searchParams.set('key', process.env.GOOGLE_BOOKS_KEY);
   try{
-    const ac = new AbortController(), t = setTimeout(() => ac.abort(), 7000);
-    const r = await fetch(u, { signal:ac.signal }); clearTimeout(t);
+    // Google Books tiene caídas pasajeras (503): se reintenta dos veces antes de rendirse
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), 8000); let r;
+    for(const wait of [0, 500, 1200]){ if(wait) await new Promise(ok => setTimeout(ok, wait)); r = await fetch(u, { signal:ac.signal }); if(r.status < 500) break; }
+    clearTimeout(t);
     const body = await r.text();
     if(sp.has('diag')){ let msg = ''; try{ const e = JSON.parse(body).error; msg = e && (e.message + ' [' + (e.status || '') + ']'); }catch(x){}
       return res.end(JSON.stringify({ status:r.status, conClave:!!process.env.GOOGLE_BOOKS_KEY, items:r.ok ? (JSON.parse(body).items || []).length : 0, error:msg || '' })); }
