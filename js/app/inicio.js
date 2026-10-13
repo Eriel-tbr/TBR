@@ -22,8 +22,11 @@ $('#btnSettings').addEventListener('click', openSettings);
 
 /* ---------- Inicio ---------- */
 applyTheme(); renderAll();
+loadAppFonts().then(() => renderCarousel());
+let rzT = 0; addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if(Math.abs($('#carousel').clientWidth - ui.width) > 4) renderCarousel(); }, 200); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setAccent);
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+initCloud();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---------- Aviso de versión nueva ---------- */

@@ -27,7 +27,7 @@ function defaultState(){
   const units = [U('Fantasía', 'fantasia', ['Épica', 'Gótica', 'Paranormal', 'Cozy']), U('Romantasy', 'romantasy', ['Fae', 'Dragones', 'Otras']),
     U('Ciencia ficción', 'cienciaficcion', ['Space opera', 'Distopía']), U('Dark academia', 'darkacademia', ['General']),
     U('Contemporánea', 'contemporanea', ['General']), U('Romance', 'romance', ['General'])];
-  const s = { v:1, settings:{ theme:'auto', decor:true }, units, books:[], seriesStyle:{} };
+  const s = { v:1, fresh:true, settings:{ theme:'auto', decor:true }, units, books:[], seriesStyle:{} };
   const ex = [
     ['El nombre del viento','Patrick Rothfuss',660,['es','en'],['épica'],0,0,['Crónica del asesino de reyes',1,3]],['Juego de tronos','George R. R. Martin',800,['es','en'],['épica'],0,0,['Canción de hielo y fuego',1,7]],
     ['El Hobbit','J. R. R. Tolkien',300,['es','en'],['clásico','épica'],0,0],['Mexican Gothic','Silvia Moreno-Garcia',320,['en'],['gótica','terror'],0,1],
@@ -53,7 +53,11 @@ const ui = { active:0, filters:{ q:'', status:'', lang:'', tags:[], len:'' }, la
 let saveT = null;
 function save(){
   clearTimeout(saveT);
-  saveT = setTimeout(() => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast('No se pudo guardar: el almacenamiento está lleno. Exporta una copia desde Ajustes.'); } }, 100);
+  saveT = setTimeout(() => {
+    if(typeof syncStamp === 'function') syncStamp(); // marca qué cambió, para la copia en la nube
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast('No se pudo guardar: el almacenamiento está lleno. Exporta una copia desde Ajustes.'); }
+    if(typeof syncSoon === 'function'){ syncSoon(); updateCloudUi(); }
+  }, 100);
 }
 const unitOf = id => state.units.find(u => u.id === id);
 const bookOf = id => state.books.find(b => b.id === id);

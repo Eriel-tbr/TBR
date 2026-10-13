@@ -160,7 +160,8 @@ function openSettings(){
     <div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
     <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>
     <div class="sec"><span class="lbl">Estadísticas</span>${statsHtml()}</div>
-    <div class="sec"><span class="lbl">Copia de seguridad</span><p class="note">Los datos se guardan solo en este dispositivo. Exporta una copia para pasar tu colección al móvil o al ordenador, o por si borras los datos del navegador.</p>
+    <div class="sec"><span class="lbl">Cuenta y copia en la nube</span><div id="cloud-sec">${cloudSecHtml()}</div></div>
+    <div class="sec"><span class="lbl">Copia en archivo</span><p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
       <div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir copia</button><button class="btn" type="button" data-do="import">Importar copia</button></div>
       <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div></div>
     <div class="sec"><span class="lbl">Zona delicada</span><button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button></div>`;
@@ -191,9 +192,7 @@ function applyImport(mode){
   const d = pendingImport; if(!d) return;
   if(mode === 'replace'){ state = d; if(!state.settings) state.settings = { theme:'auto', decor:true }; state.seriesStyle = state.seriesStyle || {}; }
   else { d.units.forEach(u => { if(!unitOf(u.id)) state.units.push(u); }); d.books.forEach(b => { if(!bookOf(b.id)) state.books.push(b); }); Object.assign(state.seriesStyle, d.seriesStyle || {}); }
-  pendingImport = null; save(); ui.active = 0; applyTheme(); renderAll();
-loadAppFonts().then(() => renderCarousel());
-let rzT = 0; addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if(Math.abs($('#carousel').clientWidth - ui.width) > 4) renderCarousel(); }, 200); }); toast('Copia importada');
+  pendingImport = null; save(); ui.active = 0; applyTheme(); renderAll(); toast('Copia importada');
 }
 function exportJson(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type:'application/json' }));

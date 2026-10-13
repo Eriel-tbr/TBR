@@ -2,6 +2,7 @@
    Abren la app en un Chrome con tamaño de móvil, con Google Books, Open Library y Wikidata simulados.
    Uso: npm test   (o: node tests/e2e.cjs) */
 const http = require('http'), fs = require('fs'), path = require('path');
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'; // que las respuestas simuladas valgan también para el service worker
 const { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..');
 const TYPES = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.webmanifest':'application/manifest+json' };
@@ -29,6 +30,26 @@ function fakeApis(route){
   return route.abort();
 }
 
+/* ---- nube simulada ---- */
+const MOCK_SB = fs.readFileSync(path.join(__dirname, 'mock-supabase.js'), 'utf8');
+const db = { row:null, files:[] };
+function mockDb(src, op, arg){
+  const clone = x => JSON.parse(JSON.stringify(x));
+  if(op === 'get') return db.row && clone(db.row);
+  if(op === 'insert'){ if(db.row) return { code:'23505' }; db.row = clone(arg); return null; }
+  if(op === 'update'){ if(!db.row || db.row.rev !== arg.expect) return []; db.row = { ...db.row, data:clone(arg.data), rev:arg.rev }; return [{ rev:arg.rev }]; }
+  if(op === 'upload'){ db.files.push(arg); return null; }
+}
+async function newDevice(browser, { cdn = true } = {}){
+  const c = await browser.newContext({ viewport:{ width:390, height:844 }, deviceScaleFactor:2, serviceWorkers:'block' });
+  await c.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
+  await c.route(u => u.hostname === 'cdn.jsdelivr.net', r => cdn ? r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }) : r.abort());
+  await c.exposeBinding('mockDb', mockDb);
+  const p = await c.newPage(); p.on('pageerror', e => errors.push(e.message)); return { c, p };
+}
+const dbTitles = () => db.row ? db.row.data.books.map(b => b.title) : [];
+async function until(fn, ms = 8000, msg = 'tiempo agotado'){ const t0 = Date.now(); while(Date.now() - t0 < ms){ if(await fn()) return; await new Promise(r => setTimeout(r, 150)); } throw new Error(msg); }
+
 const results = []; let page, ctx, errors = [];
 async function test(name, fn){
   try{ await fn(); results.push(['ok', name]); console.log('  ✓ ' + name); }
@@ -42,6 +63,8 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
   const browser = await chromium.launch();
   ctx = await browser.newContext({ viewport:{ width:390, height:844 }, deviceScaleFactor:2, hasTouch:false, serviceWorkers:'allow' });
   await ctx.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
+  await ctx.route(u => u.hostname === 'cdn.jsdelivr.net', r => r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }));
+  await ctx.exposeBinding('mockDb', mockDb);
   page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message));
   console.log('Mi TBR — pruebas');
 
@@ -91,12 +114,12 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);
     const order0 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));
-    await ev(() => window.scrollTo(0, 0)); await page.locator(`.slide[data-i="0"] .it[data-id="${order0[0]}"]`).scrollIntoViewIfNeeded();
+    await ev(() => window.scrollTo(0, 0)); await ev(id => document.querySelector(`.slide[data-i="0"] .it[data-id="${id}"]`).scrollIntoView({ block:'center' }), order0[0]); await page.waitForTimeout(100);
     const a = await page.locator(`.slide[data-i="0"] .it[data-id="${order0[0]}"]`).boundingBox(), b = await page.locator(`.slide[data-i="0"] .it[data-id="${order0[2]}"]`).boundingBox();
     await page.mouse.move(a.x + a.width / 2, a.y + a.height - 40); await page.mouse.down(); await page.mouse.move(a.x + 20, a.y + a.height - 30, { steps:4 });
     await page.mouse.move(b.x + b.width + 4, b.y + b.height - 40, { steps:12 }); await page.waitForTimeout(150); await page.mouse.up(); await page.waitForTimeout(400);
     const order1 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));
-    assert(order1.join() !== order0.join(), 'el orden no cambió');
+    assert(order1.join() !== order0.join(), 'el orden no cambió ' + order0.slice(0,4) + ' / ' + JSON.stringify([a.x,a.y,a.width,a.height,b.x,b.y]));
   });
   await test('decoración a mano: añadir, mover y quitar', async () => {
     await page.click('.slide[data-i="0"] [data-act="editUnit"]'); await page.click('[data-dmode="manual"]'); await page.click('[data-dadd="buho"]'); await page.click('#u-save');
@@ -120,6 +143,64 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
   await test('avisa cuando hay una versión nueva', async () => {
     versionOverride = 'nueva'; await page.reload(); await page.waitForSelector('#update:not([hidden])', { timeout:4000 }); versionOverride = null;
   });
+  /* ---- nube ---- */
+  let dev2, dev3;
+  await test('sin cuenta: Ajustes ofrece entrar con Google', async () => {
+    await page.goto(BASE); await page.waitForSelector('.slide .bk'); await page.click('#btnSettings');
+    await page.waitForSelector('#cloud-sec [data-cloud="login"]', { timeout:4000 });
+  });
+  await test('entrar sube la colección a la nube', async () => {
+    await page.click('#cloud-sec [data-cloud="login"]'); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await until(() => db.row, 8000, 'no se subió nada');
+    const n = await ev(() => state.books.length); assert(db.row.data.books.length === n, `nube ${db.row.data.books.length} / local ${n}`);
+  });
+  await test('un móvil nuevo recibe la colección sin duplicar estanterías', async () => {
+    dev2 = await newDevice(browser); await dev2.p.goto(BASE); await dev2.p.waitForSelector('.slide .bk');
+    await dev2.p.evaluate(() => cloudLogin());
+    await until(() => dev2.p.evaluate(n => state.books.length === n, db.row.data.books.length), 6000, 'no llegaron los libros');
+    const r = await dev2.p.evaluate(() => ({ u:state.units.length, ids:new Set(state.books.map(b => b.id)).size, n:state.books.length }));
+    assert(r.u === db.row.data.units.length && r.ids === r.n, JSON.stringify(r));
+  });
+  await test('un libro añadido en un móvil llega al otro', async () => {
+    const p2 = dev2.p; await p2.click('#btnAddManual'); await p2.fill('#f-title', 'Desde el otro móvil'); await p2.click('[data-do="save"]');
+    await until(() => dbTitles().includes('Desde el otro móvil'), 8000, 'no llegó a la nube');
+    await ev(() => syncNow()); assert(await ev(() => state.books.some(b => b.title === 'Desde el otro móvil')), 'no llegó al primero');
+    assert(await page.locator('.bk[aria-label^="Desde el otro móvil"]').count() === 1, 'no se dibuja');
+  });
+  await test('cambios a la vez en los dos se juntan, y un borrado se respeta', async () => {
+    await ev(() => { const b = state.books.find(x => x.title === 'Desde el otro móvil'); state.books = state.books.filter(x => x !== b); save(); });
+    await dev2.p.evaluate(() => { state.books.find(x => x.title === 'Libro de prueba').pages = 999; save(); });
+    await page.waitForTimeout(300); await dev2.p.waitForTimeout(300);
+    await ev(() => syncNow()); await dev2.p.evaluate(() => syncNow()); await ev(() => syncNow());
+    const chk = p => p.evaluate(() => ({ gone:!state.books.some(b => b.title === 'Desde el otro móvil'), pages:(state.books.find(b => b.title === 'Libro de prueba') || {}).pages }));
+    const a = await chk(page), b = await chk(dev2.p);
+    assert(a.gone && b.gone && a.pages == 999 && b.pages == 999, JSON.stringify({ a, b }));
+  });
+  await test('una portada subida desde el móvil pasa a la nube', async () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    await ev(png => { state.books[0].coverData = png; save(); }, png); await page.waitForTimeout(300); await ev(() => syncNow());
+    const cd = db.row.data.books.find(b => b.coverData).coverData; assert(cd.startsWith('https://mock.storage/u1/'), cd.slice(0, 40)); assert(db.files.length === 1, 'subidas: ' + db.files.length);
+  });
+  await test('un móvil con libros propios pregunta y junta sin repetir', async () => {
+    dev3 = await newDevice(browser); const p3 = dev3.p; await p3.goto(BASE); await p3.waitForSelector('.slide .bk');
+    await p3.click('#btnAddManual'); await p3.fill('#f-title', 'Solo en el tercero'); await p3.click('[data-do="save"]'); await p3.waitForSelector('.sheet', { state:'detached' });
+    await p3.waitForSelector('#cloudban:not([hidden])', { timeout:3000 });
+    await p3.click('#cloudban [data-cloud="login"]'); await p3.waitForSelector('[data-join="join"]', { timeout:5000 }); await p3.click('[data-join="join"]');
+    await until(() => dbTitles().includes('Solo en el tercero'), 8000, 'no se juntó');
+    const r = await p3.evaluate(() => ({ u:state.units.length, titles:state.books.map(b => b.title) }));
+    assert(r.u === db.row.data.units.length && r.u === 6, 'estanterías ' + r.u);
+    assert(new Set(r.titles).size === r.titles.length, 'libros repetidos: ' + r.titles.join(', '));
+    assert(await p3.locator('#cloudban:not([hidden])').count() === 0, 'el aviso sigue');
+  });
+  await test('cerrar sesión deja los libros en el móvil', async () => {
+    await dev2.p.evaluate(() => syncNow(true)); const n = await dev2.p.evaluate(() => state.books.length); await dev2.p.evaluate(() => cloudLogout()); await dev2.p.waitForTimeout(300);
+    const r = await dev2.p.evaluate(() => ({ n:state.books.length, u:!!nube.user })); assert(r.n === n && !r.u, JSON.stringify(r));
+  });
+  await test('sin la librería de la nube la app funciona igual', async () => {
+    const d = await newDevice(browser, { cdn:false }); await d.p.goto(BASE); await d.p.waitForSelector('.slide .bk');
+    await d.p.click('#btnSettings'); const t = await d.p.locator('#cloud-sec').innerText(); assert(/no se puede conectar/i.test(t), t); await d.c.close();
+  });
+  await Promise.all([dev2, dev3].filter(Boolean).map(d => d.c.close()));
   await test('sin errores de JavaScript en toda la prueba', async () => { assert(!errors.length, errors.join(' | ')); });
 
   await browser.close(); server.close();

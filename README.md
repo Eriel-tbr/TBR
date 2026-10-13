@@ -23,3 +23,11 @@ Haz copias desde **Ajustes › Guardar copia**.
 1. `python3 tools/version.py` (cambia la versión para que el móvil muestre «Hay una versión nueva»).
 2. `npm test`
 3. Subir a la rama `main`: GitHub Pages lo publica solo en 1–2 minutos.
+
+## Copia en la nube (Supabase)
+
+- Opcional: la app funciona sin cuenta. Con «Entrar con Google» (Ajustes o el aviso de arriba) la colección se guarda en Supabase y se sincroniza entre dispositivos.
+- Código: `js/app/nube.js`. Cada libro y estantería lleva `upd` (último cambio); los borrados quedan en `deleted`. Al juntar, gana el cambio más reciente de cada libro.
+- Las portadas subidas desde el móvil se mueven al bucket `tbr-portadas` (carpeta propia de cada cuenta).
+- Base de datos: ejecutar `supabase/tbr_fase2.sql` una vez en el SQL Editor del proyecto. Guarda copias automáticas en `tbr_backups` (como mucho una cada 12 h, las 30 últimas).
+- En Supabase → Authentication → URL Configuration, cada dirección donde se publique la app tiene que estar en «Redirect URLs».
