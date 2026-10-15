@@ -14,23 +14,21 @@ module.exports = async (req, res) => {
   const last = lastName(a), raw = {};
   try{
     let id = null;
-    if(s){
-      const docs = await search(s, 'Series', 8); if(diag) raw.series = docs;
-      // Solo series con libros (Hardcover tiene duplicados vacíos, p. ej. con el nombre traducido)
-      const byAuthor = d => !last || norm(d.author_name || (d.author || {}).name || '').includes(last);
-      const full = docs.filter(d => +(d.primary_books_count || d.books_count || 0) > 0);
-      const hit = full.find(d => byAuthor(d) && norm(d.name) === norm(s)) || full.find(byAuthor);
-      if(hit && hit.id) id = +hit.id;
-    }
-    if(!id && t){
+    // 1) La serie del propio libro (lo más fiable: Hardcover encuentra el libro también por títulos traducidos)
+    if(t){
       const b = await findBook(t, a); if(diag) raw.book = b;
       const fs = b && b.featured_series; id = fs && fs.series && fs.series.id ? +fs.series.id : null;
     }
+    // 2) Si no, por el nombre de la serie: solo series con libros y del mismo autor/a
+    if(!id && s){
+      const docs = await search(s, 'Series', 8); if(diag) raw.series = docs;
+      const byAuthor = d => last && norm(d.author_name || (d.author || {}).name || '').includes(last);
+      const full = docs.filter(d => +(d.primary_books_count || d.books_count || 0) > 0 && byAuthor(d));
+      const hit = full.find(d => norm(d.name) === norm(s)) || full[0];
+      if(hit && hit.id) id = +hit.id;
+    }
     if(!id){ res.statusCode = diag ? 200 : 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
-    let d = await gql(Q, { id }), se = (d.series || [])[0]; if(diag) raw.query = d;
-    if((!se || !(se.book_series || []).length) && t){ // serie vacía: la del libro
-      const b = await findBook(t, a), fs = b && b.featured_series, id2 = fs && fs.series && fs.series.id ? +fs.series.id : null; if(diag) raw.book = b;
-      if(id2 && id2 !== id){ d = await gql(Q, { id:id2 }); se = (d.series || [])[0]; } }
+    const d = await gql(Q, { id }), se = (d.series || [])[0]; if(diag) raw.query = d;
     if(!se || !(se.book_series || []).length){ res.statusCode = diag ? 200 : 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
     const books = (se.book_series || []).filter(x => x.book && x.position != null).map(x => ({ n:+x.position, main:Number.isInteger(+x.position) && +x.position > 0,
       title:x.book.title, year:x.book.release_year || null, pages:x.book.pages || 0, cover:(x.book.image || {}).url || '', url:x.book.slug ? 'https://hardcover.app/books/' + x.book.slug : '' }));
