@@ -21,6 +21,8 @@ async function main(req, res){
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
   const last = lastName(a), raw = {}, errors = {}, items = [];
+  if(p.get('step') === '1') return res.end(JSON.stringify({ step:1, t, es, a, last }));
+  if(p.get('step') === '2'){ const t0 = Date.now(); let out; try{ const l = await apple(t, 'us'); out = { n:l.length, first:l[0] && Object.keys(l[0]) }; }catch(e){ out = { err:e.message }; } return res.end(JSON.stringify({ step:2, ms:Date.now() - t0, out })); }
   const titles = [t, es].filter(Boolean).map(norm);
   const sameBook = name => { const n = norm(name); return titles.some(x => x && (n.includes(x) || x.includes(n.split(' ').slice(0, 4).join(' ')))); };
   // Apple Books: tienda española con el título en español (si lo hay) y tienda de EE. UU. con el original
