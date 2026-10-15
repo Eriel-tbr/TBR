@@ -5,8 +5,12 @@
    ?diag=1 devuelve también los datos en bruto para depurar. */
 const { gql, findBook, norm, lastName } = require('./_lib/hardcover');
 const DRAMA = /dramati[sz]|full[- ]cast|reparto completo|audioserie|audio drama|graphic ?audio|radio play/i;
-const ES_WORDS = /\b(el|la|los|las|una|que|del|por|para|con|novela|historia|narrado)\b/gi, EN_WORDS = /\b(the|and|with|of|her|his|novel|story|narrated|read by)\b/gi;
-function guessLang(text){ const es = (text.match(ES_WORDS) || []).length, en = (text.match(EN_WORDS) || []).length; return es > en * 1.3 ? 'es' : en > es * 1.3 ? 'en' : ''; }
+/* Idioma por palabras frecuentes del título y la descripción (Apple no lo indica). Las tiendas mezclan traducciones a otros idiomas. */
+const WORDS = { es:'el la los las una que del por para con como sus pero novela historia libro', en:'the and with of her his novel story but from this that book',
+  it:'il gli della degli che per una romanzo libro non accadimenti', de:'der die das und mit ein eine nicht band lesung roman ungekürzte gekürzte',
+  fr:'le les des une du est pour roman tome dans', pt:'os das dos uma com não livro sombra', nd:'og det som til af første del bind' };
+const RX = Object.fromEntries(Object.entries(WORDS).map(([k, w]) => [k, new RegExp(`(^|[^\\p{L}])(${w.split(' ').join('|')})(?=$|[^\\p{L}])`, 'giu')]));
+function guessLang(text){ let best = '', n = 0; for(const [k, rx] of Object.entries(RX)){ const c = (String(text).match(rx) || []).length; if(c > n){ n = c; best = k; } } return best; }
 async function apple(term, country){
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
   try{
@@ -21,8 +25,6 @@ async function main(req, res){
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
   const last = lastName(a), raw = {}, errors = {}, items = [];
-  if(p.get('step') === '1') return res.end(JSON.stringify({ step:1, t, es, a, last }));
-  if(p.get('step') === '2'){ const t0 = Date.now(); let out; try{ const l = await apple(t, 'us'); out = { n:l.length, first:l[0] && Object.keys(l[0]) }; }catch(e){ out = { err:e.message }; } return res.end(JSON.stringify({ step:2, ms:Date.now() - t0, out })); }
   const titles = [t, es].filter(Boolean).map(norm);
   const sameBook = name => { const n = norm(name); return titles.some(x => x && (n.includes(x) || x.includes(n.split(' ').slice(0, 4).join(' ')))); };
   // Apple Books: tienda española con el título en español (si lo hay) y tienda de EE. UU. con el original
@@ -36,7 +38,7 @@ async function main(req, res){
           const text = `${x.collectionName || ''} ${String(x.description || '').replace(/<[^>]+>/g, ' ')}`;
           items.push({ id:'a' + x.collectionId, src:'apple', store:'Apple Books', country:c, title:x.collectionName, author:x.artistName, url:x.collectionViewUrl,
             cover:x.artworkUrl100 || '', year:String(x.releaseDate || '').slice(0, 4), price:x.collectionPrice != null ? `${x.collectionPrice} ${x.currency || ''}`.trim() : '',
-            lang:es && norm(x.collectionName).includes(norm(es)) && norm(es) !== norm(t) ? 'es' : guessLang(text) || (c === 'es' ? '' : 'en'), drama:DRAMA.test(text) });
+            lang:es && norm(x.collectionName).includes(norm(es)) && norm(es) !== norm(t) ? 'es' : guessLang(text), drama:DRAMA.test(text) });
         });
       }catch(e){ errors['apple_' + c] = e.message; }
     }),
@@ -53,7 +55,7 @@ async function main(req, res){
           const lang = norm((e.language || {}).language || ''), narr = (e.contributions || []).filter(c => /narrat|reader|voice|narrad/i.test(c.contribution || '')).map(c => (c.author || {}).name).filter(Boolean);
           const pub = (e.publisher || {}).name || '', text = `${e.title || ''} ${e.edition_information || ''} ${pub}`;
           items.push({ id:'h' + e.id, src:'hardcover', store:'Hardcover', title:e.title || t, url:book.slug ? `https://hardcover.app/books/${book.slug}/editions` : '',
-            lang:/spanish|espanol|castellano/.test(lang) ? 'es' : /english|ingles/.test(lang) ? 'en' : lang ? 'otro' : '', seconds:e.audio_seconds || 0,
+            lang:/spanish|espanol|castellano/.test(lang) ? 'es' : /english|ingles/.test(lang) ? 'en' : lang ? 'otro' : (es && norm(e.title || '') === norm(es) ? 'es' : norm(e.title || '') === norm(t) && norm(es || '') !== norm(t) ? 'en' : ''), seconds:e.audio_seconds || 0,
             narrators:narr.slice(0, 4), publisher:pub, year:String(e.release_date || '').slice(0, 4), drama:DRAMA.test(text) });
         });
       }catch(e){ errors.hardcover = e.message; }
@@ -61,9 +63,11 @@ async function main(req, res){
   ]);
   // Vercel corta a los 10 s: se responde con lo que haya a los 8,5 s
   let timer; await Promise.race([work, new Promise(r => { timer = setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 6500); })]); clearTimeout(timer);
-  // Primero en español, luego en inglés; dentro, Apple antes que Hardcover (tiene enlace de compra)
+  // Solo español e inglés (los de idioma desconocido de Hardcover, solo si no hay otros); primero español; Apple antes (tiene enlace de compra)
   const rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 2 + (i.src === 'apple' ? 0 : 1);
-  items.sort((x, y) => rank(x) - rank(y));
+  const keep = items.filter(i => i.lang === 'es' || i.lang === 'en'), list = (keep.length ? keep : items.filter(i => !i.lang)).sort((x, y) => rank(x) - rank(y));
+  const seen = {}; const out = list.filter(i => { const k = i.src + i.lang; seen[k] = (seen[k] || 0) + 1; return seen[k] <= 2; });
+  items.length = 0; items.push(...out);
   res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
   res.end(JSON.stringify(diag ? { items, errors, raw } : { items, errors:Object.keys(errors).length ? errors : undefined }));
 }
