@@ -109,6 +109,10 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
       const m = migrate(old); return { name:u.name, shelves:u.shelves.map(s => s.name), mig:m.units[0].name + '|' + m.units[0].shelves.map(s => s.name).join('/'), sug:JSON.stringify(suggestShelf(state, ['thriller'])) === JSON.stringify({ unitId:u.id, shelfId:u.shelves[1].id }) }; });
     assert(r.name === 'Contemporánea y thriller' && r.mig === 'Contemporánea y thriller|General/Thriller y misterio' && r.sug, JSON.stringify(r));
   });
+  await test('colores elegidos a mano antes del ajuste se respetan; los de paleta no', async () => {
+    const r = await ev(() => { const s = migrate({ v:1, settings:{ migThriller:1 }, units:[], books:[{ spine:{ base:'#ffe699', foil:'#ffffff', accent:'#000000' } }, { spine:{ base:'#5b1f2b', foil:'#d9b25f', accent:'#2a0c12' } }] }); return s.books.map(b => b.spine.adjust); });
+    assert(r[0] === false && r[1] === undefined, JSON.stringify(r));
+  });
   await test('una trilogía va junta, en orden y con números I II III', async () => {
     const nums = await ev(() => { const ids = state.books.filter(b => b.series && b.series.name === 'The Folk of the Air').map(b => b.id);
       return [...document.querySelectorAll('.it[data-id]')].filter(i => ids.includes(i.dataset.id)).map(i => (i.querySelector('.num') || {}).textContent); });

@@ -56,6 +56,11 @@ function migrate(s){
       if(!u.shelves.some(sh => /thriller|misterio|suspense/.test(norm(sh.name)))) u.shelves.push(mkShelf('Thriller y misterio')); });
     s.settings.migThriller = 1;
   }
+  if(!s.settings.migAdjust && typeof THEMES !== 'undefined'){ // colores elegidos a mano antes de existir el ajuste: se respetan tal cual
+    const pals = new Set(Object.values(THEMES).flatMap(t => (t.pal || []).map(p => p.join(',').toLowerCase())));
+    s.books.forEach(b => { const sp = b.spine; if(sp && sp.base && sp.adjust === undefined && !pals.has([sp.base, sp.foil, sp.accent].join(',').toLowerCase())) sp.adjust = false; });
+    s.settings.migAdjust = 1;
+  }
   return s;
 }
 let state = migrate(load());

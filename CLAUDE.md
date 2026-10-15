@@ -50,6 +50,6 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Commits en español.
 
 ## Pendiente
-- Revisar las fichas y lomos de la colección real cuando Leyre pase una copia JSON (Ajustes → Guardar copia).
+- Revisada la copia del 15/10/2026 (29 libros): corregidos títulos, autoría, series, idiomas y una etiqueta. Faltan sinopsis en 7 libros y sinopsis en inglés en libros traducidos (Blue Monday, Weyward, A Darker Shade of Magic): se completan con «Buscar y comparar datos» desde la app (no copiar sinopsis a mano). `migrate()` también pone `adjust:false` a los colores de lomo elegidos a mano antes (`settings.migAdjust`).
 - Tanda 3: informe (audiolibros, tienda tipo Books2Door en español, análisis de la app Mistbook).
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.
