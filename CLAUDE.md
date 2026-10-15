@@ -17,6 +17,10 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Estado: `state = {v:1, settings, units[], books[], seriesStyle{}, deleted{}, metaUpd}` en localStorage `tbr.v1`; `save()` en estado.js.
 - Hojas (ventanas): `openSheet(sheetT(título, cuerpo, pie))`, `closeSheet()`; chips con `chipsHtml()`. Las hojas apiladas suben de z-index para que la de debajo quede tapada.
 - Selectores (fase 4, hecha): no se usan `<select>` nativos. `pickHtml(id, etiqueta, [[valor, texto]…], actual)` (hojas.js) pinta un botón `.pick` que abre una hoja con las opciones (radiogroup, flechas/Inicio/Fin, Escape, devuelve el foco). Se usa como un select: valor en `btn.value` y evento `change` que burbujea. `setPick(btn, opciones, valor)` cambia opciones o valor sin lanzar `change` (p. ej. la balda al cambiar de estantería). Están en `#f-unit`, `#f-shelf`, `#r-unit`, `#r-tag`, `#u-moveto`.
+- Campos de texto de una línea: `lineHtml(atributos, valor)` (util.js) crea un `<textarea class="one">`, no un `<input>`: Chrome en Android pone su barra de autorrellenar (llave, tarjeta, ubicación) en todos los `<input>` de texto aunque lleven `autocomplete="off"`. Enter termina el campo, los saltos pegados se quitan y `data-num` solo deja cifras (hojas.js). No volver a usar `<input>` de texto.
+- Decoración: los objetos automáticos se pintan como `auto:<unidad>:<n>`; al tocarlos o arrastrarlos, `materializeDecor()` pasa la estantería a manual guardando los que se ven. En la hoja del objeto hay botones «Antes / Después» además de arrastrar.
+- Colores de lomo: `spineArt()` devuelve también `pal` y `ink` efectivos (los selectores parten de ahí). `sp.ink` = color de letras elegido; si no, el título se fuerza a contraste ≥ 2,6 con su fondo (`legibleOn`). Un color elegido a mano pone `adjust:false` y se respeta aunque la serie comparta diseño.
+- `DECO_C`: cada tema parte de la paleta de fantasía; si a un tema le falta un color, el dibujo de objetos fallaba y la ventana de editar estantería dejaba de responder (pasó con Ciencia ficción).
 - Arte: lomos SVG (`spine`), muebles por tema (`THEMES` en temas.js: fantasía→gótico, romantasy→rococó, ciencia ficción→chip, dark academia→academia, contemporánea→moderno, romance→romance, resto→genérico). Decoración automática o manual (`u.decorMode`).
 
 ## Nube (fase 2, hecha)
@@ -29,7 +33,7 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - `hardcover.js`: búsqueda en Hardcover (`HARDCOVER_TOKEN` en Vercel; no usar en el navegador). Da serie y número.
 - `edicion.js`: ediciones en español por ISBN desde fichas de todostuslibros.com (editorial, formato, sinopsis oficial). No usar su buscador (/busquedas está prohibido en su robots.txt).
 - `b2d.js`: ediciones en inglés en Books2Door (buscador Shopify `search/suggest.json`, permitido). No indica tapa dura/blanda.
-- `portada.js`: proxy de portadas con lista de dominios permitidos, para leer colores en canvas.
+- `portada.js`: proxy de portadas con lista de dominios permitidos, para leer colores en canvas. Incluye hardcover.app (faltaba: los libros en inglés salían con «No se pueden leer los colores»).
 - Las claves y tokens solo en variables de Vercel. Nunca en el código ni en el chat.
 
 ## Búsqueda (js/lib/busqueda.js + js/app/anadir.js)
@@ -43,4 +47,6 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Commits en español.
 
 ## Pendiente
+- Tanda 2: baldas alineadas entre muebles, estantería «Contemporánea y thriller», revisar estilos de lomo y las fichas de la colección real (Leyre pasa una copia JSON).
+- Tanda 3: informe (audiolibros, tienda tipo Books2Door en español, análisis de la app Mistbook).
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.

@@ -72,3 +72,10 @@ function edsHtml(eds, en){
     const bits = (en ? [e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''] : [e.publisher, FMT_NAME[e.fmt] || bind, e.year]).filter(Boolean).map(esc).join(' · ');
     return `<a href="${esc(e.url)}" target="_blank" rel="noopener">${bits || esc(e.isbn)}</a>`; }).join('')}</div>`;
 }
+/* Campos de una línea (textarea .one, ver lineHtml): Enter termina en vez de saltar de línea; sin saltos al pegar; los numéricos solo admiten cifras */
+document.addEventListener('input', e => { const t = e.target; if(!t.classList || !t.classList.contains('one')) return;
+  const v = 'num' in t.dataset ? t.value.replace(/\D/g, '') : t.value.replace(/[\r\n]+/g, ' ');
+  if(v !== t.value){ const p = Math.min(t.selectionStart, v.length); t.value = v; t.setSelectionRange(p, p); } }, true);
+document.addEventListener('keydown', e => { const t = e.target;
+  if(e.key !== 'Enter' || e.isComposing || !t.classList || !t.classList.contains('one') || e.defaultPrevented) return;
+  e.preventDefault(); t.dispatchEvent(new Event('change', { bubbles:true })); t.blur(); });

@@ -21,17 +21,17 @@ function openBookForm({ book, item }){
   if(isNew){ const n = newDraft(item); d = n.draft; sugTags = n.sugTags; sugged = n.sugged; serNote = n.serNote; autoSyn = d.synopsis; } else d = JSON.parse(JSON.stringify(book));
   d.series = d.series || null; d.spine = d.spine || null;
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
-  let coverTrios = null, coverTriosSrc = null;
+  let coverTrios = null, coverTriosSrc = null, lastArt = {};
   const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => [s.id, s.name]);
   const body = `
     <div id="fnote" class="notice" ${isNew && item ? '' : 'hidden'}>Datos rellenados automáticamente. Revísalos antes de guardar.<span id="fload"> Completando sinopsis, idiomas y serie…</span></div>
     <div class="hero"><div class="cover-box" id="fcover"></div><div class="meta" style="flex:1">
       <button class="btn sm" type="button" data-do="upload">Subir portada</button><button class="btn sm" type="button" data-do="nocover">Quitar portada</button>
       <input id="fupload" type="file" accept="image/*" hidden></div></div>
-    <div class="sec"><label for="f-title">Título</label><input class="field" id="f-title" data-f="title" value="${esc(d.title)}" ${isNew && !item ? 'data-autofocus' : ''}></div>
-    <div class="sec"><label for="f-author">Autor/a</label><input class="field" id="f-author" data-f="author" value="${esc(d.author)}"></div>
-    <div class="two"><div class="sec"><label for="f-pages">Páginas</label><input class="field" id="f-pages" data-f="pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages)}"></div>
-      <div class="sec"><label for="f-year">Año de publicación</label><input class="field" id="f-year" data-f="year" type="number" inputmode="numeric" value="${esc(d.year)}"></div></div>
+    <div class="sec"><label for="f-title">Título</label>${lineHtml(`class="field" id="f-title" data-f="title" ${isNew && !item ? 'data-autofocus' : ''}`, d.title)}</div>
+    <div class="sec"><label for="f-author">Autor/a</label>${lineHtml('class="field" id="f-author" data-f="author"', d.author)}</div>
+    <div class="two"><div class="sec"><label for="f-pages">Páginas</label>${lineHtml('class="field" id="f-pages" data-f="pages" data-num inputmode="numeric"', d.pages)}</div>
+      <div class="sec"><label for="f-year">Año de publicación</label>${lineHtml('class="field" id="f-year" data-f="year" data-num inputmode="numeric"', d.year)}</div></div>
     <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea><div class="note" id="f-synsrc"></div></div>
     <div class="sec"><span class="lbl">Idiomas en los que lo puedes leer</span><div class="chips" id="flangs"></div></div>
     <div class="sec"><span class="lbl">Ediciones (toca para alternar: quiero · tengo)</span><div class="chips" id="ffmt"></div><div id="feds"></div></div>
@@ -39,22 +39,23 @@ function openBookForm({ book, item }){
     <div class="sec"><span class="lbl">Estado</span><div class="chips" id="fstatus"></div><div class="stars" id="frating" hidden></div></div>
     <div class="sec"><label for="f-notes">Notas personales</label><textarea class="field" id="f-notes" data-f="notes" placeholder="Por qué lo quieres leer, quién te lo recomendó…">${esc(d.notes)}</textarea></div>
     <div class="sec"><span class="lbl">Serie</span>
-      <div class="three"><input class="field" id="f-sname" list="f-serlist" placeholder="Nombre (vacío si es libro suelto)" value="${esc(d.series ? d.series.name : '')}" aria-label="Nombre de la serie">
-        <input class="field" id="f-sn" type="number" inputmode="numeric" min="1" placeholder="Nº" value="${esc(d.series ? d.series.n : '')}" aria-label="Número dentro de la serie">
-        <input class="field" id="f-st" type="number" inputmode="numeric" min="1" placeholder="Total" value="${esc(d.series ? d.series.total : '')}" aria-label="Total de libros de la serie"></div>
-      <datalist id="f-serlist">${[...new Set(state.books.filter(b => b.series && b.series.name).map(b => b.series.name))].map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      <div class="three">${lineHtml('class="field" id="f-sname" placeholder="Nombre (vacío si es libro suelto)" aria-label="Nombre de la serie"', d.series ? d.series.name : '')}
+        ${lineHtml('class="field" id="f-sn" data-num inputmode="numeric" placeholder="Nº" aria-label="Número dentro de la serie"', d.series ? d.series.n : '')}
+        ${lineHtml('class="field" id="f-st" data-num inputmode="numeric" placeholder="Total" aria-label="Total de libros de la serie"', d.series ? d.series.total : '')}</div>
+      <div class="chips" id="f-serlist"></div>
       <div id="f-sernote"></div><div id="f-sermode"></div></div>
     <div class="sec"><span class="lbl">Lomo</span>
       <div class="sp-edit"><div class="sp-prev" id="fsp-prev"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div class="chips" id="fsp-style"></div><div class="chips" id="fsp-scene"></div></div></div>
       <span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div>
       <span class="lbl">Paleta de la estantería</span><div class="trios" id="fsp-pal"></div>
-      <span class="lbl">Personalizado</span><div class="pickers"><label class="picker">Base<input type="color" id="fsp-c0"></label><label class="picker">Detalle<input type="color" id="fsp-c1"></label><label class="picker">Acento<input type="color" id="fsp-c2"></label></div>
+      <span class="lbl">Personalizado (parte de los colores actuales)</span><div class="pickers"><label class="picker">Base<input type="color" id="fsp-c0"></label><label class="picker">Detalle<input type="color" id="fsp-c1"></label><label class="picker">Acento<input type="color" id="fsp-c2"></label><label class="picker">Letras<input type="color" id="fsp-ink"></label></div>
+      <div class="note" id="fsp-inknote"></div>
       <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>
       <button class="btn sm" type="button" data-do="spauto" style="align-self:flex-start">Volver a automático</button></div>
     <div class="sec"><span class="lbl">Dónde va</span>${sugged ? '<div class="note">Balda sugerida según las etiquetas detectadas.</div>' : ''}
       <div class="two">${pickHtml('f-unit', 'Estantería', state.units.map(u => [u.id, u.name]), d.unitId)}
       ${pickHtml('f-shelf', 'Balda', shelfOpts(d.unitId), d.shelfId)}</div></div>
-    ${isNew ? '' : '<button class="btn" type="button" data-do="refill">Rellenar datos que faltan desde internet</button>'}`;
+    ${isNew ? '' : '<div class="sec"><span class="lbl">Revisar con internet</span><p class="note">Busca este libro, te enseña qué datos son distintos o faltan y tú eliges cuáles cambiar.</p><button class="btn" type="button" data-do="refill">Buscar y comparar datos</button></div>'}`;
   const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>'));
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
@@ -63,7 +64,7 @@ function openBookForm({ book, item }){
     q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av[k] || ''}">${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
     q('#feds').innerHTML = edsHtml(d.eds) + edsHtml(d.edsEn, true); };
   const drawTags = () => {
-    q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + '<input id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta">';
+    q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + lineHtml('id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta"');
     const used = allTags().map(x => x[0]).filter(t => !d.tags.includes(t)).slice(0, 10), sug = sugTags.filter(t => !d.tags.includes(t));
     q('#ftagsug').innerHTML = sug.map(t => `<button class="chip sug" type="button" data-addtag="${esc(t)}">+ ${esc(t)} (sugerida)</button>`).join('') + used.filter(t => !sug.includes(t)).map(t => `<button class="chip" type="button" data-addtag="${esc(t)}">+ ${esc(t)}</button>`).join('');
   };
@@ -91,7 +92,7 @@ function openBookForm({ book, item }){
   function drawSpine(){
     const u = unitNow(), th = themeOf(u), sp = d.spine || {}, ctx = previewCtx();
     const pv = q('#fsp-prev'); pv.className = 'sp-prev ' + th.cls; pv.setAttribute('style', cabinetStyleVars(th));
-    pv.innerHTML = spineArt({ ...d, title:d.title || 'Sin título' }, u, th, { series:ctx }).html;
+    lastArt = spineArt({ ...d, title:d.title || 'Sin título' }, u, th, { series:ctx }); pv.innerHTML = lastArt.html;
     const cur = sp.style || 'auto';
     q('#fsp-style').innerHTML = ctx && ctx.mode !== 'iguales' && ctx.mode !== 'colores' ? '<span class="note">El estilo lo marca el diseño de la serie.</span>'
       : chipsHtml([['auto', 'Automático'], ...th.styles.map(s => [s, SPINE_STYLES[s]]), ...Object.keys(SPINE_STYLES).filter(s => !th.styles.includes(s)).map(s => [s, SPINE_STYLES[s]])], cur, 'data-spstyle');
@@ -100,8 +101,11 @@ function openBookForm({ book, item }){
     const isSel = c => !!sp.base && sp.base === c[0] && sp.foil === c[1] && sp.accent === c[2];
     q('#fsp-pal').innerHTML = th.pal.map(c => trio(c, isSel(c))).join('');
     q('#fsp-cover').innerHTML = coverTrios === null ? '<span class="note">Analizando la portada…</span>' : coverTrios === false ? `<span class="note">${coverTriosSrc ? 'No se pueden leer los colores de esta portada desde su web. Si subes la portada tú, sí podré sacarlos.' : 'Sin portada todavía.'}</span>` : coverTrios.map(c => trio(c, isSel(c))).join('');
-    const pal = sp.base ? [sp.base, sp.foil, sp.accent] : th.pal[(hash(d.id + (d.title || '')) >>> 5) % th.pal.length];
+    // Los selectores muestran los colores que se ven ahora en el lomo (también si vienen de la serie o del ajuste a la estantería)
+    const pal = lastArt.pal || [];
     ['#fsp-c0', '#fsp-c1', '#fsp-c2'].forEach((s, i) => { q(s).value = isHex(pal[i]) ? pal[i] : '#888888'; });
+    q('#fsp-ink').value = isHex(lastArt.ink) ? lastArt.ink : '#ffffff';
+    q('#fsp-inknote').innerHTML = isHex(sp.ink) ? 'Letras con color elegido por ti. <button class="btn sm" type="button" data-do="inkauto">Letras automáticas</button>' : 'Letras automáticas: siempre con contraste suficiente para leerse.';
     q('#fsp-adj').checked = sp.adjust !== false;
   }
   function refreshCoverTrios(){
@@ -123,10 +127,15 @@ function openBookForm({ book, item }){
       if(!name){ d.series = null; serStyle = {}; }
       else { const prevName = d.series && d.series.name; d.series = { name, n:+q('#f-sn').value || '', total:+q('#f-st').value || '' };
         if(norm(prevName || '') !== norm(name)){ serStyle = { ...((state.seriesStyle || {})[norm(name)] || {}) }; const ex = state.books.find(b => b.id !== d.id && serKey(b) === norm(name)); if(ex && !q('#f-st').value && ex.series.total){ d.series.total = ex.series.total; q('#f-st').value = ex.series.total; } } }
-      serNote = ''; if(id === 'f-sname') drawSeries(); else { drawSeries(); } drawSpine();
+      serNote = ''; drawSeries(); drawSpine();
+      if(id === 'f-sname'){ // sugerencias de series que ya tienes (sustituye al antiguo <datalist>)
+        const k = norm(name), all = [...new Set(state.books.filter(b => b.series && b.series.name).map(b => b.series.name))];
+        q('#f-serlist').innerHTML = k ? all.filter(n => norm(n).includes(k) && norm(n) !== k).slice(0, 5).map(n => `<button class="chip sug" type="button" data-serpick="${esc(n)}">${esc(n)}</button>`).join('') : ''; }
     }
-    if(/^fsp-c[012]$/.test(id)){ const sp = d.spine || {}, th = themeOf(unitNow()); const pal = sp.base ? [sp.base, sp.foil, sp.accent] : [...th.pal[(hash(d.id + (d.title || '')) >>> 5) % th.pal.length]];
-      pal[+id.slice(-1)] = e.target.value; setSpine({ base:pal[0], foil:pal[1], accent:pal[2] }); }
+    if(/^fsp-c[012]$/.test(id)){ const pal = [...(lastArt.pal || ['#888888', '#dddddd', '#444444'])];
+      // Un color elegido a mano se respeta tal cual (sin «ajustar a la estética»); se puede volver a activar
+      pal[+id.slice(-1)] = e.target.value; setSpine({ base:pal[0], foil:pal[1], accent:pal[2], adjust:false }); }
+    if(id === 'fsp-ink') setSpine({ ink:e.target.value });
   });
   sh.addEventListener('keydown', e => { if(e.target.id === 'ftagin' && (e.key === 'Enter' || e.key === ',')){ e.preventDefault(); addTag(e.target.value.replace(',', '')); } });
   sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()) addTag(e.target.value); });
@@ -152,21 +161,66 @@ function openBookForm({ book, item }){
     else if(g('[data-spscene]')){ setSpine({ scene:g('[data-spscene]').dataset.spscene }); }
     else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2] }); }
     else if(g('[data-do="spauto"]')){ d.spine = null; drawSpine(); }
+    else if(g('[data-do="inkauto"]')){ const { ink, ...rest } = d.spine || {}; d.spine = rest; drawSpine(); }
     else if(g('[data-smode]')){ serStyle.mode = g('[data-smode]').dataset.smode; drawSeries(); drawSpine(); }
     else if(g('[data-sscene]')){ serStyle.scene = g('[data-sscene]').dataset.sscene; drawSeries(); drawSpine(); }
+    else if(g('[data-serpick]')){ const i = q('#f-sname'); i.value = g('[data-serpick]').dataset.serpick; q('#f-serlist').innerHTML = ''; i.dispatchEvent(new Event('input', { bubbles:true })); q('#f-serlist').innerHTML = ''; }
     else if(g('[data-sersug]')){ const name = g('[data-sersug]').dataset.sersug, mem = state.books.filter(b => serKey(b) === norm(name)), mx = Math.max(0, ...mem.map(b => +b.series.n || 0));
       d.series = { name, n:mx + 1, total:(mem.find(b => b.series.total) || { series:{} }).series.total || '' }; serStyle = { ...((state.seriesStyle || {})[norm(name)] || {}) };
       q('#f-sname').value = name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); }
   });
+  /* Buscar y comparar: antes cogía el primer resultado (a veces otro libro) y solo rellenaba campos vacíos,
+     así que casi nunca cambiaba nada. Ahora elige el libro correcto (o te deja elegir) y te enseña las diferencias. */
   async function refill(btn){
     if(!d.title.trim()){ toast('Escribe primero el título'); return; }
-    btn.disabled = true; btn.textContent = 'Buscando…';
+    const label = btn.textContent; btn.disabled = true; btn.textContent = 'Buscando…';
     try{
       const res = await searchBooks(d.title + ' ' + lastName(d.author), new AbortController().signal);
-      const it = res && res.items[0]; if(!it){ toast('No he encontrado datos para ese libro'); return; }
-      applyItem(await enrichBook(it, new AbortController().signal)); toast('He completado lo que faltaba');
+      const items = (res && res.items) || []; if(!items.length){ toast(res && res.failed ? 'No se pudo consultar internet' : 'No he encontrado este libro'); return; }
+      const nt = norm(d.title), na = lastName(d.author) && norm(lastName(d.author));
+      const score = x => (norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
+      const ranked = [...items].sort((a, b) => score(b) - score(a)), sure = score(ranked[0]) >= 4.5 && !(ranked[1] && score(ranked[1]) >= score(ranked[0]) && bookKey(ranked[1]) !== bookKey(ranked[0]));
+      const it = sure ? ranked[0] : await chooseItem(ranked.slice(0, 6)); if(!it) return;
+      btn.textContent = 'Completando datos…';
+      reviewItem(await enrichBook(it, new AbortController().signal));
     }catch(err){ toast('No se pudo consultar internet'); }
-    finally{ btn.disabled = false; btn.textContent = 'Rellenar datos que faltan desde internet'; }
+    finally{ if(btn.isConnected){ btn.disabled = false; btn.textContent = label; } }
+  }
+  function chooseItem(list){
+    return new Promise(res => { let pick = null;
+      const s2 = openSheet(sheetT('¿Cuál es tu libro?', `<p class="note">He encontrado varios parecidos. Elige el tuyo.</p><div class="row-opts">${list.map((x, i) => `<button class="opt" type="button" data-ci="${i}" style="min-height:64px">${x.covers && x.covers[0] ? `<img src="${esc(x.covers[0])}" alt="" style="width:34px;height:50px;object-fit:cover;border-radius:3px;flex:none" referrerpolicy="no-referrer">` : '<span class="dot"></span>'}<span><b>${esc(x.title)}</b><br><span class="note">${esc([x.author, x.year].filter(Boolean).join(' · '))}</span></span></button>`).join('')}</div>`), () => res(pick));
+      s2.addEventListener('click', e => { const b = e.target.closest('[data-ci]'); if(b){ pick = list[+b.dataset.ci]; closeSheet(); } });
+    });
+  }
+  function reviewItem(it){
+    if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); } if(it.edsEn && it.edsEn.length) d.edsEn = it.edsEn; drawFmt();
+    const ser = it.series && it.series.name ? { name:it.series.name, n:it.series.n || '', total:it.series.total || '' } : it.wd && it.wd.series ? { ...it.wd.series } : null;
+    const serTxt = s => s && s.name ? `${s.name}${s.n ? ' · nº ' + s.n : ''}${s.total ? ' de ' + s.total : ''}` : '';
+    const langs = [...new Set([...d.langs, ...detectLangs(it)])], langTxt = l => l.map(x => ({ es:'Español', en:'Inglés' }[x])).join(' y ');
+    const short = s => { s = String(s || ''); return s.length > 140 ? s.slice(0, 140) + '…' : s; };
+    const rows = [
+      ['title', 'Título', d.title, it.title], ['author', 'Autor/a', d.author, it.author], ['pages', 'Páginas', d.pages, it.pages], ['year', 'Año', d.year, it.year],
+      ['synopsis', 'Sinopsis' + (it.descSrc ? ` (edición española, ${it.descSrc})` : ''), d.synopsis, it.desc],
+      ['series', 'Serie', serTxt(d.series), serTxt(ser)], ['langs', 'Idiomas', langTxt(d.langs), langTxt(langs)],
+      ['cover', 'Portada', d.coverData || d.cover ? 'la actual' : '', (it.covers || [])[0] ? 'la encontrada' : '']
+    ].filter(([k, , a, b]) => b && String(b).trim() && norm(String(a)) !== norm(String(b)) && !(k === 'cover' && (it.covers || [])[0] === d.cover));
+    if(!rows.length){ toast(it.eds || it.edsEn ? 'La ficha ya estaba al día (he actualizado las ediciones)' : 'La ficha ya está al día'); return; }
+    const on = new Set(rows.filter(([k, , a]) => !a || !String(a).trim() || k === 'langs').map(r => r[0]));
+    const body = `<p class="note">Marca lo que quieras cambiar. Lo que ahora está vacío viene marcado.</p><div class="row-opts">${rows.map(([k, l, a, b]) => `<button class="opt" type="button" role="checkbox" data-rv="${k}" aria-checked="${on.has(k)}" style="align-items:flex-start;padding:10px 12px"><span class="dot" style="margin-top:2px;border-radius:4px"></span><span style="min-width:0"><b>${esc(l)}</b><br><span class="note">Ahora: ${esc(short(a)) || '—'}</span><br><span>Internet: ${esc(short(b))}</span>${k === 'cover' ? `<br><img src="${esc(it.covers[0])}" alt="" referrerpolicy="no-referrer" style="width:48px;margin-top:4px;border-radius:3px">` : ''}</span></button>`).join('')}</div>`;
+    const s2 = openSheet(sheetT('Datos encontrados', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="rvapply">Aplicar</button>'));
+    s2.addEventListener('click', async e => {
+      const o = e.target.closest('[data-rv]'); if(o){ const k = o.dataset.rv; on.has(k) ? on.delete(k) : on.add(k); o.setAttribute('aria-checked', on.has(k)); return; }
+      if(!e.target.closest('[data-do="rvapply"]')) return;
+      const set = (k, v, sel) => { d[k] = v; if(sel) q(sel).value = v; };
+      if(on.has('title')) set('title', it.title, '#f-title'); if(on.has('author')) set('author', it.author, '#f-author');
+      if(on.has('pages')) set('pages', +it.pages, '#f-pages'); if(on.has('year')) set('year', +it.year, '#f-year');
+      if(on.has('synopsis')){ set('synopsis', it.desc, '#f-syn'); autoSyn = it.desc; q('#f-synsrc').textContent = it.descSrc ? `Sinopsis de la edición española (${it.descSrc}).` : ''; }
+      if(on.has('series')){ d.series = ser; serNote = 'según internet'; serStyle = { ...((state.seriesStyle || {})[norm(ser.name)] || {}) }; q('#f-sname').value = ser.name; q('#f-sn').value = ser.n; q('#f-st').value = ser.total; drawSeries(); }
+      if(on.has('langs')){ d.langs = langs; drawLangs(); }
+      if(on.has('cover')){ d.coverData = ''; d.cover = it.covers[0]; d.cover2 = it.covers[1] || ''; drawCover(); }
+      sugTags = [...new Set([...sugTags, ...suggestTags(it)])]; drawTags(); drawSpine();
+      const n = on.size; await closeSheet(); toast(n ? `${n} ${n === 1 ? 'dato cambiado' : 'datos cambiados'}: revisa y pulsa Guardar` : 'No he cambiado nada');
+    });
   }
   function applyItem(it){
     if(!d.author && it.author){ d.author = it.author; q('#f-author').value = d.author; }

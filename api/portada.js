@@ -2,7 +2,8 @@
    Devuelve la imagen con permiso CORS para que la app pueda leer sus colores (lomos «de la portada»).
    Solo acepta portadas de las fuentes que usa la app, para no ser un proxy abierto. */
 const { UA } = require('./_lib/fichas');
-const OK = /(^|\.)(books\.google\.com|googleusercontent\.com|googleapis\.com|openlibrary\.org|archive\.org|supabase\.co|cegal\.es|todostuslibros\.com)$/i;
+// hardcover.app: portadas de los libros en inglés (antes faltaba y por eso salía «No se pueden leer los colores…»)
+const OK = /(^|\.)(books\.google\.com|googleusercontent\.com|googleapis\.com|openlibrary\.org|archive\.org|supabase\.co|cegal\.es|todostuslibros\.com|hardcover\.app|books2door\.com|cdn\.shopify\.com|media-amazon\.com|ssl-images-amazon\.com|wikimedia\.org)$/i;
 module.exports = async (req, res) => {
   const raw = new URL(req.url, 'http://x').searchParams.get('u') || '';
   let u; try{ u = new URL(raw); }catch(e){ res.statusCode = 400; return res.end('url'); }

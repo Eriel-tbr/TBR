@@ -44,7 +44,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 .iconbtn.sm svg{width:18px;height:18px}
 .iconbtn:active{transform:scale(.96)}
 .addbar{position:relative;display:flex;gap:8px;margin-top:10px}
-.addbar input{flex:1;min-width:0;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 14px}
+.addbar .one{flex:1;min-width:0;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:12px 14px}
 .btn{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 16px;font-weight:700}
 .btn.primary{background:var(--acc);color:var(--acc-fg);border-color:transparent}
 .btn.danger{color:var(--danger)}
@@ -110,6 +110,9 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 .sec>label,.lbl{font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .field{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:10px 12px}
 textarea.field{min-height:110px;resize:vertical}
+.one{resize:none;overflow:hidden;white-space:pre;line-height:22px;scrollbar-width:none}
+.one::-webkit-scrollbar{display:none}
+textarea.field.one{min-height:44px;height:44px;resize:none}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;min-height:36px;padding:0 14px;font-size:.88rem;display:inline-flex;align-items:center;gap:6px}
@@ -157,7 +160,7 @@ textarea.field{min-height:110px;resize:vertical}
 .pick-sheet .opt{min-height:48px;font-weight:700}
 .pick-sheet .opt-l{min-width:0;overflow-wrap:anywhere}
 .tagin{display:flex;flex-wrap:wrap;gap:6px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
-.tagin input{flex:1;min-width:110px;border:0;background:none;min-height:34px;padding:0 6px;outline:none}
+.tagin .one{flex:1;min-width:110px;border:0;background:none;height:34px;padding:6px;outline:none}
 .palette{display:flex;gap:2px;height:14px}
 .palette i{flex:1;border-radius:2px}
 .decor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
@@ -197,7 +200,7 @@ textarea.field{min-height:110px;resize:vertical}
 .trio{display:inline-flex;gap:3px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .trio[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 .trio i{width:18px;height:18px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
-.pickers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pickers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .picker{display:flex;flex-direction:column;gap:4px;font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .picker input{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:3px}
 .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;font-weight:700;font-size:.9rem}

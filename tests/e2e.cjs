@@ -190,6 +190,50 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     const r = await ev(() => ({ n:state.units.length, b:state.books.find(x => x.title === 'Libro movido').unitId }));
     assert(r.n === 6 && r.b === t.id, JSON.stringify(r));
   });
+  await test('todas las estanterías se pueden editar (antes Ciencia ficción fallaba al abrir)', async () => {
+    for(const id of await ev(() => state.units.map(u => u.id))){
+      await ev(id => openUnitForm(id), id); await page.waitForSelector('#u-save');
+      assert(await page.locator('#u-decor .decor-opt').count() > 5, 'faltan objetos en ' + id); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    }
+    assert(!errors.length, errors.join(' | '));
+  });
+  await test('sin campos <input> de texto (la barra de autorrellenar de Chrome) y Enter no salta de línea', async () => {
+    await page.click('#btnAddManual');
+    const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file])').length); assert(n === 0, n + ' campos input');
+    await page.fill('#f-title', 'Prueba'); await page.focus('#f-pages'); await page.keyboard.type('12a3'); await page.keyboard.press('Enter');
+    const r = await ev(() => ({ t:document.querySelector('#f-title').value, p:document.querySelector('#f-pages').value })); assert(r.t === 'Prueba' && r.p === '123', JSON.stringify(r));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('buscar y comparar datos: enseña lo distinto y aplica lo elegido', async () => {
+    await ev(() => { const b = state.books.find(x => x.title === 'El rey malvado'); openBookForm({ book:{ ...b, pages:'', synopsis:'Mi sinopsis' } }); });
+    await page.click('[data-do="refill"]'); await page.waitForSelector('[data-rv]', { timeout:15000 });
+    const rows = await ev(() => [...document.querySelectorAll('[data-rv]')].map(o => o.dataset.rv + ':' + o.getAttribute('aria-checked')));
+    assert(rows.includes('pages:true') && rows.includes('synopsis:false'), rows.join());
+    await page.click('[data-do="rvapply"]'); await page.waitForSelector('[data-rv]', { state:'detached' });
+    const r = await ev(() => ({ p:document.querySelector('#f-pages').value, s:document.querySelector('#f-syn').value })); assert(r.p === '336' && r.s === 'Mi sinopsis', JSON.stringify(r));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('objetos automáticos: se pueden mover y la estantería pasa a manual', async () => {
+    await ev(() => { const u = state.units[1]; u.decorMode = 'auto'; u.decorItems = []; save(); renderAll(); });
+    const id = await ev(() => document.querySelector('.slide[data-i="1"] .dcm').dataset.dec); assert(/^auto:/.test(id), id);
+    await ev(id => openDecor(id), id); await page.waitForSelector('[data-dmove="1"]');
+    const before = await ev(() => JSON.stringify(state.units[1].decorItems.map(d => d.after)));
+    await page.click('[data-dmove="1"]'); await page.waitForTimeout(200);
+    const r = await ev(() => ({ m:state.units[1].decorMode, a:JSON.stringify(state.units[1].decorItems.map(d => d.after)) }));
+    assert(r.m === 'manual' && r.a !== before, JSON.stringify(r) + before); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('colores del lomo: parten de los actuales, letras elegibles y legibles', async () => {
+    await ev(() => openBookForm({ book:state.books.find(x => x.title === 'El rey malvado') }));
+    const r0 = await ev(() => ({ c0:document.querySelector('#fsp-c0').value, ink:document.querySelector('#fsp-ink').value }));
+    await page.locator('#fsp-ink').evaluate(e => { e.value = '#ff0000'; e.dispatchEvent(new Event('input', { bubbles:true })); });
+    const r1 = await ev(() => ({ c0:document.querySelector('#fsp-c0').value, col:getComputedStyle(document.querySelector('#fsp-prev .tt')).color }));
+    assert(r1.c0 === r0.c0 && r1.col === 'rgb(255, 0, 0)', JSON.stringify({ r0, r1 }));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    const bad = await ev(() => { const out = []; state.units.forEach(u => { const th = themeOf(u); Object.keys(SPINE_STYLES).forEach(st => [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030']].forEach(([b, f, a]) => {
+      const div = document.createElement('div'); div.innerHTML = spineArt({ id:'q', title:'Prueba de contraste', spine:{ style:st, base:b, foil:f, accent:a, adjust:false } }, u, th).html;
+      const t = div.querySelector('.tt'); if(t && !SF_KIND[st]){ const m = t.getAttribute('style').match(/color:(#[0-9a-f]{6})/i); if(m && b === '#f2d7a0' && st === 'marco' && contrast(m[1], b) < 2.5) out.push(u.name + '/' + st); } })); }); return out; });
+    assert(!bad.length, 'títulos ilegibles: ' + bad.join(', '));
+  });
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);
     const order0 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));

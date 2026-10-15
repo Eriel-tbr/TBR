@@ -6,15 +6,15 @@ function openUnitForm(unitId){
   const u = isNew ? { id:uid(), name:'', tipo:'', preset:'auto', wood:'', decor:null, shelves:[] } : JSON.parse(JSON.stringify(orig));
   if(!isNew && !PRESETS[u.preset]) u.preset = u.preset || 'gen';
   let presetSel = isNew ? 'auto' : (u.preset || 'gen'); const del = new Set();
-  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}"><input class="field" value="${esc(s.name)}" data-sname aria-label="Nombre de la balda"><button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
+  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}">${lineHtml('class="field" data-sname aria-label="Nombre de la balda"', s.name)}<button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
   const body = `
-    <div class="sec"><label for="u-name">Nombre</label><input class="field" id="u-name" value="${esc(u.name)}" placeholder="Fantasía, Terror, Psicología…" data-autofocus></div>
-    <div class="sec"><label for="u-tipo">Tipo de libros (para elegir estilo y decoración)</label><input class="field" id="u-tipo" value="${esc(u.tipo || '')}" placeholder="Opcional: fantasía gótica, ciencia ficción, viajes…"></div>
+    <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…" data-autofocus', u.name)}</div>
+    <div class="sec"><label for="u-tipo">Tipo de libros (para elegir estilo y decoración)</label>${lineHtml('class="field" id="u-tipo" placeholder="Opcional: fantasía gótica, ciencia ficción, viajes…"', u.tipo)}</div>
     <div class="sec"><span class="lbl">Estilo</span><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div><div class="chips" id="u-presets"></div></div>
     <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>
     <div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>
     <div class="sec"><span class="lbl">Baldas (grupos dentro de la estantería: ordenan los libros, no se ven como rótulos)</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
-      ${isNew ? '<input class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras">' : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
+      ${isNew ? lineHtml('class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras"') : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
     ${isNew || state.units.length < 2 ? '' : `<div class="sec"><span class="lbl">Eliminar estantería</span>${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button></div>`}`;
   const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>'));
   const q = s => $(s, sh);
@@ -53,7 +53,7 @@ function openUnitForm(unitId){
       u.decorMode = m; drawStyle(); }
     else if(g('[data-dadd]')){ u.decorItems = u.decorItems || []; const seq = orig ? unitSeq(orig) : []; u.decorItems.push({ id:uid(), k:g('[data-dadd]').dataset.dadd, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); drawStyle(); toast('Añadido al final de la estantería'); }
     else if(g('[data-drm]')){ u.decorItems = (u.decorItems || []).filter(x => x.id !== g('[data-drm]').dataset.drm); drawStyle(); }
-    else if(g('#u-addshelf')){ const id = uid(); const d = document.createElement('div'); d.innerHTML = shelfRow({ id, name:'Nueva balda' }); q('#u-shelves').append(d.firstChild); u.shelves.push({ ...mkShelf('Nueva balda'), id }); q('#u-shelves').lastElementChild.querySelector('input').select(); }
+    else if(g('#u-addshelf')){ const id = uid(); const d = document.createElement('div'); d.innerHTML = shelfRow({ id, name:'Nueva balda' }); q('#u-shelves').append(d.firstChild); u.shelves.push({ ...mkShelf('Nueva balda'), id }); q('#u-shelves').lastElementChild.querySelector('.field').select(); }
     else if(g('[data-up]')){ const r = g('.shelf-edit'); r.previousElementSibling && r.previousElementSibling.before(r); }
     else if(g('[data-down]')){ const r = g('.shelf-edit'); r.nextElementSibling && r.nextElementSibling.after(r); }
     else if(g('[data-delshelf]')){
@@ -78,7 +78,7 @@ function openUnitForm(unitId){
       } else {
         Object.assign(orig, data);
         const rows = $$('.shelf-edit', sh), keep = [];
-        rows.forEach(r => { const id = r.dataset.sid, name = r.querySelector('input').value.trim() || 'Balda'; let s = orig.shelves.find(x => x.id === id); if(!s){ s = mkShelf(name); s.id = id; } s.name = name; keep.push(s); });
+        rows.forEach(r => { const id = r.dataset.sid, name = r.querySelector('.field').value.trim() || 'Balda'; let s = orig.shelves.find(x => x.id === id); if(!s){ s = mkShelf(name); s.id = id; } s.name = name; keep.push(s); });
         const first = keep[0];
         orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; first.order = []; first.sort = first.sort === 'manual' ? 'added' : first.sort; }));
         orig.shelves = keep;
@@ -92,7 +92,7 @@ function openUnitForm(unitId){
 function openFilters(){
   const f = JSON.parse(JSON.stringify(ui.filters));
   const draw = () => `
-    <div class="sec"><label for="q-text">Buscar</label><input class="field" id="q-text" type="search" value="${esc(f.q)}" placeholder="Título, autor, etiqueta o nota" data-autofocus></div>
+    <div class="sec"><label for="q-text">Buscar</label>${lineHtml('class="field" id="q-text" enterkeyhint="search" placeholder="Título, autor, etiqueta o nota" data-autofocus', f.q)}</div>
     <div class="sec"><span class="lbl">Estado</span><div class="chips">${chipsHtml([['', 'Todos'], ...Object.entries(STATUS)], f.status, 'data-st')}</div></div>
     <div class="sec"><span class="lbl">Idioma</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], f.lang, 'data-lg')}</div></div>
     <div class="sec"><span class="lbl">Longitud</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['corto', 'Menos de 300'], ['medio', '300–500'], ['largo', 'Más de 500']], f.len, 'data-ln')}</div></div>

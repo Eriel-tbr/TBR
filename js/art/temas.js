@@ -20,6 +20,14 @@ function hexHsl(hex){ const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) 
   return [h, s, l]; }
 const hslToHex = (h, s, l) => hslHex(h, s * 100, l * 100);
 const isHex = c => /^#[0-9a-f]{6}$/i.test(c || '');
+/* Contraste WCAG entre dos colores (1 a 21): para que el título del lomo siempre se lea */
+function relLum(hex){ const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0); }
+function contrast(a, b){ const x = relLum(a), y = relLum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+function legibleOn(col, bg, min = 2.6){
+  if(contrast(col, bg) >= min) return col;
+  const dark = relLum(bg) < .35, alt = dark ? lighten(col, .65) : darken(col, .65);
+  return contrast(alt, bg) >= min ? alt : dark ? '#fbf6ec' : '#1d1720';
+}
 
 /* ---------- Temas de mueble ---------- */
 const DECO_NAMES = { vidriera:'Vidriera', linterna:'Farol', buho:'Búho', caldero:'Caldero', lavanda:'Lavanda', libroab:'Libro abierto', vela:'Vela', calavera:'Calavera', pocion:'Poción',
@@ -56,7 +64,8 @@ const PRESET_THEME = { fantasia:'gotico', romantasy:'rococo', cienciaficcion:'ch
 const DECO_C = {
   fan:{ cream:'#efe4c8', metal:'#c8a04e', glow:'#ffbb55', foil:'#d9b25f', b1:'#6b1f2d', b2:'#1f4a3c', b3:'#2d3a5e', pot:'#7a4a36', potTrim:'#d9b25f', liq:'#7cd6a6', egg:'#2f6b5a', cup:'#e9e0c8', trim:'#d9b25f', vase:'#7a4a36', f1:'#b58aff', f2:'#d6b8ff', f3:'#9a6aea', frame:'#c8a04e', art1:'#e9dcc0', art2:'#e0a04a', art3:'#5a3a5a', cr:'#9a6aea', pl:'#c86a3a', ring:'#e9dcc0', nose:'#c8a04e' },
   rom:{ cream:'#fbf2ea', metal:'#e0b85a', glow:'#ffd9a0', foil:'#e0b85a', b1:'#9a2f4f', b2:'#d98aa0', b3:'#f0d9c4', pot:'#f4e6dc', potTrim:'#e0b85a', vase:'#f5ebe4', f1:'#d9647f', f2:'#f6d2dc', f3:'#e6b95e', cup:'#fbf3ee', trim:'#d98aa0', frame:'#d9b25f', art1:'#f3d9d4', art2:'#e9a36a', art3:'#b5546b', cr:'#d98aa8', liq:'#e08aa8', egg:'#d98aa0', pl:'#e9a36a', ring:'#f6d2dc', nose:'#d98aa0' },
-  cyb:{ liq:'#ff2fb8', pl:'#c45cff', ring:'#ffd400', nose:'#ff2fb8', b1:'#2a1a4a', b2:'#3b0f4a', b3:'#1a1030', foil:'#ffd400', cream:'#e9e0ff', metal:'#9aa1ad', glow:'#c45cff' },
+  cyb:{ liq:'#ff2fb8', pl:'#c45cff', ring:'#ffd400', nose:'#ff2fb8', b1:'#2a1a4a', b2:'#3b0f4a', b3:'#1a1030', foil:'#ffd400', cream:'#e9e0ff', metal:'#9aa1ad', glow:'#c45cff',
+    potTrim:'#7ae0ff', pot:'#2a1a4a', egg:'#7a3cff', cup:'#e9e0ff', trim:'#ff2fb8', vase:'#2a1a4a', f1:'#ff2fb8', f2:'#e9b8ff', f3:'#7ae0ff', frame:'#9aa1ad', art1:'#1a1030', art2:'#c45cff', art3:'#7ae0ff', cr:'#7ae0ff' },
   aca:{ cream:'#efe4c8', metal:'#c8a04e', glow:'#ffbb55', foil:'#d9b25f', b1:'#5b1f2b', b2:'#1f3a4a', b3:'#4a3a1f', cup:'#e9e0c8', trim:'#8a3a2a', frame:'#7a5a2a', art1:'#e9dcc0', art2:'#c8a04e', art3:'#3a5a4a', pot:'#2f4a3a', potTrim:'#d9b25f', vase:'#e9dcc0', f1:'#c86a6a', f2:'#e9dcc0', f3:'#d9b25f', cr:'#7a9ab8', liq:'#7cd6a6', egg:'#2f4a3a', pl:'#c8a04e', ring:'#e9dcc0', nose:'#8a3a2a' },
   con:{ cup:'#f0ece4', trim:'#22201d', frame:'#22201d', art1:'#f1e6d8', art2:'#d9764a', art3:'#6a8a7a', pot:'#e6e1d8', potTrim:'#bdb6a8', cream:'#f4efe6', metal:'#9a9488', glow:'#ffe2a0', b1:'#d9764a', b2:'#6a8a7a', b3:'#22201d', foil:'#9a9488', vase:'#f0ece4', f1:'#d9764a', f2:'#f1e6d8', f3:'#e6c46a', cr:'#9ab8d8', liq:'#6a8a7a', pl:'#d9764a', ring:'#22201d', nose:'#d9764a', egg:'#6a8a7a' }
 };
@@ -64,7 +73,8 @@ DECO_C.rmc = { ...DECO_C.rom, f1:'#e0526f', f2:'#fbd0dc', cream:'#fff0f2' };
 function themeKey(u){ return PRESET_THEME[u.preset] || 'generico'; }
 function themeOf(u){
   const k = themeKey(u), t = THEMES[k];
-  if(k !== 'generico') return { key:k, ...t, decoC:t.colors(DECO_C) };
+  // Se parte de la paleta de fantasía para que ningún objeto se quede sin algún color (si falta uno, el dibujo falla y la ventana deja de responder)
+  if(k !== 'generico') return { key:k, ...t, decoC:{ ...DECO_C.fan, ...t.colors(DECO_C) } };
   const st = unitStyle(u), d = st.d;
   const pal = st.spines.map((c, i) => [c, i % 2 ? d[1] : d[2], st.acc]);
   const decoC = { cream:d[1], metal:d[2], glow:'#ffcf80', foil:d[2], b1:st.spines[0], b2:st.spines[1], b3:st.spines[2], pot:d[0], potTrim:d[2], liq:st.acc, egg:st.spines[1], cup:d[1], trim:d[2], vase:d[1],
@@ -109,36 +119,41 @@ function spineArt(b, u, th, ctx = {}){
     const lpal = isHex(lsp.base) ? [lsp.base, isHex(lsp.foil) ? lsp.foil : th.pal[lpi][1], isHex(lsp.accent) ? lsp.accent : th.pal[lpi][2]] : th.pal[lpi];
     const lstyle = SPINE_STYLES[lsp.style] && lsp.style !== 'auto' ? lsp.style : th.styles[lseed % th.styles.length];
     o.num = ser.total <= 3 && ser.n <= 10 ? ROMAN[ser.n - 1] : String(ser.n);
-    if(ser.mode === 'iguales'){ style = lstyle; pal = lpal; }
-    else if(ser.mode === 'colores'){ style = lstyle; if(!isHex(sp.base)) pal = th.pal[(lpi + ser.idx) % th.pal.length]; }
-    else if(ser.mode === 'luna'){ style = 'marco'; pal = lpal; o.phase = ser.total > 1 ? (ser.n - 1) / (ser.total - 1) : 1; }
-    else if(ser.mode === 'paisaje'){ style = 'saga'; pal = lpal; }
+    // Si este tomo tiene colores elegidos a mano, se respetan aunque la serie comparta diseño
+    const own = isHex(sp.base);
+    if(ser.mode === 'iguales'){ style = lstyle; if(!own) pal = lpal; }
+    else if(ser.mode === 'colores'){ style = lstyle; if(!own) pal = th.pal[(lpi + ser.idx) % th.pal.length]; }
+    else if(ser.mode === 'luna'){ style = 'marco'; if(!own) pal = lpal; o.phase = ser.total > 1 ? (ser.n - 1) / (ser.total - 1) : 1; }
+    else if(ser.mode === 'paisaje'){ style = 'saga'; if(!own) pal = lpal; }
   }
   const [B, F, A] = pal;
   const base = { w, h, title:o.title, num:o.num };
   let spec;
   switch(style){
-    case 'nervios': spec = { type:0, base:B, foil:F, accent:darken(B, .5), tex:'tex-leather', up:1, ls:.08, max:12 }; break;
-    case 'marco': spec = { type:1, base:B, foil:F, motif:th.motif, tex:'tex-leather', phase:o.phase, max:14 }; break;
-    case 'jaspeado': spec = { type:2, base:mix(F, '#ffffff', .55), accent:B, m1:darken(F, .35), m2:A, m3:F, foil:F, numPos:'mid', max:14 }; break;
-    case 'acuarela': spec = { type:3, base:'#f7f1ea', accent:lighten(A, .25), accent2:lighten(B, .45), ink:darken(B, .25), foil:darken(B, .25), tex:'tex-paper', font:'pag', wt:600, max:13 }; break;
+    case 'nervios': spec = { type:0, base:B, foil:F, accent:A, tbg:A, tex:'tex-leather', up:1, ls:.08, max:12 }; break;
+    case 'marco': spec = { type:1, base:B, foil:F, orn:A, motif:th.motif, tex:'tex-leather', phase:o.phase, max:14 }; break;
+    case 'jaspeado': spec = { type:2, base:mix(F, '#ffffff', .55), accent:B, tbg:B, m1:darken(F, .35), m2:A, m3:F, foil:F, numPos:'mid', max:14 }; break;
+    case 'acuarela': spec = { type:3, base:'#f7f1ea', accent:lighten(A, .25), accent2:lighten(B, .45), ink:darken(B, .25), foil:darken(B, .25), tc:darken(B, .25), tex:'tex-paper', font:'pag', wt:600, max:13 }; break;
     case 'ilustrado': spec = { type:4, scene, base:darken(B, lum(B) > .45 ? .62 : .35), accent:mix(B, A, .55), sky2:lighten(A, .3), sil:darken(B, .72), sil2:mix(darken(B, .45), A, .25), moon:'#ffe8a8', foil:lum(F) > .6 ? F : lighten(F, .7), font:'pag', max:13 }; break;
-    case 'deco': spec = { type:5, base:B, foil:F, font:'deco', up:1, ls:.06, max:11 }; break;
+    case 'deco': spec = { type:5, base:B, foil:F, accent:A, font:'deco', up:1, ls:.06, max:11 }; break;
     case 'grimorio': spec = { type:6, base:darken(B, .25), foil:F, gem:A, tex:'tex-leather', max:14 }; break;
     case 'escamas': spec = { type:7, base:B, accent:lighten(A, .2), foil:F, font:'pag', max:11 }; break;
-    case 'estrellado': spec = { type:8, base:B, foil:lighten(F, .2), tex:'tex-gloss', font:'script', wt:400, max:16 }; break;
-    case 'enredadera': spec = { type:9, base:mix(B, '#ffffff', .8), leaf:'#5b7f4a', bloom:lighten(A, .15), ink:darken(B, .35), foil:darken(B, .35), tex:'tex-paper', font:'script', wt:400, max:15 }; break;
+    case 'estrellado': spec = { type:8, base:B, foil:lighten(F, .2), accent:A, tex:'tex-gloss', font:'script', wt:400, max:16 }; break;
+    case 'enredadera': spec = { type:9, base:mix(B, '#ffffff', .8), leaf:'#5b7f4a', bloom:lighten(A, .15), ink:darken(B, .35), foil:darken(B, .35), tc:darken(B, .35), tex:'tex-paper', font:'script', wt:400, max:15 }; break;
     case 'saga': { const sc = ser.scene || ['castle','sea','dragon'][ser.seed % 3];
       spec = { type:4, saga:sc, base:darken(B, lum(B) > .45 ? .62 : .35), accent:mix(B, A, .5), sky2:lighten(A, .3), moon:'#ffe8a8', sil:darken(B, .75), sil2:mix(darken(B, .45), A, .2), foil:lum(F) > .6 ? F : lighten(F, .7), font:'pag', max:12,
         cont:{ off:ser.off, total:ser.totalW, seed:ser.seed } }; break; }
     default: { // estilos de ciencia ficción
       const kind = SF_KIND[style] || 'foil';
-      const oo = { w, h, title:o.title, c1:B, c2:A, c3:F, font:kind === 'glass' ? 'pop' : 'deco', up:1, ls:.08, max:14, wt:700 };
+      const oo = { w, h, title:o.title, c1:B, c2:A, c3:F, font:kind === 'glass' ? 'pop' : 'deco', up:1, ls:.08, max:14, wt:700, titleInk:isHex(sp.ink) ? sp.ink : '' };
       const num = o.num ? `<span class="num" style="--f:#fff;top:${h - (kind === 'orbit' || kind === 'glass' ? 21 : 30)}px">${o.num}</span>` : '';
-      return { w, h, style, html:`<div class="it"><div class="bk" style="--w:${w}px;--h:${h}px;--b:#111"><div class="face">${SF[kind](oo, w, h, hash(o.title + kind))}${num}</div></div></div>` };
+      return { w, h, style, pal:[B, F, A], ink:oo.titleInk || '#ffffff', html:`<div class="it"><div class="bk" style="--w:${w}px;--h:${h}px;--b:#111"><div class="face">${SF[kind](oo, w, h, hash(o.title + kind))}${num}</div></div></div>` };
     }
   }
-  return { w, h, style, html:spine({ ...base, ...spec }) };
+  // Color del título: el que elijas tú, o el del diseño asegurando que se lea sobre su fondo
+  const tbg = spec.tbg || spec.base, tc = spec.tc || spec.foil;
+  spec.titleInk = isHex(sp.ink) ? sp.ink : isHex(tbg) && isHex(tc) && contrast(tc, tbg) < 2.6 ? legibleOn(tc, tbg) : '';
+  return { w, h, style, pal:[B, F, A], ink:spec.titleInk || tc, html:spine({ ...base, ...spec }) };
 }
 
 /* ---------- Series ---------- */

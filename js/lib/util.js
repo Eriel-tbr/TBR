@@ -4,6 +4,10 @@
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Campo de una línea hecho con <textarea>: Chrome en Android pone encima del teclado su barra de autorrellenar
+   (llave, tarjeta, ubicación) en todos los <input> de texto aunque lleven autocomplete="off"; en los <textarea> no.
+   Enter no salta de línea y los saltos pegados se cambian por espacios (ver hojas.js). */
+const lineHtml = (attrs, v = '') => `<textarea rows="1" wrap="off" autocomplete="off" ${attrs.replace(/class="([^"]*)"/, 'class="$1 one"').replace(/^(?!.*class=)/, 'class="one" ')}>${esc(v)}</textarea>`;
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function hash(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }

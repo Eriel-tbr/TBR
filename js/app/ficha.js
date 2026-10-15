@@ -69,7 +69,7 @@ function openSort(shelfId){
     return `<div class="row-opts">${Object.entries(SORTS).map(([k, l]) => `<button class="opt" type="button" role="radio" data-sort="${k}" aria-checked="${s.sort === k}"><span class="dot"></span>${l}</button>`).join('')}</div>
       ${dirs ? `<div class="sec"><span class="lbl">Dirección</span><div class="chips">${chipsHtml([['asc', dirs[0]], ['desc', dirs[1]]], s.dir, 'data-dir')}</div></div>` : '<p class="note">Orden manual: mantén pulsado un libro y arrástralo hasta su sitio.</p>'}`;
   };
-  const sh = openSheet(sheetT('Balda «' + s.name + '»', `<div class="sec"><label for="s-name">Nombre de la balda</label><input class="field" id="s-name" value="${esc(s.name)}"></div><div class="sec"><span class="lbl">Ordenar</span><div id="sbody"></div></div>`));
+  const sh = openSheet(sheetT('Balda «' + s.name + '»', `<div class="sec"><label for="s-name">Nombre de la balda</label>${lineHtml('class="field" id="s-name"', s.name)}</div><div class="sec"><span class="lbl">Ordenar</span><div id="sbody"></div></div>`));
   $('#sbody', sh).innerHTML = draw();
   sh.addEventListener('change', e => { if(e.target.id === 's-name'){ const v = e.target.value.trim(); if(v){ s.name = v; save(); renderAll(); $('.sheet-head h2', sh).textContent = 'Balda «' + v + '»'; } } });
   sh.addEventListener('click', e => {
@@ -93,14 +93,18 @@ function openAddDecor(unitId){
     u.decorItems.push({ id:uid(), k:b.dataset.addk, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); save(); renderAll(); await closeSheet(); toast('Mantén pulsado el objeto para moverlo'); });
 }
 function openDecor(decId){
+  if(String(decId).startsWith('auto:')){ decId = materializeDecor(decId); save(); renderAll(); }
   const f = decorOfUnit(decId); if(!f) return; const { u, d } = f, th = themeOf(u);
   const sizes = [['.75', 'Pequeño'], ['1', 'Mediano'], ['1.25', 'Grande']];
-  const draw = () => `<p class="note">Mantén pulsado el objeto en la estantería para cambiarlo de sitio.</p><div class="sec"><span class="lbl">Tamaño</span><div class="chips">${chipsHtml(sizes, String(d.size || 1), 'data-dsize')}</div></div>
+  const draw = () => `<p class="note">Mantén pulsado el objeto en la estantería y arrástralo, o muévelo de libro en libro con estos botones.</p>
+    <div class="sec"><span class="lbl">Posición</span><div class="actions"><button class="btn" type="button" data-dmove="-1">‹ Antes</button><button class="btn" type="button" data-dmove="1">Después ›</button></div></div><div class="sec"><span class="lbl">Tamaño</span><div class="chips">${chipsHtml(sizes, String(d.size || 1), 'data-dsize')}</div></div>
     <div class="sec"><span class="lbl">Cambiar por</span>${decoThumbs(th, d.k, 'data-dk')}</div><button class="btn danger" type="button" data-do="drm">Quitar este objeto</button>`;
   const sh = openSheet(sheetT(DECO_NAMES[d.k] || 'Decoración', '<div id="decbody" style="display:flex;flex-direction:column;gap:16px"></div>'));
   const paint = () => { $('#decbody', sh).innerHTML = draw(); $('.sheet-head h2', sh).textContent = DECO_NAMES[d.k] || 'Decoración'; }; paint();
   sh.addEventListener('click', async e => { const g = s => e.target.closest(s);
     if(g('[data-dsize]')) d.size = +g('[data-dsize]').dataset.dsize; else if(g('[data-dk]')) d.k = g('[data-dk]').dataset.dk;
+    else if(g('[data-dmove]')){ const seq = unitSeq(u).map(b => b.id), i = d.after ? seq.indexOf(d.after) : -1, j = clamp(i + +g('[data-dmove]').dataset.dmove, -1, seq.length - 1);
+      if(j === i){ toast(j < 0 ? 'Ya está al principio' : 'Ya está al final'); return; } d.after = j < 0 ? null : seq[j]; }
     else if(g('[data-do="drm"]')){ u.decorItems = u.decorItems.filter(x => x.id !== d.id); save(); renderAll(); await closeSheet(); toast('Objeto quitado'); return; } else return;
     save(); renderAll(); paint(); });
 }

@@ -43,6 +43,16 @@ function autoPlan(u, th, seq){
   return plan;
 }
 const decorOfUnit = id => { for(const u of state.units){ const d = (u.decorItems || []).find(x => x.id === id); if(d) return { u, d }; } return null; };
+/* Un objeto colocado automáticamente («auto:unidad:n») se convierte en manual: se guardan todos los de esa estantería tal y como están */
+function materializeDecor(id){
+  const m = /^auto:(.+):(\d+)$/.exec(id || ''); if(!m) return id;
+  const u = unitOf(m[1]); if(!u) return null;
+  const shown = new Set($$(`.slide[data-unit="${u.id}"] .dcm`).map(e => e.dataset.dec)); let mine = null; // solo los que se ven ahora mismo
+  u.decorItems = autoPlan(u, themeOf(u), unitSeq(u)).map((p, i) => ({ k:p.k, after:p.after, id:uid(), size:Math.round(p.size * 100) / 100, i }))
+    .filter(p => shown.has(`auto:${u.id}:${p.i}`) || p.i === +m[2]).map(({ i, ...p }) => { if(i === +m[2]) mine = p.id; return p; });
+  u.decorMode = 'manual'; toast('Ahora la decoración de esta estantería la colocas tú');
+  return mine;
+}
 function innerWidth(th){ const c = $('#carousel'); const slide = Math.min((c.clientWidth || 360) - 28, 420); return slide - 2 * th.P - 20; }
 function cabinetHtml(u, i){
   const th = themeOf(u), W = innerWidth(th), decorOn = state.settings.decor !== false, manual = u.decorMode === 'manual';
@@ -51,7 +61,9 @@ function cabinetHtml(u, i){
   const plan = !decorOn ? [] : manual ? (u.decorItems || []) : autoPlan(u, th, seq);
   const ids = new Set(seq.map(b => b.id)), after = new Map(), tail = [];
   plan.forEach(p => { if(p.after === null || p.after === undefined){ (after.get(null) || after.set(null, []).get(null)).push(p); } else if(ids.has(p.after)){ (after.get(p.after) || after.set(p.after, []).get(p.after)).push(p); } else tail.push(p); });
-  const items = [], deco = p => { const it = decoItem(p.k, th, p.size, manual ? p.id : null); if(it) items.push(it); };
+  // Los objetos automáticos también se pueden tocar y arrastrar: al hacerlo, la estantería pasa a decoración manual (ver materializeDecor)
+  plan.forEach((p, i) => { if(!manual) p.id = `auto:${u.id}:${i}`; });
+  const items = [], deco = p => { const it = decoItem(p.k, th, p.size, p.id); if(it) items.push(it); };
   (after.get(null) || []).forEach(deco);
   const runsByShelf = new Map(); u.shelves.forEach(sh => runsByShelf.set(sh.id, shelfRuns(seq.filter(b => b.shelfId === sh.id))));
   seq.forEach(b => { items.push(bookItem(b, u, th, runsByShelf.get(b.shelfId).get(b.id))); (after.get(b.id) || []).forEach(deco); });
