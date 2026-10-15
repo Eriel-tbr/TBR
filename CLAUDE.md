@@ -42,5 +42,5 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Commits en español.
 
 ## Pendiente
-- **Fase 4**: sustituir los `<select>` nativos por un selector propio con el estilo de la app (tipo chips/lista en hoja). Hay 5: estantería y balda en el formulario de libro (`formulario.js` `#f-unit`, `#f-shelf`, la balda depende de la estantería), estantería y etiqueta en el libro al azar (`ajustes.js` `#r-unit`, `#r-tag`) y uno en el formulario de estantería (`ajustes.js`, eliminar estantería / mover libros). Mantener accesibilidad y que funcione con el dedo en móvil; actualizar las pruebas que usen esos campos.
+- **Fase 4**: sustituir los `<select>` nativos por un selector propio con el estilo de la app (tipo chips/lista en hoja). Hay 5: estantería y balda en el formulario de libro (`formulario.js` `#f-unit`, `#f-shelf`, la balda depende de la estantería), estantería y etiqueta en el libro al azar (`ajustes.js` `#r-unit`, `#r-tag`) y uno en el formulario de estantería (`ajustes.js` `#u-moveto`, a dónde mover los libros al eliminar una estantería). Mantener accesibilidad y que funcione con el dedo en móvil; actualizar las pruebas que usen esos campos.
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.
