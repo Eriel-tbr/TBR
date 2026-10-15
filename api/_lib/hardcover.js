@@ -2,7 +2,7 @@
 const UA = 'MiTBR/1.0 (app personal de lista de lecturas)';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const lastName = a => norm(String(a || '').split(',')[0]).split(' ').pop() || '';
-async function gql(query, variables, ms = 4500){
+async function gql(query, variables, ms = 6500){
   const tok = (process.env.HARDCOVER_TOKEN || '').replace(/^Bearer\s+/i, '');
   if(!tok) throw new Error('Falta HARDCOVER_TOKEN');
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);

@@ -44,7 +44,10 @@ async function loadAudio(id, paint){
   const { t, es } = titlesOf(b);
   paint('busy');
   try{
-    const r = await fetchTimeout(API_BASE + `api/audio?t=${enc(t)}&es=${enc(es)}&a=${enc(b.author || '')}`, null, 15000); if(!r.ok) throw new Error('HTTP ' + r.status);
+    const url = API_BASE + `api/audio?t=${enc(t)}&es=${enc(es)}&a=${enc(b.author || '')}`;
+    let r = await fetchTimeout(url, null, 15000).catch(() => null);
+    if(!r || r.status >= 500) r = await fetchTimeout(url, null, 15000);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json(), cur = bookOf(id); if(!cur) return;
     cur.audio = { at:Date.now(), items:(j.items || []).slice(0, 8) };
     save(); paint('');
@@ -79,7 +82,10 @@ async function loadSeries(id, paint){
   const k = serKey(b), { t } = titlesOf(b); if(seriesBusy.has(k)) return; seriesBusy.add(k);
   paint('busy');
   try{
-    const r = await fetchTimeout(API_BASE + `api/serie?s=${enc(b.series.name)}&t=${enc(t)}&a=${enc(b.author || '')}`, null, 15000); if(!r.ok) throw new Error('HTTP ' + r.status);
+    const url = API_BASE + `api/serie?s=${enc(b.series.name)}&t=${enc(t)}&a=${enc(b.author || '')}`;
+    let r = await fetchTimeout(url, null, 15000).catch(() => null);
+    if(!r || r.status >= 500) r = await fetchTimeout(url, null, 15000); // Hardcover a veces tarda en la primera llamada: un reintento
+    if(!r.ok) throw new Error('HTTP ' + r.status);
     seriesCache[k] = { at:Date.now(), data:await r.json() }; saveSeriesCache(); paint('');
   }catch(e){ paint('error'); }
   finally{ seriesBusy.delete(k); }
