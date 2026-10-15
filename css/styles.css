@@ -223,4 +223,16 @@ textarea.field.one{min-height:44px;height:44px;resize:none}
 /* Ediciones en español */
 .chip.fmt:not([data-av=""])::after{content:attr(data-av);font-size:.6rem;font-weight:700;letter-spacing:.04em;margin-left:6px;padding:1px 4px;border-radius:4px;background:var(--surface2);color:var(--muted)}
 .eds{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+/* Ficha: serie completa y audiolibros */
+a.chip{color:inherit;text-decoration:none}
+.ser{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ser-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.ser-row.miss{border-style:dashed;background:none}
+.ser-row.cur{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.ser-n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.8rem;background:var(--surface2)}
+.ser-t{flex:1;min-width:0;text-align:left;border:0;background:none;padding:0;font-weight:700;overflow-wrap:anywhere}
+.ser-row.miss .ser-t{font-weight:400}
+.auds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.aud{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);display:flex;flex-direction:column;gap:2px}
+.aud a{font-size:.86rem;color:inherit;text-underline-offset:3px}
 .eds a{font-size:.86rem;color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}

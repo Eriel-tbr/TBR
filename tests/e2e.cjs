@@ -31,6 +31,11 @@ function fakeOwnApi(route){
   if(u.pathname === '/api/b2d') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:/quicksilver/i.test(u.searchParams.get('q')) ? [
     { title:'Quicksilver', full:'Quicksilver by Callie Hart - Special Edition Sprayed Edges', price:'£22.00', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/qs', isbn:'', fmt:'especial', author:'Callie Hart' },
     { title:'Quicksilver', full:'Quicksilver by Callie Hart', price:'£9.99', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/9781399741',  isbn:'', fmt:'', author:'Callie Hart' }] : [] }) });
+  if(u.pathname === '/api/audio') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[
+    { id:'a1', src:'apple', store:'Apple Books', country:'es', title:'El rey malvado', lang:'es', url:'https://books.apple.com/x', price:'18.99 EUR' },
+    { id:'h1', src:'hardcover', store:'Hardcover', title:'The Wicked King', lang:'en', seconds:36000, narrators:['Caitlin Kelly'], drama:true }] }) });
+  if(u.pathname === '/api/serie') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ name:'The Folk of the Air', total:4, url:'https://hardcover.app/series/x',
+    books:[{ n:1, main:true, title:'The Cruel Prince', year:2018 }, { n:2, main:true, title:'The Wicked King', year:2019 }, { n:3, main:true, title:'The Queen of Nothing', year:2019 }, { n:3.5, main:false, title:'How the King of Elfhame Learned to Hate Stories', year:2020 }, { n:4, main:true, title:'The Stolen Heir', year:2023, pages:350 }] }) });
   if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
   return route.fulfill({ status:404, body:'' });
 }
@@ -72,7 +77,7 @@ async function until(fn, ms = 8000, msg = 'tiempo agotado'){ const t0 = Date.now
 const results = []; let page, ctx, errors = [];
 async function test(name, fn){
   try{ await fn(); results.push(['ok', name]); console.log('  ✓ ' + name); }
-  catch(e){ results.push(['FALLO', name, e.message]); console.log('  ✗ ' + name + '\n      ' + e.message.split('\n')[0]); }
+  catch(e){ if(process.env.DBG){ try{ await page.screenshot({ path:process.env.DBG + '/fail-' + results.length + '.png' }); }catch(x){} } results.push(['FALLO', name, e.message]); console.log('  ✗ ' + name + '\n      ' + e.message.split('\n')[0] + (process.env.DBG ? ' ' + errors.join(' | ') : '')); }
 }
 const assert = (c, m) => { if(!c) throw new Error(m); };
 const ev = (f, ...a) => page.evaluate(f, ...a);
@@ -246,6 +251,31 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
       const div = document.createElement('div'); div.innerHTML = spineArt({ id:'q', title:'Prueba de contraste', spine:{ style:st, base:b, foil:f, accent:a, adjust:false } }, u, th).html;
       const t = div.querySelector('.tt'); if(t && !SF_KIND[st]){ const m = t.getAttribute('style').match(/color:(#[0-9a-f]{6})/i); if(m && b === '#f2d7a0' && st === 'marco' && contrast(m[1], b) < 2.5) out.push(u.name + '/' + st); } })); }); return out; });
     assert(!bad.length, 'títulos ilegibles: ' + bad.join(', '));
+  });
+  await test('ficha: serie completa con los tomos que faltan, audiolibro y enlaces a tiendas', async () => {
+    const id = await ev(() => state.books.find(b => b.title === 'The Cruel Prince').id);
+    await ev(id => openDetail(id), id); await page.waitForSelector('#d-serie');
+    assert(await page.locator('#d-serie .ser-row.own').count() === 3, 'tomos propios');
+    await page.click('[data-xdo="serie"]'); await page.waitForSelector('[data-addvol="4"]');
+    assert(await page.locator('#d-serie .ser-row.miss').count() === 1, 'debe faltar solo el 4 (el 3.5 es un relato)');
+    await page.waitForSelector('#d-audio .aud', { timeout:5000 });
+    const a = await ev(() => ({ n:document.querySelectorAll('#d-audio .aud').length, t:document.querySelector('#d-audio').innerText, shops:[...document.querySelectorAll('a.chip')].map(x => x.textContent) }));
+    assert(a.n === 2 && /10 h 0 min/.test(a.t) && /Caitlin Kelly/.test(a.t), JSON.stringify(a)); assert(a.shops.some(s => /Amazon/.test(s)) && a.shops.some(s => /Buscalibre/.test(s)), a.shops.join());
+    await page.click('[data-adrama]'); assert(await ev(id => bookOf(id).audioDrama, id) === true, 'dramatizado');
+    await page.click('[data-addvol="4"]'); await page.waitForSelector('#f-title');
+    const f = await ev(() => ({ t:document.querySelector('#f-title').value, s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value }));
+    assert(f.t === 'The Stolen Heir' && f.s === 'The Folk of the Air' && f.n === '4', JSON.stringify(f));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('título en español: buscar y comparar lo ofrece y guarda el original', async () => {
+    await ev(() => { const b = state.books.find(x => x.title === 'El rey malvado'); openBookForm({ book:{ ...b, title:'The Wicked King', origTitle:'' } }); });
+    await page.click('[data-do="refill"]'); await page.waitForSelector('[data-rv]', { timeout:15000 });
+    const rows = await ev(() => [...document.querySelectorAll('[data-rv]')].map(o => o.dataset.rv + ':' + o.getAttribute('aria-checked')));
+    assert(rows.includes('esTitle:true'), rows.join());
+    await page.click('[data-do="rvapply"]'); await page.waitForSelector('[data-rv]', { state:'detached' });
+    const r = await ev(() => ({ t:document.querySelector('#f-title').value, n:document.querySelector('#f-estit').innerText }));
+    assert(r.t === 'El rey malvado' && /The Wicked King/.test(r.n), JSON.stringify(r));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);

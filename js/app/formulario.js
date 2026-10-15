@@ -28,7 +28,7 @@ function openBookForm({ book, item }){
     <div class="hero"><div class="cover-box" id="fcover"></div><div class="meta" style="flex:1">
       <button class="btn sm" type="button" data-do="upload">Subir portada</button><button class="btn sm" type="button" data-do="nocover">Quitar portada</button>
       <input id="fupload" type="file" accept="image/*" hidden></div></div>
-    <div class="sec"><label for="f-title">Título</label>${lineHtml(`class="field" id="f-title" data-f="title" ${isNew && !item ? 'data-autofocus' : ''}`, d.title)}</div>
+    <div class="sec"><label for="f-title">Título</label>${lineHtml(`class="field" id="f-title" data-f="title" ${isNew && !item ? 'data-autofocus' : ''}`, d.title)}<div id="f-estit"></div></div>
     <div class="sec"><label for="f-author">Autor/a</label>${lineHtml('class="field" id="f-author" data-f="author"', d.author)}</div>
     <div class="two"><div class="sec"><label for="f-pages">Páginas</label>${lineHtml('class="field" id="f-pages" data-f="pages" data-num inputmode="numeric"', d.pages)}</div>
       <div class="sec"><label for="f-year">Año de publicación</label>${lineHtml('class="field" id="f-year" data-f="year" data-num inputmode="numeric"', d.year)}</div></div>
@@ -118,7 +118,14 @@ function openBookForm({ book, item }){
   const setSpine = patch => { d.spine = { ...(d.spine || {}), ...patch }; drawSpine(); };
   const drawCover0 = drawCover;
   drawCover = () => { drawCover0(); refreshCoverTrios(); };
-  drawCover(); drawLangs(); drawFmt(); drawTags(); drawStatus(); drawSeries(); drawSpine();
+  /* Título en español: aviso con un toque para usarlo; el original queda guardado (origTitle) para buscar en fuentes en inglés */
+  function drawEsTitle(){
+    const el = q('#f-estit'); if(!el) return;
+    const es = d.esTitle && norm(d.esTitle) !== norm(d.title) ? d.esTitle : '';
+    el.innerHTML = es ? `<div class="chips" style="margin-top:6px"><button class="chip sug" type="button" data-do="usees">Usar el título en español: «${esc(es)}»</button></div>`
+      : d.origTitle && norm(d.origTitle) !== norm(d.title) ? `<div class="note" style="margin-top:4px">Título original: ${esc(d.origTitle)}</div>` : '';
+  }
+  drawCover(); drawLangs(); drawFmt(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle();
   sh.addEventListener('input', e => {
     const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine(); }
     const id = e.target.id;
@@ -161,6 +168,7 @@ function openBookForm({ book, item }){
     else if(g('[data-spscene]')){ setSpine({ scene:g('[data-spscene]').dataset.spscene }); }
     else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2] }); }
     else if(g('[data-do="spauto"]')){ d.spine = null; drawSpine(); }
+    else if(g('[data-do="usees"]')){ d.origTitle = d.origTitle || d.title; d.title = d.esTitle; q('#f-title').value = d.title; drawEsTitle(); drawSpine(); drawCover(); }
     else if(g('[data-do="inkauto"]')){ const { ink, ...rest } = d.spine || {}; d.spine = rest; drawSpine(); }
     else if(g('[data-smode]')){ serStyle.mode = g('[data-smode]').dataset.smode; drawSeries(); drawSpine(); }
     else if(g('[data-sscene]')){ serStyle.scene = g('[data-sscene]').dataset.sscene; drawSeries(); drawSpine(); }
@@ -175,10 +183,12 @@ function openBookForm({ book, item }){
     if(!d.title.trim()){ toast('Escribe primero el título'); return; }
     const label = btn.textContent; btn.disabled = true; btn.textContent = 'Buscando…';
     try{
-      const res = await searchBooks(d.title + ' ' + lastName(d.author), new AbortController().signal);
+      const qT = d.origTitle || d.title; // con el título original se encuentra en todas las fuentes; el español sale después
+      const res = await searchBooks(qT + ' ' + lastName(d.author), new AbortController().signal);
       const items = (res && res.items) || []; if(!items.length){ toast(res && res.failed ? 'No se pudo consultar internet' : 'No he encontrado este libro'); return; }
-      const nt = norm(d.title), na = lastName(d.author) && norm(lastName(d.author));
-      const score = x => (norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
+      const nts = [d.title, d.origTitle].filter(Boolean).map(norm), na = lastName(d.author) && norm(lastName(d.author));
+      const tScore = x => Math.max(...nts.map(nt => norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0));
+      const score = x => tScore(x) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
       const ranked = [...items].sort((a, b) => score(b) - score(a)), sure = score(ranked[0]) >= 4.5 && !(ranked[1] && score(ranked[1]) >= score(ranked[0]) && bookKey(ranked[1]) !== bookKey(ranked[0]));
       const it = sure ? ranked[0] : await chooseItem(ranked.slice(0, 6)); if(!it) return;
       btn.textContent = 'Completando datos…';
@@ -198,21 +208,24 @@ function openBookForm({ book, item }){
     const serTxt = s => s && s.name ? `${s.name}${s.n ? ' · nº ' + s.n : ''}${s.total ? ' de ' + s.total : ''}` : '';
     const langs = [...new Set([...d.langs, ...detectLangs(it)])], langTxt = l => l.map(x => ({ es:'Español', en:'Inglés' }[x])).join(' y ');
     const short = s => { s = String(s || ''); return s.length > 140 ? s.slice(0, 140) + '…' : s; };
+    const esT = it.esTitle && norm(it.esTitle) !== norm(d.title) ? it.esTitle : '';
     const rows = [
-      ['title', 'Título', d.title, it.title], ['author', 'Autor/a', d.author, it.author], ['pages', 'Páginas', d.pages, it.pages], ['year', 'Año', d.year, it.year],
+      ...(esT ? [['esTitle', 'Título en español', d.title, esT]] : [['title', 'Título', d.title, it.title]]), ['author', 'Autor/a', d.author, it.author], ['pages', 'Páginas', d.pages, it.pages], ['year', 'Año', d.year, it.year],
       ['synopsis', 'Sinopsis' + (it.descSrc ? ` (edición española, ${it.descSrc})` : ''), d.synopsis, it.desc],
       ['series', 'Serie', serTxt(d.series), serTxt(ser)], ['langs', 'Idiomas', langTxt(d.langs), langTxt(langs)],
       ['cover', 'Portada', d.coverData || d.cover ? 'la actual' : '', (it.covers || [])[0] ? 'la encontrada' : '']
     ].filter(([k, , a, b]) => b && String(b).trim() && norm(String(a)) !== norm(String(b)) && !(k === 'cover' && (it.covers || [])[0] === d.cover));
     if(!rows.length){ toast(it.eds || it.edsEn ? 'La ficha ya estaba al día (he actualizado las ediciones)' : 'La ficha ya está al día'); return; }
-    const on = new Set(rows.filter(([k, , a]) => !a || !String(a).trim() || k === 'langs').map(r => r[0]));
+    const on = new Set(rows.filter(([k, , a]) => !a || !String(a).trim() || k === 'langs' || k === 'esTitle').map(r => r[0]));
     const body = `<p class="note">Marca lo que quieras cambiar. Lo que ahora está vacío viene marcado.</p><div class="row-opts">${rows.map(([k, l, a, b]) => `<button class="opt" type="button" role="checkbox" data-rv="${k}" aria-checked="${on.has(k)}" style="align-items:flex-start;padding:10px 12px"><span class="dot" style="margin-top:2px;border-radius:4px"></span><span style="min-width:0"><b>${esc(l)}</b><br><span class="note">Ahora: ${esc(short(a)) || '—'}</span><br><span>Internet: ${esc(short(b))}</span>${k === 'cover' ? `<br><img src="${esc(it.covers[0])}" alt="" referrerpolicy="no-referrer" style="width:48px;margin-top:4px;border-radius:3px">` : ''}</span></button>`).join('')}</div>`;
     const s2 = openSheet(sheetT('Datos encontrados', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="rvapply">Aplicar</button>'));
     s2.addEventListener('click', async e => {
       const o = e.target.closest('[data-rv]'); if(o){ const k = o.dataset.rv; on.has(k) ? on.delete(k) : on.add(k); o.setAttribute('aria-checked', on.has(k)); return; }
       if(!e.target.closest('[data-do="rvapply"]')) return;
       const set = (k, v, sel) => { d[k] = v; if(sel) q(sel).value = v; };
-      if(on.has('title')) set('title', it.title, '#f-title'); if(on.has('author')) set('author', it.author, '#f-author');
+      if(on.has('title')) set('title', it.title, '#f-title');
+      if(on.has('esTitle')){ d.origTitle = d.origTitle || (norm(d.title) === norm(it.title) ? d.title : it.title); set('title', esT, '#f-title'); }
+      if(it.esTitle) d.esTitle = it.esTitle; drawEsTitle(); if(on.has('author')) set('author', it.author, '#f-author');
       if(on.has('pages')) set('pages', +it.pages, '#f-pages'); if(on.has('year')) set('year', +it.year, '#f-year');
       if(on.has('synopsis')){ set('synopsis', it.desc, '#f-syn'); autoSyn = it.desc; q('#f-synsrc').textContent = it.descSrc ? `Sinopsis de la edición española (${it.descSrc}).` : ''; }
       if(on.has('series')){ d.series = ser; serNote = 'según internet'; serStyle = { ...((state.seriesStyle || {})[norm(ser.name)] || {}) }; q('#f-sname').value = ser.name; q('#f-sn').value = ser.n; q('#f-st').value = ser.total; drawSeries(); }
@@ -240,6 +253,7 @@ function openBookForm({ book, item }){
     if(!d.cover && !d.coverData && (it.covers || []).length){ d.cover = it.covers[0]; d.cover2 = it.covers[1] || ''; drawCover(); }
     if(!d.series && it.seriesN){ const same = state.books.find(b => b.series && b.series.name && lastName(b.author) === lastName(it.author || d.author)); if(same){ d.series = { name:same.series.name, n:+it.seriesN, total:same.series.total || '' }; serNote = 'según Google Books y tus otros libros de esta autora o autor'; q('#f-sname').value = d.series.name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); } }
     sugTags = [...new Set([...sugTags, ...suggestTags(it)])]; drawTags();
+    if(it.esTitle){ d.esTitle = it.esTitle; drawEsTitle(); }
   }
   async function doSave(){
     d.title = d.title.trim(); if(!d.title){ toast('El libro necesita un título'); q('#f-title').focus(); return; }

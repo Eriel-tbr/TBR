@@ -128,6 +128,10 @@ async function enrichBook(item, signal){
     const eds = await englishEditions(en, author, signal);
     if(eds.length){ out.edsEn = eds; out.enFound = true; }
   }catch(e){}
+  // Título en español, si el libro está traducido y se llama distinto (Wikidata o la edición española encontrada)
+  const cleanT = s => { s = String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); return s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
+  const esT = cleanT((out.wd && out.wd.esTitle) || ((out.eds || []).find(e => e.title) || {}).title);
+  if(esT && norm(esT) !== norm(item.title) && (out.esFound || (out.wd && out.wd.es))) out.esTitle = esT;
   return out;
 }
 async function englishEditions(title, author, signal){

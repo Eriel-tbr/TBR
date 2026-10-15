@@ -12,7 +12,7 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 ## Estructura
 - `index.html`, `sw.js` (service worker, network-first para lo propio), `version.json`, `manifest.webmanifest`.
 - JS clásico sin módulos ni build; scripts que comparten variables globales, en este orden:
-  `js/lib/util.js, busqueda.js, etiquetas.js` → `js/art/decoracion.js, lomos.js, muebles.js, temas.js` → `js/app/estado.js, hojas.js, estanterias.js, ficha.js, formulario.js, anadir.js, ajustes.js, arrastrar.js, nube.js, inicio.js`.
+  `js/lib/util.js, busqueda.js, etiquetas.js` → `js/art/decoracion.js, lomos.js, muebles.js, temas.js` → `js/app/estado.js, hojas.js, estanterias.js, ficha.js, ficha-extra.js, formulario.js, anadir.js, ajustes.js, arrastrar.js, nube.js, inicio.js`.
 - `css/styles.css` (interfaz) y `css/furniture.css` (muebles y lomos).
 - Estado: `state = {v:1, settings, units[], books[], seriesStyle{}, deleted{}, metaUpd}` en localStorage `tbr.v1`; `save()` en estado.js.
 - Hojas (ventanas): `openSheet(sheetT(título, cuerpo, pie))`, `closeSheet()`; chips con `chipsHtml()`. Las hojas apiladas suben de z-index para que la de debajo quede tapada.
@@ -24,6 +24,8 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Baldas a la par: todos los muebles reservan `CROWN_Z` (150 de 358) para el remate (temas.js `crownHtml`/`crownHead`): los remates bajos llevan un hueco superior `.head` dentro del mueble; el gótico (200) se comprime en vertical. Así la primera balda queda a la misma altura en todos.
 - Estantería «Contemporánea y thriller» (preset `contemporanea`): `migrate()` en estado.js renombra la antigua «Contemporánea» y le añade la balda «Thriller y misterio» una sola vez (`settings.migThriller`).
 - Lomos automáticos con colores de su portada: `autoPal()`; `refreshCoverPals()` (inicio.js) calcula `b.coverPal` en segundo plano. Ajustes → «Colores de los lomos automáticos» (`settings.spineFromCover`).
+- Ficha (ficha-extra.js): serie completa (tomos propios + los que faltan según `api/serie`, con «Añadir»), audiolibro (`api/audio`, guardado en `b.audio` 30 días; `b.audioDrama` lo marca ella) y enlaces «Buscar en» (Amazon.es, Buscalibre, Casa del Libro vía Google, Books2Door). Sus botones usan `data-xdo`, no `data-do` (el manejador de la ficha redibujaría).
+- Títulos: `b.origTitle` guarda el original cuando se usa el título en español (`esTitle` de `enrichBook`: Wikidata o edición española). «Buscar y comparar» busca con el original y ofrece el español.
 - Arte: lomos SVG (`spine`), muebles por tema (`THEMES` en temas.js: fantasía→gótico, romantasy→rococó, ciencia ficción→chip, dark academia→academia, contemporánea→moderno, romance→romance, resto→genérico). Decoración automática o manual (`u.decorMode`).
 
 ## Nube (fase 2, hecha)
@@ -36,6 +38,10 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - `hardcover.js`: búsqueda en Hardcover (`HARDCOVER_TOKEN` en Vercel; no usar en el navegador). Da serie y número.
 - `edicion.js`: ediciones en español por ISBN desde fichas de todostuslibros.com (editorial, formato, sinopsis oficial). No usar su buscador (/busquedas está prohibido en su robots.txt).
 - `b2d.js`: ediciones en inglés en Books2Door (buscador Shopify `search/suggest.json`, permitido). No indica tapa dura/blanda.
+- `audio.js`: audiolibros de un libro (`?t=` título original, `es=` título en español, `a=` autor/a): Apple Books (iTunes Search, tiendas `es` y `us`, sin clave, ~20 llamadas/min) + ediciones de audio de Hardcover (`reading_format_id` 2: duración, narradores). Idioma por palabras frecuentes; solo español e inglés. «¿Dramatizado?» solo como sospecha por el texto. Responde como mucho a los 6,5 s.
+- `serie.js`: tomos de una serie en Hardcover (`?s=` serie, `t=` título, `a=`). Descarta series vacías (Hardcover tiene duplicados con nombres traducidos) y, si hace falta, usa la serie del libro.
+- `_lib/hardcover.js`: `gql`, `search`, `findBook` compartidos.
+- Para probar la API en producción: WebFetch falla con estas rutas; usar el navegador integrado y `fetch` desde https://tbr-sage.vercel.app.
 - `portada.js`: proxy de portadas con lista de dominios permitidos, para leer colores en canvas. Incluye hardcover.app (faltaba: los libros en inglés salían con «No se pueden leer los colores»).
 - Las claves y tokens solo en variables de Vercel. Nunca en el código ni en el chat.
 

@@ -8,7 +8,7 @@ function openDetail(id){
     const b = bookOf(id); if(!b){ closeSheet(); return; }
     const fm = FORMATS.filter(([k]) => b.formats && b.formats[k]).map(([k, l]) => `<span class="chip fmt" data-st="${b.formats[k]}">${l}: ${b.formats[k]}</span>`).join('');
     $('#dbody', sh).innerHTML = `
-      <div class="hero"><div class="cover-box">${coverHtml(b)}</div><div class="meta"><h2>${esc(b.title)}</h2><div>${esc(b.author) || '<span class="note">Autor sin indicar</span>'}</div>
+      <div class="hero"><div class="cover-box">${coverHtml(b)}</div><div class="meta"><h2>${esc(b.title)}</h2>${b.origTitle && norm(b.origTitle) !== norm(b.title) ? `<div class="note">Título original: ${esc(b.origTitle)}</div>` : ''}<div>${esc(b.author) || '<span class="note">Autor sin indicar</span>'}</div>
         <div class="chips">${langBadges(b)}<span class="badge">${STATUS[b.status || 'pendiente']}</span>${b.next ? '<span class="badge">Siguiente lectura</span>' : ''}</div>
         ${b.series && b.series.name ? `<div class="note">Serie: ${esc(b.series.name)} · libro ${b.series.n || '?'}${seriesTotal(state, b) ? ' de ' + seriesTotal(state, b) : ''}</div>` : ''}
         <div class="note">${esc(locName(b))}</div>
@@ -21,6 +21,7 @@ function openDetail(id){
       ${fm || (b.eds || []).length || (b.edsEn || []).length ? `<div class="sec"><span class="lbl">Ediciones</span>${fm ? `<div class="chips">${fm}</div>` : ''}${edsHtml(b.eds)}${edsHtml(b.edsEn, true)}</div>` : ''}
       ${(b.tags || []).length ? `<div class="sec"><span class="lbl">Etiquetas</span><div class="chips">${b.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div></div>` : ''}
       ${b.notes ? `<div class="sec"><span class="lbl">Notas</span><div class="synopsis">${esc(b.notes)}</div></div>` : ''}
+      <div id="dextra" style="display:flex;flex-direction:column;gap:18px"></div>
       <div class="actions">
         ${b.status === 'pendiente' ? '<button class="btn primary" type="button" data-do="start">Empezar a leer</button>' : ''}
         ${b.status === 'leyendo' ? '<button class="btn primary" type="button" data-do="finish">Marcar como leído</button>' : ''}
@@ -29,12 +30,13 @@ function openDetail(id){
         ${b.status !== 'leido' ? `<button class="btn" type="button" data-do="next">${b.next ? 'Quitar de siguiente' : 'Siguiente lectura'}</button>` : ''}
         <button class="btn" type="button" data-do="edit">Editar</button><button class="btn" type="button" data-do="move">Mover a…</button>
         <button class="btn danger" type="button" data-do="del">Borrar</button></div>`;
+    fichaExtras(sh, id);
   };
   draw();
   sh.addEventListener('click', async e => {
     const star = e.target.closest('[data-star]'), act = e.target.closest('[data-do]'), b = bookOf(id); if(!b) return;
     if(star){ b.rating = b.rating === +star.dataset.star ? 0 : +star.dataset.star; save(); draw(); return; }
-    if(!act) return; const a = act.dataset.do;
+    if(!act || act.closest('#dextra')) return; const a = act.dataset.do; // lo de #dextra lo gestiona ficha-extra.js
     if(a === 'start'){ b.status = 'leyendo'; }
     else if(a === 'finish'){ b.status = 'leido'; b.readAt = Date.now(); b.next = false; }
     else if(a === 'pending'){ b.status = 'pendiente'; b.readAt = null; }
