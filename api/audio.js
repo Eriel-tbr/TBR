@@ -8,7 +8,7 @@ const DRAMA = /dramati[sz]|full[- ]cast|reparto completo|audioserie|audio drama|
 const ES_WORDS = /\b(el|la|los|las|una|que|del|por|para|con|novela|historia|narrado)\b/gi, EN_WORDS = /\b(the|and|with|of|her|his|novel|story|narrated|read by)\b/gi;
 function guessLang(text){ const es = (text.match(ES_WORDS) || []).length, en = (text.match(EN_WORDS) || []).length; return es > en * 1.3 ? 'es' : en > es * 1.3 ? 'en' : ''; }
 async function apple(term, country){
-  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 6000);
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
   try{
     const r = await fetch(`https://itunes.apple.com/search?media=audiobook&entity=audiobook&limit=10&country=${country}&term=${encodeURIComponent(term)}`, { signal:ac.signal });
     if(!r.ok) throw new Error('Apple ' + r.status); return (await r.json()).results || [];
@@ -58,7 +58,7 @@ async function main(req, res){
     })()
   ]);
   // Vercel corta a los 10 s: se responde con lo que haya a los 8,5 s
-  let timer; await Promise.race([work, new Promise(r => { timer = setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 8500); })]); clearTimeout(timer);
+  let timer; await Promise.race([work, new Promise(r => { timer = setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 6500); })]); clearTimeout(timer);
   // Primero en español, luego en inglés; dentro, Apple antes que Hardcover (tiene enlace de compra)
   const rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 2 + (i.src === 'apple' ? 0 : 1);
   items.sort((x, y) => rank(x) - rank(y));
