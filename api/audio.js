@@ -16,6 +16,7 @@ async function apple(term, country){
 }
 module.exports = async (req, res) => { try{ await main(req, res); }catch(e){ res.statusCode = 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ items:[], errors:{ fallo:e.message, stack:String(e.stack).slice(0, 600) } })); } };
 async function main(req, res){
+  if(/[?&]ping=1/.test(req.url)){ res.setHeader('content-type', 'application/json'); return res.end('{"ok":true}'); }
   const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), es = (p.get('es') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag'), only = p.get('only') || '';
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
