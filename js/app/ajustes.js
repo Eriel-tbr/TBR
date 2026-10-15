@@ -7,16 +7,20 @@ function openUnitForm(unitId){
   if(!isNew && !PRESETS[u.preset]) u.preset = u.preset || 'gen';
   let presetSel = isNew ? 'auto' : (u.preset || 'gen'); const del = new Set();
   const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}">${lineHtml('class="field" data-sname aria-label="Nombre de la balda"', s.name)}<button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
-  const body = `
+  // Pestañas: General (nombre, estilo, madera) · Decoración · Baldas (y eliminar)
+  const TABS = [['general', 'General'], ['deco', 'Decoración'], ['baldas', 'Baldas']], tab0 = lastTab.estanteria = 'general';
+  const pGeneral = `
     <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…" data-autofocus', u.name)}</div>
     <div class="sec"><label for="u-tipo">Tipo de libros (para elegir estilo y decoración)</label>${lineHtml('class="field" id="u-tipo" placeholder="Opcional: fantasía gótica, ciencia ficción, viajes…"', u.tipo)}</div>
     <div class="sec"><span class="lbl">Estilo</span><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div><div class="chips" id="u-presets"></div></div>
-    <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>
-    <div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>
-    <div class="sec"><span class="lbl">Baldas (grupos dentro de la estantería: ordenan los libros, no se ven como rótulos)</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
+    <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>`;
+  const pDeco = `<div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>`;
+  const pBaldas = `<div class="sec"><span class="lbl">Baldas</span><p class="note">Grupos dentro de la estantería: ordenan los libros, no se ven como rótulos.</p><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
       ${isNew ? lineHtml('class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras"') : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
-    ${isNew || state.units.length < 2 ? '' : `<div class="sec"><span class="lbl">Eliminar estantería</span>${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button></div>`}`;
-  const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>'));
+    ${isNew ? '' : '<p class="note">Para dejar un hueco en la estantería, abre la ficha de un libro → «Mover a…» → «Hueco antes / después».</p>'}
+    ${isNew || state.units.length < 2 ? '' : fold('Eliminar estantería', `${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button>`)}`;
+  const body = tabPanel('estanteria', 'general', tab0, pGeneral) + tabPanel('estanteria', 'deco', tab0, pDeco) + tabPanel('estanteria', 'baldas', tab0, pBaldas);
+  const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>', tabsBar('estanteria', TABS, tab0)));
   const q = s => $(s, sh);
   const curKey = () => presetSel === 'auto' ? detectPreset(q('#u-name').value, q('#u-tipo').value) : presetSel;
   const tmp = () => ({ ...u, name:q('#u-name').value, tipo:q('#u-tipo').value, preset:curKey(), wood:u.wood, decor:u.decor });
@@ -157,19 +161,20 @@ function statsHtml(){
     ${state.units.map(u => `<dt>${esc(u.name)}</dt><dd>${bs.filter(b => b.unitId === u.id).length}</dd>`).join('')}</dl>`;
 }
 function openSettings(){
+  // Secciones plegables: lo de uso diario abierto (apariencia, nube); el resto, cerrado
   const body = `
-    <div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
-    <div class="sec"><span class="lbl">Colores de los lomos automáticos</span><div class="chips">${chipsHtml([['1', 'Sacados de la portada'], ['0', 'De la paleta de la estantería']], state.settings.spineFromCover === false ? '0' : '1', 'data-spcov')}</div><p class="note">Los lomos que hayas pintado a mano no cambian.</p></div>
-    <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>
-    <div class="sec"><span class="lbl">Fichas</span><p class="note">Busca en internet las sinopsis que faltan y cambia por la española las que están en inglés si el libro está traducido. Las que escribiste tú en español no se tocan.</p>
-      <button class="btn" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div></div>
-    <div class="sec"><span class="lbl">Estadísticas</span>${statsHtml()}</div>
-    <div class="sec"><span class="lbl">Cuenta y copia en la nube</span><div id="cloud-sec">${cloudSecHtml()}</div></div>
-    <div class="sec"><span class="lbl">Copia en archivo</span><p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
+    ${fold('Apariencia', `<div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
+      <div class="sec"><span class="lbl">Colores de los lomos automáticos</span><div class="chips">${chipsHtml([['1', 'Sacados de la portada'], ['0', 'De la paleta de la estantería']], state.settings.spineFromCover === false ? '0' : '1', 'data-spcov')}</div><p class="note">Los lomos que hayas pintado a mano no cambian.</p></div>
+      <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>`, true)}
+    ${fold('Cuenta y copia en la nube', `<div id="cloud-sec">${cloudSecHtml()}</div>`, true)}
+    ${fold('Completar fichas', `<p class="note">Busca en internet las sinopsis que faltan y cambia por la española las que están en inglés si el libro está traducido. Las que escribiste tú en español no se tocan.</p>
+      <button class="btn" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div>`)}
+    ${fold('Copia en archivo', `<p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
       <div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir copia</button><button class="btn" type="button" data-do="import">Importar copia</button></div>
-      <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div></div>
-    <div class="sec"><span class="lbl">Almacenamiento</span><p class="note" id="s-store">Calculando…</p></div>
-    <div class="sec"><span class="lbl">Zona delicada</span><button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button></div>`;
+      <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div>`)}
+    ${fold('Estadísticas', statsHtml())}
+    ${fold('Almacenamiento', '<p class="note" id="s-store">Calculando…</p>')}
+    ${fold('Zona delicada', '<button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button>')}`;
   const sh = openSheet(sheetT('Ajustes', body));
   storageReport().then(r => { const el = $('#s-store', sh); if(el) el.textContent = `Tu colección ocupa ${r.appKB} KB. Espacio que el navegador da a la app: ${r.quotaMB !== null ? r.quotaMB + ' MB (' + r.usedMB + ' MB usados)' : 'desconocido'}.`; });
   sh.addEventListener('click', async e => {

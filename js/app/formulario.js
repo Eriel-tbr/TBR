@@ -23,7 +23,9 @@ function openBookForm({ book, item }){
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
   let coverTrios = null, coverTriosSrc = null, lastArt = {};
   const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => [s.id, s.name]);
-  const body = `
+  // Pestañas: Datos · Serie · Lomo · Dónde va. Lo menos usado, plegado.
+  const TABS = [['datos', 'Datos'], ['serie', 'Serie'], ['lomo', 'Lomo'], ['lugar', 'Dónde va']], tab0 = lastTab.libro = 'datos'; // siempre se empieza por Datos
+  const pDatos = `
     <div id="fnote" class="notice" ${isNew && item ? '' : 'hidden'}>Datos rellenados automáticamente. Revísalos antes de guardar.<span id="fload"> Completando sinopsis, idiomas y serie…</span></div>
     <div class="hero"><div class="cover-box" id="fcover"></div><div class="meta" style="flex:1">
       <button class="btn sm" type="button" data-do="upload">Subir portada</button><button class="btn sm" type="button" data-do="nocover">Quitar portada</button>
@@ -32,31 +34,34 @@ function openBookForm({ book, item }){
     <div class="sec"><label for="f-author">Autor/a</label>${lineHtml('class="field" id="f-author" data-f="author"', d.author)}</div>
     <div class="two"><div class="sec"><label for="f-pages">Páginas</label>${lineHtml('class="field" id="f-pages" data-f="pages" data-num inputmode="numeric"', d.pages)}</div>
       <div class="sec"><label for="f-year">Año de publicación</label>${lineHtml('class="field" id="f-year" data-f="year" data-num inputmode="numeric"', d.year)}</div></div>
-    <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea><div class="note" id="f-synsrc"></div></div>
-    <div class="sec"><span class="lbl">Idiomas en los que lo puedes leer</span><div class="chips" id="flangs"></div></div>
-    <div class="sec"><span class="lbl">Ediciones (toca para alternar: quiero · tengo)</span><div class="chips" id="ffmt"></div><div id="feds"></div></div>
-    <div class="sec"><span class="lbl">Etiquetas</span><div class="tagin" id="ftags"></div><div class="chips" id="ftagsug"></div></div>
     <div class="sec"><span class="lbl">Estado</span><div class="chips" id="fstatus"></div><div class="stars" id="frating" hidden></div></div>
-    <div class="sec"><label for="f-notes">Notas personales</label><textarea class="field" id="f-notes" data-f="notes" placeholder="Por qué lo quieres leer, quién te lo recomendó…">${esc(d.notes)}</textarea></div>
-    <div class="sec"><span class="lbl">Serie</span>
-      <div class="three">${lineHtml('class="field" id="f-sname" placeholder="Nombre (vacío si es libro suelto)" aria-label="Nombre de la serie"', d.series ? d.series.name : '')}
+    <div class="sec"><span class="lbl">Idiomas en los que lo puedes leer</span><div class="chips" id="flangs"></div></div>
+    <div class="sec"><span class="lbl">Etiquetas</span><div class="tagin" id="ftags"></div><div class="chips" id="ftagsug"></div></div>
+    <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea><div class="note" id="f-synsrc"></div></div>
+    ${fold('Notas personales', `<textarea class="field" id="f-notes" data-f="notes" aria-label="Notas personales" placeholder="Por qué lo quieres leer, quién te lo recomendó…">${esc(d.notes)}</textarea>`, !!d.notes)}
+    ${fold('Ediciones <small>quiero · tengo</small>', `<p class="note">Toca un formato para alternar: quiero · tengo · nada.</p><div class="chips" id="ffmt"></div><div id="feds"></div>`, Object.keys(d.formats || {}).length > 0)}
+    ${isNew ? '' : fold('Revisar con internet', '<p class="note">Busca este libro, te enseña qué datos son distintos o faltan y tú eliges cuáles cambiar.</p><button class="btn" type="button" data-do="refill">Buscar y comparar datos</button>')}`;
+  const pSerie = `
+    <div class="sec"><span class="lbl">Serie</span><p class="note">Déjalo vacío si es un libro suelto.</p>
+      <div class="three">${lineHtml('class="field" id="f-sname" placeholder="Nombre de la serie" aria-label="Nombre de la serie"', d.series ? d.series.name : '')}
         ${lineHtml('class="field" id="f-sn" data-num inputmode="numeric" placeholder="Nº" aria-label="Número dentro de la serie"', d.series ? d.series.n : '')}
         ${lineHtml('class="field" id="f-st" data-num inputmode="numeric" placeholder="Total" aria-label="Total de libros de la serie"', d.series ? d.series.total : '')}</div>
       <div class="chips" id="f-serlist"></div>
-      <div id="f-sernote"></div><div id="f-sermode"></div></div>
-    <div class="sec"><span class="lbl">Lomo</span>
-      <div class="sp-edit"><div class="sp-prev" id="fsp-prev"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div class="chips" id="fsp-style"></div><div class="chips" id="fsp-scene"></div></div></div>
-      <span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div>
-      <span class="lbl">Paleta de la estantería</span><div class="trios" id="fsp-pal"></div>
-      <span class="lbl">Personalizado (parte de los colores actuales)</span><div class="pickers"><label class="picker">Base<input type="color" id="fsp-c0"></label><label class="picker">Detalle<input type="color" id="fsp-c1"></label><label class="picker">Acento<input type="color" id="fsp-c2"></label><label class="picker">Letras<input type="color" id="fsp-ink"></label></div>
-      <div class="note" id="fsp-inknote"></div>
-      <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>
-      <button class="btn sm" type="button" data-do="spauto" style="align-self:flex-start">Volver a automático</button></div>
+      <div id="f-sernote"></div></div>
+    <div id="f-sermode" class="sermode"></div>`;
+  const pLomo = `
+    <div class="sp-edit"><div class="sp-prev" id="fsp-prev"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><span class="lbl">Estilo</span><div class="chips" id="fsp-style"></div><div class="chips" id="fsp-scene"></div></div></div>
+    ${fold('Colores de cada parte', '<div id="fsp-parts" class="parts"></div><div class="note" id="fsp-inknote"></div>', true)}
+    ${fold('Combinaciones rápidas', '<span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div><span class="lbl">Paleta de la estantería</span><div class="trios" id="fsp-pal"></div>')}
+    <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>
+    <button class="btn sm" type="button" data-do="spauto" style="align-self:flex-start">Volver a automático</button>`;
+  const pLugar = `
     <div class="sec"><span class="lbl">Dónde va</span>${sugged ? '<div class="note">Balda sugerida según las etiquetas detectadas.</div>' : ''}
       <div class="two">${pickHtml('f-unit', 'Estantería', state.units.map(u => [u.id, u.name]), d.unitId)}
-      ${pickHtml('f-shelf', 'Balda', shelfOpts(d.unitId), d.shelfId)}</div></div>
-    ${isNew ? '' : '<div class="sec"><span class="lbl">Revisar con internet</span><p class="note">Busca este libro, te enseña qué datos son distintos o faltan y tú eliges cuáles cambiar.</p><button class="btn" type="button" data-do="refill">Buscar y comparar datos</button></div>'}`;
-  const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>'));
+      ${pickHtml('f-shelf', 'Balda', shelfOpts(d.unitId), d.shelfId)}</div>
+      <div class="chips"><button class="chip" type="button" data-do="newshelf">+ Nueva balda aquí</button><button class="chip" type="button" data-do="newunit">+ Nueva estantería</button></div></div>`;
+  const body = tabPanel('libro', 'datos', tab0, pDatos) + tabPanel('libro', 'serie', tab0, pSerie) + tabPanel('libro', 'lomo', tab0, pLomo) + tabPanel('libro', 'lugar', tab0, pLugar);
+  const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>', tabsBar('libro', TABS, tab0)));
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
@@ -86,8 +91,9 @@ function openBookForm({ book, item }){
       q('#f-sermode').innerHTML = same ? `<div class="chips"><button class="chip sug" type="button" data-sersug="${esc(same.series.name)}">¿Es de «${esc(same.series.name)}»?</button></div>` : ''; return;
     }
     const mode = serStyle.mode || 'auto', scene = serStyle.scene || '';
-    q('#f-sermode').innerHTML = `<div class="note">Diseño de toda la serie</div><div class="chips">${chipsHtml([['auto', 'Automático'], ['iguales', 'Iguales con número'], ['colores', 'Un color por tomo'], ['luna', 'Fases de la luna'], ['paisaje', 'Paisaje continuo']], mode, 'data-smode')}</div>`
-      + ((mode === 'paisaje' || (mode === 'auto' && (+d.series.total || 0) >= 4)) ? `<div class="chips">${chipsHtml([['', 'Paisaje automático'], ...Object.entries(SAGA_SCENES)], scene, 'data-sscene')}</div>` : '');
+    // Dos grupos separados con su título: antes las dos filas de botones iban pegadas y parecían solaparse
+    q('#f-sermode').innerHTML = `<div class="sec"><span class="lbl">Diseño de toda la serie</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['iguales', 'Iguales con número'], ['colores', 'Un color por tomo'], ['luna', 'Fases de la luna'], ['paisaje', 'Paisaje continuo']], mode, 'data-smode')}</div></div>`
+      + ((mode === 'paisaje' || (mode === 'auto' && (+d.series.total || 0) >= 4)) ? `<div class="sec"><span class="lbl">Paisaje</span><div class="chips">${chipsHtml([['', 'Automático'], ...Object.entries(SAGA_SCENES)], scene, 'data-sscene')}</div></div>` : '');
   }
   function drawSpine(){
     const u = unitNow(), th = themeOf(u), sp = d.spine || {}, ctx = previewCtx();
@@ -101,11 +107,10 @@ function openBookForm({ book, item }){
     const isSel = c => !!sp.base && sp.base === c[0] && sp.foil === c[1] && sp.accent === c[2];
     q('#fsp-pal').innerHTML = th.pal.map(c => trio(c, isSel(c))).join('');
     q('#fsp-cover').innerHTML = coverTrios === null ? '<span class="note">Analizando la portada…</span>' : coverTrios === false ? `<span class="note">${coverTriosSrc ? 'No se pueden leer los colores de esta portada desde su web. Si subes la portada tú, sí podré sacarlos.' : 'Sin portada todavía.'}</span>` : coverTrios.map(c => trio(c, isSel(c))).join('');
-    // Los selectores muestran los colores que se ven ahora en el lomo (también si vienen de la serie o del ajuste a la estantería)
-    const pal = lastArt.pal || [];
-    ['#fsp-c0', '#fsp-c1', '#fsp-c2'].forEach((s, i) => { q(s).value = isHex(pal[i]) ? pal[i] : '#888888'; });
-    q('#fsp-ink').value = isHex(lastArt.ink) ? lastArt.ink : '#ffffff';
-    q('#fsp-inknote').innerHTML = isHex(sp.ink) ? 'Letras con color elegido por ti. <button class="btn sm" type="button" data-do="inkauto">Letras automáticas</button>' : 'Letras automáticas: siempre con contraste suficiente para leerse.';
+    // Una fila por parte del diseño actual, con el color que se ve ahora; al tocarla se abre el selector partiendo de ese color
+    const own = sp.parts || {}, row = (f, l, c, manual) => `<div class="part"><button class="part-b" type="button" data-part="${f}" data-col="${c}" data-lbl="${esc(l)}"><i style="background:${c}"></i><span>${esc(l)}</span><small>${manual ? 'elegido' : 'automático'}</small></button>${manual ? `<button class="iconbtn sm" type="button" data-partauto="${f}" aria-label="Volver a automático: ${esc(l)}">${ICON.x}</button>` : ''}</div>`;
+    q('#fsp-parts').innerHTML = (lastArt.parts || []).filter(p => p[2]).map(([f, l, c]) => row(f, l, c, isHex(own[f]))).join('') + row('ink', 'Letras', isHex(lastArt.ink) ? lastArt.ink : '#ffffff', isHex(sp.ink));
+    q('#fsp-inknote').textContent = isHex(sp.ink) ? '' : 'Letras automáticas: siempre con contraste suficiente para leerse.';
     q('#fsp-adj').checked = sp.adjust !== false;
   }
   function refreshCoverTrios(){
@@ -139,10 +144,7 @@ function openBookForm({ book, item }){
         const k = norm(name), all = [...new Set(state.books.filter(b => b.series && b.series.name).map(b => b.series.name))];
         q('#f-serlist').innerHTML = k ? all.filter(n => norm(n).includes(k) && norm(n) !== k).slice(0, 5).map(n => `<button class="chip sug" type="button" data-serpick="${esc(n)}">${esc(n)}</button>`).join('') : ''; }
     }
-    if(/^fsp-c[012]$/.test(id)){ const pal = [...(lastArt.pal || ['#888888', '#dddddd', '#444444'])];
-      // Un color elegido a mano se respeta tal cual (sin «ajustar a la estética»); se puede volver a activar
-      pal[+id.slice(-1)] = e.target.value; setSpine({ base:pal[0], foil:pal[1], accent:pal[2], adjust:false }); }
-    if(id === 'fsp-ink') setSpine({ ink:e.target.value });
+
   });
   sh.addEventListener('keydown', e => { if(e.target.id === 'ftagin' && (e.key === 'Enter' || e.key === ',')){ e.preventDefault(); addTag(e.target.value.replace(',', '')); } });
   sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()) addTag(e.target.value); });
@@ -166,10 +168,17 @@ function openBookForm({ book, item }){
     else if(g('[data-do="save"]')){ await doSave(); }
     else if(g('[data-spstyle]')){ setSpine({ style:g('[data-spstyle]').dataset.spstyle }); }
     else if(g('[data-spscene]')){ setSpine({ scene:g('[data-spscene]').dataset.spscene }); }
-    else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2] }); }
+    else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2], parts:{} }); }
     else if(g('[data-do="spauto"]')){ d.spine = null; drawSpine(); }
     else if(g('[data-do="usees"]')){ d.origTitle = d.origTitle || d.title; d.title = d.esTitle; q('#f-title').value = d.title; drawEsTitle(); drawSpine(); drawCover(); }
-    else if(g('[data-do="inkauto"]')){ const { ink, ...rest } = d.spine || {}; d.spine = rest; drawSpine(); }
+    else if(g('[data-do="newshelf"]')){ const s = await newShelfIn(d.unitId); if(s){ d.shelfId = s.id; setPick(q('#f-shelf'), shelfOpts(d.unitId), s.id); } }
+    else if(g('[data-do="newunit"]')){ const u = await newUnitQuick(); if(u){ d.unitId = u.id; d.shelfId = u.shelves[0].id; setPick(q('#f-unit'), state.units.map(x => [x.id, x.name]), u.id); setPick(q('#f-shelf'), shelfOpts(u.id), d.shelfId); drawSpine(); } }
+    else if(g('[data-part]')){ const b = g('[data-part]'), f = b.dataset.part, th = themeOf(unitNow());
+      const c = await openColorPicker({ title:b.dataset.lbl, color:b.dataset.col, cover:d.coverData || d.cover || d.cover2 || '', palette:th.pal.flat() });
+      if(!c) return;
+      if(f === 'ink') setSpine({ ink:c }); else setSpine({ parts:{ ...((d.spine || {}).parts || {}), [f]:c } }); }
+    else if(g('[data-partauto]')){ const f = g('[data-partauto]').dataset.partauto, sp = { ...(d.spine || {}) };
+      if(f === 'ink') delete sp.ink; else { sp.parts = { ...(sp.parts || {}) }; delete sp.parts[f]; } d.spine = sp; drawSpine(); }
     else if(g('[data-smode]')){ serStyle.mode = g('[data-smode]').dataset.smode; drawSeries(); drawSpine(); }
     else if(g('[data-sscene]')){ serStyle.scene = g('[data-sscene]').dataset.sscene; drawSeries(); drawSpine(); }
     else if(g('[data-serpick]')){ const i = q('#f-sname'); i.value = g('[data-serpick]').dataset.serpick; q('#f-serlist').innerHTML = ''; i.dispatchEvent(new Event('input', { bubbles:true })); q('#f-serlist').innerHTML = ''; }

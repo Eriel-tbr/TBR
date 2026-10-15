@@ -103,6 +103,24 @@ function spineDims(b, seed){
   return { w, h };
 }
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+/* Partes de cada estilo de lomo: [campo del diseño, nombre]. Cada parte se puede pintar de un color (sp.parts[campo]); las letras van aparte (sp.ink). */
+const SPINE_PARTS = {
+  nervios:[['base', 'Piel'], ['accent', 'Tejuelo'], ['foil', 'Dorados']],
+  marco:[['base', 'Piel'], ['foil', 'Marco'], ['orn', 'Adornos']],
+  jaspeado:[['accent', 'Piel de arriba y abajo'], ['base', 'Papel'], ['m1', 'Veta 1'], ['m2', 'Veta 2'], ['m3', 'Veta 3'], ['foil', 'Bandas doradas']],
+  acuarela:[['base', 'Papel'], ['accent', 'Mancha 1'], ['accent2', 'Mancha 2'], ['ink', 'Dibujo']],
+  ilustrado:[['base', 'Cielo arriba'], ['accent', 'Cielo medio'], ['sky2', 'Horizonte'], ['moon', 'Luna'], ['sil', 'Silueta'], ['sil2', 'Silueta lejana']],
+  saga:[['base', 'Cielo arriba'], ['accent', 'Cielo medio'], ['sky2', 'Horizonte'], ['moon', 'Luna'], ['sil', 'Silueta'], ['sil2', 'Silueta lejana']],
+  deco:[['base', 'Fondo'], ['foil', 'Dorados'], ['accent', 'Sol y anillo']],
+  grimorio:[['base', 'Piel'], ['foil', 'Metal'], ['gem', 'Gema']],
+  escamas:[['base', 'Fondo y etiqueta'], ['accent', 'Escamas'], ['foil', 'Dorados']],
+  estrellado:[['base', 'Fondo'], ['accent', 'Degradado'], ['foil', 'Estrellas y luna']],
+  enredadera:[['base', 'Papel'], ['leaf', 'Hojas'], ['bloom', 'Flores']],
+  holo:[['c1', 'Color principal'], ['c2', 'Segundo color'], ['c3', 'Tercer color']], synth:[['c1', 'Cielo'], ['c2', 'Sol y rejilla'], ['c3', 'Brillo del sol']],
+  planeta:[['c1', 'Espacio y anillo'], ['c2', 'Planeta'], ['c3', 'Luz del planeta']], cristal:[['c1', 'Color 1'], ['c2', 'Color 2'], ['c3', 'Color 3']]
+};
+const applyParts = (spec, style, parts) => { (SPINE_PARTS[style] || []).forEach(([f]) => { if(parts && isHex(parts[f])) spec[f] = parts[f]; }); return spec; };
+const partsOf = (spec, style) => (SPINE_PARTS[style] || []).map(([f, l]) => [f, l, isHex(spec[f]) ? spec[f] : '']);
 /* Colores de un lomo: los elegidos a mano; si no, los de su portada (ajustados a la estantería); si no, la paleta de la estantería */
 function autoPal(b, th){
   const sp = b.spine || {}, seed = hash(b.id + (b.title || '')), tp = th.pal[(seed >>> 5) % th.pal.length];
@@ -150,15 +168,16 @@ function spineArt(b, u, th, ctx = {}){
         cont:{ off:ser.off, total:ser.totalW, seed:ser.seed } }; break; }
     default: { // estilos de ciencia ficción
       const kind = SF_KIND[style] || 'foil';
-      const oo = { w, h, title:o.title, c1:B, c2:A, c3:F, font:kind === 'glass' ? 'pop' : 'deco', up:1, ls:.08, max:14, wt:700, titleInk:isHex(sp.ink) ? sp.ink : '' };
+      const oo = applyParts({ w, h, title:o.title, c1:B, c2:A, c3:F, font:kind === 'glass' ? 'pop' : 'deco', up:1, ls:.08, max:14, wt:700, titleInk:isHex(sp.ink) ? sp.ink : '' }, style, sp.parts);
       const num = o.num ? `<span class="num" style="--f:#fff;top:${h - (kind === 'orbit' || kind === 'glass' ? 21 : 30)}px">${o.num}</span>` : '';
-      return { w, h, style, pal:[B, F, A], ink:oo.titleInk || '#ffffff', html:`<div class="it"><div class="bk" style="--w:${w}px;--h:${h}px;--b:#111"><div class="face">${SF[kind](oo, w, h, hash(o.title + kind))}${num}</div></div></div>` };
+      return { w, h, style, pal:[B, F, A], parts:partsOf(oo, style), ink:oo.titleInk || '#ffffff', html:`<div class="it"><div class="bk" style="--w:${w}px;--h:${h}px;--b:#111"><div class="face">${SF[kind](oo, w, h, hash(o.title + kind))}${num}</div></div></div>` };
     }
   }
   // Color del título: el que elijas tú, o el del diseño asegurando que se lea sobre su fondo
+  applyParts(spec, style, sp.parts); if(style === 'nervios' || style === 'jaspeado') spec.tbg = spec.accent; // el título va sobre esa parte
   const tbg = spec.tbg || spec.base, tc = spec.tc || spec.foil;
   spec.titleInk = isHex(sp.ink) ? sp.ink : isHex(tbg) && isHex(tc) && contrast(tc, tbg) < 2.6 ? legibleOn(tc, tbg) : '';
-  return { w, h, style, pal:[B, F, A], ink:spec.titleInk || tc, html:spine({ ...base, ...spec }) };
+  return { w, h, style, pal:[B, F, A], parts:partsOf(spec, style), ink:spec.titleInk || tc, html:spine({ ...base, ...spec }) };
 }
 
 /* ---------- Series ---------- */
@@ -185,7 +204,12 @@ function parseSeries(title){
 function packRows(items, W, mullion){
   const rows = []; let cur = [], x = 0; const mid = W / 2, gap = 18;
   const push = () => { rows.push(cur); cur = []; x = 0; };
-  for(const it of items){
+  for(let it of items){
+    if(it.fill){ // hueco que se estira: hasta la otra mitad o hasta el final de la balda
+      const toMid = mid + (mullion ? gap / 2 : 0) - x, w = it.fill === 'half' && toMid > 20 ? toMid : Math.max(26, W - x);
+      cur.push({ ...it, w, html:it.html(Math.max(20, w - 4)) }); x += w;
+      if(it.fill === 'row' || toMid <= 20) push(); continue;
+    }
     if(x + it.w > W && cur.length) push();
     if(mullion && x < mid + gap / 2 && x + it.w > mid - gap / 2){
       const sp = mid + gap / 2 - x; if(x + sp + it.w > W && cur.length){ push(); }

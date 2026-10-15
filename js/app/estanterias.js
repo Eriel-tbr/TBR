@@ -42,6 +42,15 @@ function autoPlan(u, th, seq){
   if(seq.length < 6) plan.push({ k:list[Math.floor(r() * list.length)], after:seq.length ? seq[seq.length - 1].id : null, size:.9 });
   return plan;
 }
+/* Hueco: espacio vacío que se coloca y arrastra como un objeto. Tamaños: pequeño, mediano, hasta la otra mitad (muebles con
+   parteluz, o la mitad de la balda) y hasta el final de la balda (lo siguiente pasa a la balda de abajo). */
+const GAP_SIZES = { sm:['Pequeño', 26], md:['Mediano', 80], half:['Hasta la otra mitad', 0], row:['Hasta el final de la balda', 0] };
+function gapItem(g){
+  const html = w => `<div class="gap dcm" data-dec="gap:${g.id}" role="button" tabindex="0" aria-label="Hueco (${GAP_SIZES[g.size] ? GAP_SIZES[g.size][0].toLowerCase() : 'pequeño'})" style="width:${w}px"></div>`;
+  const fixed = (GAP_SIZES[g.size] || GAP_SIZES.sm)[1];
+  return fixed ? { w:fixed + 4, html:html(fixed), gap:true } : { w:26, fill:g.size, html, gap:true };
+}
+const gapOfUnit = id => { for(const u of state.units){ const g = (u.gaps || []).find(x => x.id === id); if(g) return { u, g }; } return null; };
 const decorOfUnit = id => { for(const u of state.units){ const d = (u.decorItems || []).find(x => x.id === id); if(d) return { u, d }; } return null; };
 /* Un objeto colocado automáticamente («auto:unidad:n») se convierte en manual: se guardan todos los de esa estantería tal y como están */
 function materializeDecor(id){
@@ -64,13 +73,16 @@ function cabinetHtml(u, i){
   // Los objetos automáticos también se pueden tocar y arrastrar: al hacerlo, la estantería pasa a decoración manual (ver materializeDecor)
   plan.forEach((p, i) => { if(!manual) p.id = `auto:${u.id}:${i}`; });
   const items = [], deco = p => { const it = decoItem(p.k, th, p.size, p.id); if(it) items.push(it); };
-  (after.get(null) || []).forEach(deco);
+  // Huecos: se ven aunque la decoración esté oculta o sea automática; van justo después de su libro
+  const gapsAfter = new Map(); (u.gaps || []).forEach(g => { const k = g.after && ids.has(g.after) ? g.after : g.after ? 'tail' : null; (gapsAfter.get(k) || gapsAfter.set(k, []).get(k)).push(g); });
+  const gap = g => items.push(gapItem(g));
+  (gapsAfter.get(null) || []).forEach(gap); (after.get(null) || []).forEach(deco);
   const runsByShelf = new Map(); u.shelves.forEach(sh => runsByShelf.set(sh.id, shelfRuns(seq.filter(b => b.shelfId === sh.id))));
-  seq.forEach(b => { items.push(bookItem(b, u, th, runsByShelf.get(b.shelfId).get(b.id))); (after.get(b.id) || []).forEach(deco); });
-  tail.forEach(deco);
+  seq.forEach(b => { items.push(bookItem(b, u, th, runsByShelf.get(b.shelfId).get(b.id))); (gapsAfter.get(b.id) || []).forEach(gap); (after.get(b.id) || []).forEach(deco); });
+  tail.forEach(deco); (gapsAfter.get('tail') || []).forEach(gap);
   const rows = packRows(items, W, th.mullion);
   // Una balda solo con un adorno automático no merece una fila nueva
-  if(!manual) while(rows.length > 1 && !rows[rows.length - 1].some(it => it.book)) rows.pop();
+  if(!manual) while(rows.length > 1 && !rows[rows.length - 1].some(it => it.book || it.gap)) rows.pop();
   const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro desde arriba'}</div>` : '';
   const rowsHtml = rows.map((row, ri) => `<div class="row" data-row="${u.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>${ri === 0 ? hint : ''}</div>`).join('');
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';

@@ -52,6 +52,9 @@ function endDrag(drop){
   if(drop && d.target){ if(d.dec) moveDecor(d.id, d.target); else moveBook(d.id, d.target); }
 }
 function moveDecor(id, t){
+  if(String(id).startsWith('gap:')){ const f = gapOfUnit(id.slice(4)), to = unitOf(t.unitId); if(!f || !to) return;
+    if(f.u !== to){ f.u.gaps = f.u.gaps.filter(x => x !== f.g); (to.gaps = to.gaps || []).push(f.g); }
+    f.g.after = t.after; save(); renderAll(); return; }
   id = materializeDecor(id); const f = decorOfUnit(id), to = unitOf(t.unitId); if(!f || !to) return;
   if(f.u !== to){ f.u.decorItems = f.u.decorItems.filter(x => x.id !== id); to.decorItems = to.decorItems || []; to.decorItems.push(f.d); if(to.decorMode !== 'manual') to.decorMode = 'manual'; }
   f.d.after = t.after; const arr = to.decorItems, i = arr.indexOf(f.d); arr.splice(i, 1); arr.push(f.d); save(); renderAll();

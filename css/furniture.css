@@ -237,3 +237,8 @@ body[data-nodecor="1"] .row .dc{display:none}
 .dc.dcm:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .dc.dragging{opacity:.2}
 .deco-add{right:48px}
+/* Huecos: espacio libre que se coloca y arrastra como un objeto. Casi invisibles: solo un contorno tenue para poder tocarlos. */
+.gap.dcm{flex:none;height:calc(var(--H) * .62);align-self:flex-end;margin:0 2px;border:1.5px dashed rgba(255,255,255,.16);border-radius:6px;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;position:relative;z-index:1}
+.gap.dcm:hover,.gap.dcm:focus-visible{border-color:var(--acc);outline:none}
+.gap.dcm.dragging{opacity:.3}
+.ghost .gap{width:30px!important;height:80px;border-color:var(--acc)}

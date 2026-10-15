@@ -99,9 +99,9 @@ function addVolume(b, n){
 /* Engancha las tres partes en la ficha ya pintada */
 function fichaExtras(sh, id){
   const b = bookOf(id); if(!b) return;
-  const box = $('#dextra', sh); if(!box) return;
+  const box = $('#dextra', sh), shop = $('#dshop', sh); if(!box) return;
   let aSt = '', sSt = '';
-  const paint = () => { const cur = bookOf(id); if(!cur || !box.isConnected) return; box.innerHTML = seriesHtml(cur, sSt) + audioHtml(cur, aSt) + storeLinksHtml(cur); };
+  const paint = () => { const cur = bookOf(id); if(!cur || !box.isConnected) return; box.innerHTML = seriesHtml(cur, sSt) + audioHtml(cur, aSt); if(shop) shop.innerHTML = storeLinksHtml(cur); };
   paint();
   if(!b.audio || Date.now() - (b.audio.at || 0) > AUDIO_TTL) loadAudio(id, s => { aSt = s; paint(); });
   const sc = b.series && seriesCache[serKey(b)]; if(sc && Date.now() - sc.at > SERIES_TTL) loadSeries(id, s => { sSt = s; paint(); });
