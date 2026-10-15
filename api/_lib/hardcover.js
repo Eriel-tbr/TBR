@@ -24,6 +24,11 @@ async function findBook(title, author){
   const last = lastName(author), docs = await search(title + (last ? ' ' + last : ''), 'Book', 10);
   const ok = d => !last || (d.author_names || []).some(n => norm(n).includes(last));
   const nt = norm(title);
-  return docs.find(d => ok(d) && norm(d.title) === nt) || docs.find(d => ok(d) && (norm(d.title).includes(nt) || nt.includes(norm(d.title)))) || docs.find(ok) || null;
+  // Coincidencia de título (también con sus títulos traducidos) y, a igualdad, el más leído:
+  // así «Juego de tronos» da la novela y no un cómic con el mismo título
+  const tm = d => Math.max(...[d.title, ...(d.alternative_titles || [])].map(x => { const n = norm(x); return n === nt ? 3 : n && (n.includes(nt) || nt.includes(n)) ? 2 : 0; }));
+  const cands = docs.filter(ok).map(d => ({ d, s:tm(d) * 1e6 + Math.min(+(d.users_count || 0), 999999) - (/graphic novel|comic|c[oó]mic|manga/i.test(d.title || '') ? 2e6 : 0) }));
+  cands.sort((x, y) => y.s - x.s);
+  return cands.length ? cands[0].d : null;
 }
 module.exports = { gql, search, findBook, norm, lastName };
