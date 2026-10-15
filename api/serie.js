@@ -16,8 +16,10 @@ module.exports = async (req, res) => {
     let id = null;
     if(s){
       const docs = await search(s, 'Series', 8); if(diag) raw.series = docs;
-      const byAuthor = d => !last || norm(d.author_name || (d.author || {}).name || '').includes(last) || (d.books || []).length === 0;
-      const hit = docs.find(d => byAuthor(d) && norm(d.name) === norm(s)) || docs.find(byAuthor);
+      // Solo series con libros (Hardcover tiene duplicados vacíos, p. ej. con el nombre traducido)
+      const byAuthor = d => !last || norm(d.author_name || (d.author || {}).name || '').includes(last);
+      const full = docs.filter(d => +(d.primary_books_count || d.books_count || 0) > 0);
+      const hit = full.find(d => byAuthor(d) && norm(d.name) === norm(s)) || full.find(byAuthor);
       if(hit && hit.id) id = +hit.id;
     }
     if(!id && t){
@@ -25,8 +27,11 @@ module.exports = async (req, res) => {
       const fs = b && b.featured_series; id = fs && fs.series && fs.series.id ? +fs.series.id : null;
     }
     if(!id){ res.statusCode = 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
-    const d = await gql(Q, { id }), se = (d.series || [])[0]; if(diag) raw.query = d;
-    if(!se){ res.statusCode = 404; return res.end('{"error":"serie no encontrada"}'); }
+    let d = await gql(Q, { id }), se = (d.series || [])[0]; if(diag) raw.query = d;
+    if((!se || !(se.book_series || []).length) && t){ // serie vacía: la del libro
+      const b = await findBook(t, a), fs = b && b.featured_series, id2 = fs && fs.series && fs.series.id ? +fs.series.id : null; if(diag) raw.book = b;
+      if(id2 && id2 !== id){ d = await gql(Q, { id:id2 }); se = (d.series || [])[0]; } }
+    if(!se || !(se.book_series || []).length){ res.statusCode = 404; return res.end('{"error":"serie no encontrada"}'); }
     const books = (se.book_series || []).filter(x => x.book && x.position != null).map(x => ({ n:+x.position, main:Number.isInteger(+x.position) && +x.position > 0,
       title:x.book.title, year:x.book.release_year || null, pages:x.book.pages || 0, cover:(x.book.image || {}).url || '', url:x.book.slug ? 'https://hardcover.app/books/' + x.book.slug : '' }));
     res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');

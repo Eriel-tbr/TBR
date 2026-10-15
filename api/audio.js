@@ -15,7 +15,7 @@ async function apple(term, country){
   }finally{ clearTimeout(t); }
 }
 module.exports = async (req, res) => {
-  const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), es = (p.get('es') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag');
+  const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), es = (p.get('es') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag'), only = p.get('only') || '';
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
   const last = lastName(a), raw = {}, errors = {}, items = [];
@@ -23,8 +23,8 @@ module.exports = async (req, res) => {
   const sameBook = name => { const n = norm(name); return titles.some(x => x && (n.includes(x) || x.includes(n.split(' ').slice(0, 4).join(' ')))); };
   // Apple Books: tienda española con el título en español (si lo hay) y tienda de EE. UU. con el original
   const jobs = [['es', (es || t) + (last ? ' ' + last : '')], ['us', t + (last ? ' ' + last : '')]];
-  await Promise.all([
-    ...jobs.map(async ([c, term]) => {
+  const work = Promise.all([
+    ...(only === 'hc' ? [] : jobs).map(async ([c, term]) => {
       try{
         const list = await apple(term, c); if(diag) raw['apple_' + c] = list;
         list.filter(x => (!last || norm(x.artistName).includes(last)) && sameBook(x.collectionName || '')).forEach(x => {
@@ -36,13 +36,13 @@ module.exports = async (req, res) => {
         });
       }catch(e){ errors['apple_' + c] = e.message; }
     }),
-    (async () => {
+    (async () => { if(only === 'apple') return;
       try{
         const book = await findBook(t, a); if(diag) raw.hardcoverBook = book; if(!book || !book.id) return;
         let d;
         try{ d = await gql(`query E($id: Int!) { editions(where: {book_id: {_eq: $id}, reading_format_id: {_eq: 2}}, limit: 25, order_by: {users_count: desc}) {
           id title audio_seconds release_date edition_information language { language } publisher { name } contributions { contribution author { name } } } }`, { id:+book.id }); }
-        catch(e){ errors.hardcoverFull = e.message; // por si algún campo no existe: consulta mínima
+        catch(e){ errors.hardcoverFull = e.message; if(/abort/i.test(e.message)) throw e; // por si algún campo no existe: consulta mínima
           d = await gql(`query E($id: Int!) { editions(where: {book_id: {_eq: $id}, reading_format_id: {_eq: 2}}, limit: 25) { id title audio_seconds release_date } }`, { id:+book.id }); }
         if(diag) raw.hardcoverEditions = d.editions;
         (d.editions || []).forEach(e => {
@@ -55,6 +55,8 @@ module.exports = async (req, res) => {
       }catch(e){ errors.hardcover = e.message; }
     })()
   ]);
+  // Vercel corta a los 10 s: se responde con lo que haya a los 8,5 s
+  await Promise.race([work, new Promise(r => setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 8500))]);
   // Primero en español, luego en inglés; dentro, Apple antes que Hardcover (tiene enlace de compra)
   const rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 2 + (i.src === 'apple' ? 0 : 1);
   items.sort((x, y) => rank(x) - rank(y));
