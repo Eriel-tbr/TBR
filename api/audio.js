@@ -14,7 +14,8 @@ async function apple(term, country){
     if(!r.ok) throw new Error('Apple ' + r.status); return (await r.json()).results || [];
   }finally{ clearTimeout(t); }
 }
-module.exports = async (req, res) => {
+module.exports = async (req, res) => { try{ await main(req, res); }catch(e){ res.statusCode = 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ items:[], errors:{ fallo:e.message, stack:String(e.stack).slice(0, 600) } })); } };
+async function main(req, res){
   const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), es = (p.get('es') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag'), only = p.get('only') || '';
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
@@ -56,10 +57,10 @@ module.exports = async (req, res) => {
     })()
   ]);
   // Vercel corta a los 10 s: se responde con lo que haya a los 8,5 s
-  await Promise.race([work, new Promise(r => setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 8500))]);
+  let timer; await Promise.race([work, new Promise(r => { timer = setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 8500); })]); clearTimeout(timer);
   // Primero en español, luego en inglés; dentro, Apple antes que Hardcover (tiene enlace de compra)
   const rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 2 + (i.src === 'apple' ? 0 : 1);
   items.sort((x, y) => rank(x) - rank(y));
   res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
   res.end(JSON.stringify(diag ? { items, errors, raw } : { items, errors:Object.keys(errors).length ? errors : undefined }));
-};
+}

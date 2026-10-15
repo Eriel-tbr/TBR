@@ -26,16 +26,16 @@ module.exports = async (req, res) => {
       const b = await findBook(t, a); if(diag) raw.book = b;
       const fs = b && b.featured_series; id = fs && fs.series && fs.series.id ? +fs.series.id : null;
     }
-    if(!id){ res.statusCode = 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
+    if(!id){ res.statusCode = diag ? 200 : 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
     let d = await gql(Q, { id }), se = (d.series || [])[0]; if(diag) raw.query = d;
     if((!se || !(se.book_series || []).length) && t){ // serie vacía: la del libro
       const b = await findBook(t, a), fs = b && b.featured_series, id2 = fs && fs.series && fs.series.id ? +fs.series.id : null; if(diag) raw.book = b;
       if(id2 && id2 !== id){ d = await gql(Q, { id:id2 }); se = (d.series || [])[0]; } }
-    if(!se || !(se.book_series || []).length){ res.statusCode = 404; return res.end('{"error":"serie no encontrada"}'); }
+    if(!se || !(se.book_series || []).length){ res.statusCode = diag ? 200 : 404; return res.end(JSON.stringify(diag ? { error:'serie no encontrada', raw } : { error:'serie no encontrada' })); }
     const books = (se.book_series || []).filter(x => x.book && x.position != null).map(x => ({ n:+x.position, main:Number.isInteger(+x.position) && +x.position > 0,
       title:x.book.title, year:x.book.release_year || null, pages:x.book.pages || 0, cover:(x.book.image || {}).url || '', url:x.book.slug ? 'https://hardcover.app/books/' + x.book.slug : '' }));
     res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
     const out = { name:se.name, total:se.primary_books_count || books.filter(b => b.main).length, url:se.slug ? 'https://hardcover.app/series/' + se.slug : '', books };
     res.end(JSON.stringify(diag ? { ...out, raw } : out));
-  }catch(e){ res.statusCode = 502; res.end(JSON.stringify({ error:e.message })); }
+  }catch(e){ res.statusCode = diag ? 200 : 502; res.end(JSON.stringify({ error:e.message, stack:diag ? String(e.stack).slice(0, 600) : undefined, raw:diag ? raw : undefined })); }
 };
