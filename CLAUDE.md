@@ -15,7 +15,8 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
   `js/lib/util.js, busqueda.js, etiquetas.js` → `js/art/decoracion.js, lomos.js, muebles.js, temas.js` → `js/app/estado.js, hojas.js, estanterias.js, ficha.js, formulario.js, anadir.js, ajustes.js, arrastrar.js, nube.js, inicio.js`.
 - `css/styles.css` (interfaz) y `css/furniture.css` (muebles y lomos).
 - Estado: `state = {v:1, settings, units[], books[], seriesStyle{}, deleted{}, metaUpd}` en localStorage `tbr.v1`; `save()` en estado.js.
-- Hojas (ventanas): `openSheet(sheetT(título, cuerpo, pie))`, `closeSheet()`; chips con `chipsHtml()`.
+- Hojas (ventanas): `openSheet(sheetT(título, cuerpo, pie))`, `closeSheet()`; chips con `chipsHtml()`. Las hojas apiladas suben de z-index para que la de debajo quede tapada.
+- Selectores (fase 4, hecha): no se usan `<select>` nativos. `pickHtml(id, etiqueta, [[valor, texto]…], actual)` (hojas.js) pinta un botón `.pick` que abre una hoja con las opciones (radiogroup, flechas/Inicio/Fin, Escape, devuelve el foco). Se usa como un select: valor en `btn.value` y evento `change` que burbujea. `setPick(btn, opciones, valor)` cambia opciones o valor sin lanzar `change` (p. ej. la balda al cambiar de estantería). Están en `#f-unit`, `#f-shelf`, `#r-unit`, `#r-tag`, `#u-moveto`.
 - Arte: lomos SVG (`spine`), muebles por tema (`THEMES` en temas.js: fantasía→gótico, romantasy→rococó, ciencia ficción→chip, dark academia→academia, contemporánea→moderno, romance→romance, resto→genérico). Decoración automática o manual (`u.decorMode`).
 
 ## Nube (fase 2, hecha)
@@ -42,5 +43,4 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Commits en español.
 
 ## Pendiente
-- **Fase 4**: sustituir los `<select>` nativos por un selector propio con el estilo de la app (tipo chips/lista en hoja). Hay 5: estantería y balda en el formulario de libro (`formulario.js` `#f-unit`, `#f-shelf`, la balda depende de la estantería), estantería y etiqueta en el libro al azar (`ajustes.js` `#r-unit`, `#r-tag`) y uno en el formulario de estantería (`ajustes.js` `#u-moveto`, a dónde mover los libros al eliminar una estantería). Mantener accesibilidad y que funcione con el dedo en móvil; actualizar las pruebas que usen esos campos.
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.

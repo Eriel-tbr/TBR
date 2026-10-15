@@ -158,6 +158,38 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
     assert(await page.locator('.bk[aria-label^="Libro de prueba"]').count() === 1, 'no aparece');
   });
+  await test('selector propio: estantería y balda del libro (la balda depende de la estantería)', async () => {
+    await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro movido');
+    assert(await page.locator('.sheet select').count() === 0, 'quedan <select> nativos');
+    const u = await ev(() => { const u = state.units.find(x => x.shelves.length > 1 && x.id !== document.querySelector('#f-unit').value); return { id:u.id, s:u.shelves.map(s => s.id) }; });
+    await page.click('#f-unit'); await page.waitForSelector('.pick-sheet [role="radiogroup"]');
+    assert(await ev(() => document.elementFromPoint(195, 150).classList.contains('backdrop')), 'el formulario de debajo no queda tapado');
+    await page.click(`.pick-sheet [data-pv="${u.id}"]`); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    const r = await ev(() => ({ u:document.querySelector('#f-unit').value, s:document.querySelector('#f-shelf').value, opts:JSON.parse(document.querySelector('#f-shelf').dataset.opts).map(o => o[0]) }));
+    assert(r.u === u.id && r.s === u.s[0] && r.opts.join() === u.s.join(), 'baldas ' + JSON.stringify(r));
+    await page.click('#f-shelf'); await page.click(`.pick-sheet [data-pv="${u.s[1]}"]`); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    assert(await page.locator('.sheet').count() === 1, 'se cerró también el formulario');
+    await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
+    const b = await ev(() => state.books.find(x => x.title === 'Libro movido')); assert(b.unitId === u.id && b.shelfId === u.s[1], 'guardado en ' + b.unitId + '/' + b.shelfId);
+  });
+  await test('selector propio: se maneja con teclado y devuelve el foco', async () => {
+    await page.click('#btnRandom'); await page.focus('#r-unit'); await page.keyboard.press('Enter'); await page.waitForSelector('.pick-sheet [role="radiogroup"]');
+    assert(await ev(() => document.activeElement.getAttribute('aria-checked')) === 'true', 'el foco no está en la opción elegida');
+    await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    const r = await ev(() => ({ v:document.querySelector('#r-unit').value, u0:state.units[0].id, name:state.units[0].name, f:document.activeElement.id,
+      exp:document.querySelector('#r-unit').getAttribute('aria-expanded'), card:document.querySelector('#r-card').innerText }));
+    assert(r.v === r.u0 && r.f === 'r-unit' && r.exp === 'false', JSON.stringify(r)); assert(r.card.includes(r.name) || /Ningún libro/.test(r.card), 'la tarjeta no filtra: ' + r.card);
+    await page.click('#r-tag'); await page.keyboard.press('Escape'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    assert(await page.locator('.sheet').count() === 1, 'Escape cerró más de una hoja'); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('selector propio: al eliminar una estantería, sus libros van a la elegida', async () => {
+    const t = await ev(() => { const b = state.books.find(x => x.title === 'Libro movido'), u = { id:'tmpu', name:'Temporal', tipo:'', preset:'gen', shelves:[mkShelf('Única')] };
+      state.units.push(u); b.unitId = u.id; b.shelfId = u.shelves[0].id; save(); renderAll(); openUnitForm(u.id); return state.units[2]; });
+    await page.click('#u-moveto'); await page.click(`.pick-sheet [data-pv="${t.id}"]`); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    await page.click('#u-del'); await page.click('#u-del'); await page.waitForSelector('.sheet', { state:'detached' });
+    const r = await ev(() => ({ n:state.units.length, b:state.books.find(x => x.title === 'Libro movido').unitId }));
+    assert(r.n === 6 && r.b === t.id, JSON.stringify(r));
+  });
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);
     const order0 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));

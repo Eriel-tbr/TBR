@@ -22,7 +22,7 @@ function openBookForm({ book, item }){
   d.series = d.series || null; d.spine = d.spine || null;
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
   let coverTrios = null, coverTriosSrc = null;
-  const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => `<option value="${s.id}" ${s.id === d.shelfId ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+  const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => [s.id, s.name]);
   const body = `
     <div id="fnote" class="notice" ${isNew && item ? '' : 'hidden'}>Datos rellenados automáticamente. Revísalos antes de guardar.<span id="fload"> Completando sinopsis, idiomas y serie…</span></div>
     <div class="hero"><div class="cover-box" id="fcover"></div><div class="meta" style="flex:1">
@@ -52,8 +52,8 @@ function openBookForm({ book, item }){
       <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>
       <button class="btn sm" type="button" data-do="spauto" style="align-self:flex-start">Volver a automático</button></div>
     <div class="sec"><span class="lbl">Dónde va</span>${sugged ? '<div class="note">Balda sugerida según las etiquetas detectadas.</div>' : ''}
-      <div class="two"><select class="field" id="f-unit" aria-label="Estantería">${state.units.map(u => `<option value="${u.id}" ${u.id === d.unitId ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>
-      <select class="field" id="f-shelf" aria-label="Balda">${shelfOpts(d.unitId)}</select></div></div>
+      <div class="two">${pickHtml('f-unit', 'Estantería', state.units.map(u => [u.id, u.name]), d.unitId)}
+      ${pickHtml('f-shelf', 'Balda', shelfOpts(d.unitId), d.shelfId)}</div></div>
     ${isNew ? '' : '<button class="btn" type="button" data-do="refill">Rellenar datos que faltan desde internet</button>'}`;
   const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>'));
   const q = s => $(s, sh);
@@ -131,7 +131,7 @@ function openBookForm({ book, item }){
   sh.addEventListener('keydown', e => { if(e.target.id === 'ftagin' && (e.key === 'Enter' || e.key === ',')){ e.preventDefault(); addTag(e.target.value.replace(',', '')); } });
   sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()) addTag(e.target.value); });
   sh.addEventListener('change', async e => {
-    if(e.target.id === 'f-unit'){ d.unitId = e.target.value; const u = unitOf(d.unitId); d.shelfId = u.shelves[0].id; q('#f-shelf').innerHTML = shelfOpts(d.unitId); drawSpine(); }
+    if(e.target.id === 'f-unit'){ d.unitId = e.target.value; const u = unitOf(d.unitId); d.shelfId = u.shelves[0].id; setPick(q('#f-shelf'), shelfOpts(d.unitId), d.shelfId); drawSpine(); }
     else if(e.target.id === 'fsp-adj'){ setSpine({ adjust:e.target.checked }); }
     else if(e.target.id === 'f-shelf'){ d.shelfId = e.target.value; }
     else if(e.target.id === 'fupload' && e.target.files[0]){ try{ d.coverData = await resizeImage(e.target.files[0]); drawCover(); }catch(err){ toast('No se pudo leer esa imagen'); } }

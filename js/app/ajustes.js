@@ -15,7 +15,7 @@ function openUnitForm(unitId){
     <div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>
     <div class="sec"><span class="lbl">Baldas (grupos dentro de la estantería: ordenan los libros, no se ven como rótulos)</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
       ${isNew ? '<input class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras">' : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
-    ${isNew || state.units.length < 2 ? '' : `<div class="sec"><span class="lbl">Eliminar estantería</span>${state.books.some(b => b.unitId === u.id) ? `<select class="field" id="u-moveto" aria-label="Mover los libros a">${state.units.filter(x => x.id !== u.id).map(x => `<option value="${x.id}">Mover sus libros a ${esc(x.name)}</option>`).join('')}</select>` : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button></div>`}`;
+    ${isNew || state.units.length < 2 ? '' : `<div class="sec"><span class="lbl">Eliminar estantería</span>${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button></div>`}`;
   const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>'));
   const q = s => $(s, sh);
   const curKey = () => presetSel === 'auto' ? detectPreset(q('#u-name').value, q('#u-tipo').value) : presetSel;
@@ -118,11 +118,11 @@ function openRandom(){
   const pool = () => state.books.filter(b => (b.status || 'pendiente') === 'pendiente' && (!f.unit || b.unitId === f.unit) && (!f.kind || seriesKind(state, b) === f.kind) && matches(b, { q:'', status:'', lang:f.lang, tags:f.tag ? [f.tag] : [], len:f.len }));
   const body = `<div id="r-card" class="random-card"></div>
     <div class="sec"><span class="lbl">Condiciones</span>
-    <select class="field" id="r-unit" aria-label="Estantería"><option value="">Cualquier estantería</option>${state.units.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select>
+    <div class="two">${pickHtml('r-unit', 'Estantería', [['', 'Cualquiera'], ...state.units.map(u => [u.id, u.name])], '')}
+    ${pickHtml('r-tag', 'Etiqueta', [['', 'Cualquiera'], ...allTags().map(([t]) => [t, t])], '')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier idioma'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], '', 'data-lg')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier longitud'], ['corto', 'Corto'], ['medio', 'Medio'], ['largo', 'Largo']], '', 'data-ln')}</div>
-    <div class="chips">${chipsHtml([['', 'Cualquier tipo'], ['ind', 'Individual'], ['bitri', 'Duología / trilogía'], ['saga', 'Saga']], '', 'data-kd')}</div>
-    <select class="field" id="r-tag" aria-label="Etiqueta"><option value="">Cualquier etiqueta</option>${allTags().map(([t]) => `<option>${esc(t)}</option>`).join('')}</select></div>`;
+    <div class="chips">${chipsHtml([['', 'Cualquier tipo'], ['ind', 'Individual'], ['bitri', 'Duología / trilogía'], ['saga', 'Saga']], '', 'data-kd')}</div></div>`;
   const sh = openSheet(sheetT('Libro aleatorio', body, '<button class="btn" type="button" id="r-open" disabled>Ver ficha</button><button class="btn primary" type="button" id="r-roll">Otro libro</button>'));
   const roll = () => {
     const p = pool(), card = $('#r-card', sh);
