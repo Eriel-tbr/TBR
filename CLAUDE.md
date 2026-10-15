@@ -27,6 +27,7 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Ficha (ficha-extra.js): serie completa (tomos propios + los que faltan según `api/serie`, con «Añadir»), audiolibro (`api/audio`, guardado en `b.audio` 30 días; `b.audioDrama` lo marca ella) y enlaces «Buscar en» (Amazon.es, Buscalibre, Casa del Libro vía Google, Books2Door). Sus botones usan `data-xdo`, no `data-do` (el manejador de la ficha redibujaría).
 - Sinopsis: `cleanSynopsis` quita reseñas de prensa/blogs; `textLang` evita guardar como española una sinopsis en inglés. Ajustes → «Completar sinopsis» (vacías, o en inglés si el libro está traducido) con `bestMatch` (busqueda.js), el mismo criterio que «Buscar y comparar».
 - Títulos: `b.origTitle` guarda el original cuando se usa el título en español (`esTitle` de `enrichBook`: Wikidata o edición española). «Buscar y comparar» busca con el original y ofrece el español.
+- Guardar: `writeState()` (estado.js) reintenta quitando cachés (`CACHE_KEYS`) y, si el navegador no deja escribir, abre «No se pudo guardar» con diagnóstico (`storageReport`: error, KB de la colección y de localStorage, cuota del navegador) y «Reintentar». La importación comprueba que se ha guardado. Ajustes → Almacenamiento muestra esos datos.
 - Arte: lomos SVG (`spine`), muebles por tema (`THEMES` en temas.js: fantasía→gótico, romantasy→rococó, ciencia ficción→chip, dark academia→academia, contemporánea→moderno, romance→romance, resto→genérico). Decoración automática o manual (`u.decorMode`).
 
 ## Nube (fase 2, hecha)

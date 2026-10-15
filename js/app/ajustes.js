@@ -168,8 +168,10 @@ function openSettings(){
     <div class="sec"><span class="lbl">Copia en archivo</span><p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
       <div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir copia</button><button class="btn" type="button" data-do="import">Importar copia</button></div>
       <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div></div>
+    <div class="sec"><span class="lbl">Almacenamiento</span><p class="note" id="s-store">Calculando…</p></div>
     <div class="sec"><span class="lbl">Zona delicada</span><button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button></div>`;
   const sh = openSheet(sheetT('Ajustes', body));
+  storageReport().then(r => { const el = $('#s-store', sh); if(el) el.textContent = `Tu colección ocupa ${r.appKB} KB. Espacio que el navegador da a la app: ${r.quotaMB !== null ? r.quotaMB + ' MB (' + r.usedMB + ' MB usados)' : 'desconocido'}.`; });
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
     if(g('[data-theme]')){ state.settings.theme = g('[data-theme]').dataset.theme; save(); applyTheme(); $$('[data-theme]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-theme]'))); }
@@ -223,7 +225,9 @@ function applyImport(mode){
   const d = pendingImport; if(!d) return;
   if(mode === 'replace'){ state = d; if(!state.settings) state.settings = { theme:'auto', decor:true }; state.seriesStyle = state.seriesStyle || {}; }
   else { d.units.forEach(u => { if(!unitOf(u.id)) state.units.push(u); }); d.books.forEach(b => { if(!bookOf(b.id)) state.books.push(b); }); Object.assign(state.seriesStyle, d.seriesStyle || {}); }
-  pendingImport = null; save(); ui.active = 0; applyTheme(); renderAll(); toast('Copia importada');
+  pendingImport = null; ui.active = 0; applyTheme(); renderAll();
+  clearTimeout(saveT); if(typeof syncStamp === 'function') syncStamp();
+  if(writeState()){ toast('Copia importada'); if(typeof syncSoon === 'function'){ syncSoon(); updateCloudUi(); } }
 }
 function exportJson(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type:'application/json' }));

@@ -284,6 +284,13 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     const s = await ev(() => state.books.find(x => x.title === 'El rey malvado').synopsis); assert(/Sinopsis oficial/.test(s), s);
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
+  await test('si el móvil no deja guardar, se explica con datos y se puede reintentar', async () => {
+    await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'prueba guardado'; save(); });
+    await page.waitForSelector('[data-do="retrysave"]', { timeout:4000 });
+    const t = await page.locator('.sheet').last().innerText(); assert(/QuotaExceededError/.test(t) && /KB/.test(t), t);
+    await ev(() => { Storage.prototype.setItem = window.__set; }); await page.click('[data-do="retrysave"]'); await page.waitForSelector('[data-do="retrysave"]', { state:'detached' });
+    assert(await ev(() => JSON.parse(localStorage.getItem('tbr.v1')).books[0].notes === 'prueba guardado'), 'no se guardó al reintentar');
+  });
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);
     const order0 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));

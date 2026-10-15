@@ -66,11 +66,46 @@ function migrate(s){
 let state = migrate(load());
 const ui = { active:0, filters:{ q:'', status:'', lang:'', tags:[], len:'' }, lastShelf:null, width:0 };
 let saveT = null;
+/* Guardar en el móvil. Si el navegador no deja (cuota llena, poco espacio libre en el teléfono, modo incógnito),
+   se libera lo que es solo caché de la app y se reintenta; si sigue fallando, se explica con datos para poder ayudar. */
+const CACHE_KEYS = ['tbr.series.v1'];
+function lsBytes(){ let n = 0; try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); n += (k.length + (localStorage.getItem(k) || '').length) * 2; } }catch(e){} return n; }
+async function storageReport(err){
+  let est = null; try{ est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null; }catch(e){}
+  const keys = []; try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); keys.push(`${k} ${Math.round((localStorage.getItem(k) || '').length * 2 / 1024)} KB`); } }catch(e){}
+  return { error:err ? `${err.name || 'Error'}: ${err.message || ''}`.slice(0, 160) : '', appKB:Math.round(JSON.stringify(state).length * 2 / 1024), localKB:Math.round(lsBytes() / 1024), keys,
+    usedMB:est ? +(est.usage / 1048576).toFixed(1) : null, quotaMB:est ? +(est.quota / 1048576).toFixed(0) : null };
+}
+let saveFailShown = false;
+function writeState(){
+  const json = JSON.stringify(state);
+  try{ localStorage.setItem(KEY, json); saveFailShown = false; return true; }
+  catch(e1){
+    try{ CACHE_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.setItem(KEY, json); saveFailShown = false; return true; } // sin cachés
+    catch(e2){
+      try{ localStorage.removeItem(KEY); localStorage.setItem(KEY, json); saveFailShown = false; return true; } // a veces el navegador no deja sobrescribir pero sí escribir de nuevo
+      catch(e3){ if(!saveFailShown){ saveFailShown = true; showSaveFail(e3); } return false; }
+    }
+  }
+}
+async function showSaveFail(err){
+  const r = await storageReport(err), lowQuota = r.quotaMB !== null && r.quotaMB < 50;
+  const diag = `Mi TBR ${(document.querySelector('meta[name="app-version"]') || {}).content || ''} · ${r.error} · colección ${r.appKB} KB · guardado ${r.localKB} KB [${r.keys.join(', ')}] · navegador ${r.usedMB ?? '?'} de ${r.quotaMB ?? '?'} MB`;
+  const body = `<p>El móvil no ha dejado guardar los cambios en la app. Tu colección ocupa solo ${r.appKB} KB, así que no es por tamaño.</p>
+    <p class="note">${lowQuota ? 'El navegador solo le da a la app ' + r.quotaMB + ' MB: casi seguro el teléfono tiene muy poco espacio libre.' : 'Suele pasar cuando al teléfono le queda poco espacio libre, o con el navegador en modo incógnito o con «borrar datos al salir».'}</p>
+    <p class="note">Mientras tanto no cierres la app: lo que ves sigue aquí. Libera espacio en el teléfono y pulsa «Reintentar». Si tienes cuenta, la copia de la nube también se guarda.</p>
+    <div class="notice" style="user-select:text;font-size:.78rem;overflow-wrap:anywhere">${esc(diag)}</div>`;
+  const sh = openSheet(sheetT('No se pudo guardar', body, '<button class="btn" type="button" data-do="copydiag">Copiar datos</button><button class="btn primary" type="button" data-do="retrysave">Reintentar</button>'));
+  sh.addEventListener('click', async e => {
+    if(e.target.closest('[data-do="copydiag"]')){ try{ await navigator.clipboard.writeText(diag); toast('Datos copiados'); }catch(x){ toast('No se pudieron copiar'); } }
+    if(e.target.closest('[data-do="retrysave"]')){ saveFailShown = false; if(writeState()){ await closeSheet(); toast('Guardado'); } else toast('Sigue sin dejar guardar'); }
+  });
+}
 function save(){
   clearTimeout(saveT);
   saveT = setTimeout(() => {
     if(typeof syncStamp === 'function') syncStamp(); // marca qué cambió, para la copia en la nube
-    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast('No se pudo guardar: el almacenamiento está lleno. Exporta una copia desde Ajustes.'); }
+    writeState();
     if(typeof syncSoon === 'function'){ syncSoon(); updateCloudUi(); }
   }, 100);
 }

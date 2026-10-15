@@ -83,7 +83,7 @@ async function migrateCovers(){
 }
 
 /* ---------- Sincronizar ---------- */
-const writeLocal = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+const writeLocal = () => writeState();
 function syncSoon(ms = 2500){ if(!nube.user) return; clearTimeout(nube.t); nube.t = setTimeout(syncNow, ms); }
 async function syncNow(manual){
   if(!nube.sb || !nube.user) return false;
