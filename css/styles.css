@@ -234,5 +234,5 @@ a.chip{color:inherit;text-decoration:none}
 .ser-row.miss .ser-t{font-weight:400}
 .auds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .aud{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);display:flex;flex-direction:column;gap:2px}
-.aud a{font-size:.86rem;color:inherit;text-underline-offset:3px}
+.aud a,#d-serie a{font-size:.86rem;color:inherit;text-underline-offset:3px}
 .eds a{font-size:.86rem;color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}

@@ -71,7 +71,7 @@ function seriesHtml(b, st){
   const li = r => r.own ? `<li class="ser-row own${r.own.id === b.id ? ' cur' : ''}"><span class="ser-n">${r.n || '?'}</span><button type="button" class="ser-t" data-open-book="${r.own.id}">${esc(r.own.title)}</button><span class="badge">${STATUS[r.own.status || 'pendiente']}</span></li>`
     : `<li class="ser-row miss"><span class="ser-n">${r.n}</span><span class="ser-t">${r.remote ? esc(r.remote.title) + (r.remote.year ? ` <span class="note">(${r.remote.year})</span>` : '') : '<span class="note">No lo tienes</span>'}</span>${r.remote ? `<button class="btn sm" type="button" data-addvol="${r.n}">Añadir</button>` : ''}</li>`;
   return `<div class="sec" id="d-serie"><span class="lbl">Serie · ${esc(b.series.name)}</span>
-    <p class="note">${mine.length} de ${Math.max(total, remote ? remote.total : 0) || '?'} en tu estantería${missing ? ` · te faltan ${missing}` : ''}.</p>
+    <p class="note">${mine.length} de ${Math.max(total, remote ? remote.total : 0) || '?'} en tu estantería${missing ? ` · te ${missing === 1 ? 'falta' : 'faltan'} ${missing}` : ''}.</p>
     <ol class="ser">${list.map(li).join('')}</ol>
     ${st === 'busy' ? '<p class="note">Buscando los tomos de la serie…</p>' : st === 'error' ? '<p class="note">No he encontrado esta serie en Hardcover.</p>' : ''}
     ${remote ? `<p class="note">Títulos de los que faltan según <a href="${esc(remote.url || 'https://hardcover.app')}" target="_blank" rel="noopener">Hardcover</a> (suelen ser los originales en inglés).</p>`
