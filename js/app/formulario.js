@@ -249,7 +249,8 @@ function openBookForm({ book, item }){
     else d.series = null;
     if(isNew){ state.books.push(d); }
     else { const old = bookOf(d.id); if(old.shelfId !== d.shelfId){ const o = shelfOf(old.shelfId); o && (o.s.order = o.s.order.filter(x => x !== d.id)); } Object.assign(old, d); }
-    ui.lastShelf = d.shelfId; save();
+    { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ d.coverPal = coverTrios.slice(0, 3); d.coverPalSrc = src; } }
+    ui.lastShelf = d.shelfId; save(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 800);
     const idx = state.units.findIndex(u => u.id === d.unitId); if(idx >= 0) ui.active = idx;
     renderAll(); await closeSheet(); goTo(ui.active); flash(d.id); toast(isNew ? `Añadido a ${locName(d)}` : 'Cambios guardados');
   }

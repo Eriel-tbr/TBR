@@ -29,7 +29,7 @@ const PRESETS = {
     spines:['#1e3a5f','#3b2f6b','#0f5257','#5a1f4f','#23506b','#444a6b','#14323f','#6b2b3f']},
   darkacademia:{name:'Dark academia',wood:'#1d3b30',panel:'#101c16',plank:'#35604d',acc:'#d9b25f',pattern:'none',font:'serif',d:['#35604d','#e9dcc0','#d9b25f'],
     decor:['globo','vela','libros','libroab','marco'], spines:['#4a1a1a','#1f3a4a','#2a3a2f','#3a2a1a','#5b1f2b']},
-  contemporanea:{name:'Contemporánea',wood:'#eceae6',panel:'#f5f3ef',plank:'#ffffff',acc:'#d9764a',pattern:'none',font:'modern',light:1,d:['#bdb6a8','#f1e6d8','#d9764a'],
+  contemporanea:{name:'Contemporánea y thriller',wood:'#eceae6',panel:'#f5f3ef',plank:'#ffffff',acc:'#d9764a',pattern:'none',font:'modern',light:1,d:['#bdb6a8','#f1e6d8','#d9764a'],
     decor:['planta','taza','marco','libros'], spines:['#d9764a','#6a8a7a','#e6c46a','#9ab8d8','#22201d']},
   terror:{name:'Terror y gótico',wood:'#1d1b1c',panel:'#120f10',plank:'#3a3335',acc:'#c0343a',pattern:'diamond',font:'cinzel',d:['#4a4244','#d9d0cc','#c0343a'],
     decor:['calavera','vela','murcielago','gato','llave','luna','pergamino'],
@@ -56,7 +56,7 @@ const PRESETS = {
 const PRESET_KW = [
   ['romantasy', /romantas|\bfae\b|hadas|fairy/],
   ['darkacademia', /dark academia|academia oscura/],
-  ['contemporanea', /contempor|literaria|actual/],
+  ['contemporanea', /contempor|literaria|actual|thriller|misterio|suspense|policiac|novela negra|noir/],
   ['romance', /romance|romant|juvenil|young adult|\bya\b/],
   ['fantasia', /fantas|magia|dragon|epic|brujer|brujas/],
   ['cienciaficcion', /ciencia ficci|sci-?fi|distop|espacial|cyberpunk|futur/],

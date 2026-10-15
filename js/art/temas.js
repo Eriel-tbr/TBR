@@ -52,7 +52,7 @@ const THEMES = {
     styles:['nervios','marco','jaspeado','grimorio','deco','ilustrado'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
     pal:[['#4a1a1a','#d9b25f','#2a0c0c'],['#1f3a4a','#d9b25f','#7a9ab8'],['#2a3a2f','#e9dcc0','#6a8a5a'],['#3a2a1a','#d9b25f','#7a2a2a'],['#5b1f2b','#e8c877','#2a3a2f']] },
   moderno:{ cls:'t-con', name:'Moderno', P:16, motif:'leaf', crown:n => crownModern(n), colors:C => C.con,
-    styles:['acuarela','enredadera','ilustrado','marco','cristal'], decor:['planta','taza','marco','libros','flores'], range:{ s:[0,.6], l:[.35,.9] },
+    styles:['acuarela','enredadera','ilustrado','marco','cristal','deco','nervios'], decor:['planta','taza','marco','libros','flores','linterna','vela'], range:{ s:[0,.6], l:[.35,.9] },
     pal:[['#d9764a','#22201d','#f1e6d8'],['#6a8a7a','#22201d','#d9764a'],['#e6c46a','#22201d','#6a8a7a'],['#9ab8d8','#22201d','#e08aa0'],['#22201d','#f1e6d8','#d9764a']] },
   romance:{ cls:'t-rmc', name:'Romance', P:20, motif:'rose', crown:n => crownRomance(n), colors:C => C.rmc,
     styles:['acuarela','enredadera','marco','jaspeado','ilustrado','estrellado'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
@@ -103,20 +103,25 @@ function spineDims(b, seed){
   return { w, h };
 }
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+/* Colores de un lomo: los elegidos a mano; si no, los de su portada (ajustados a la estantería); si no, la paleta de la estantería */
+function autoPal(b, th){
+  const sp = b.spine || {}, seed = hash(b.id + (b.title || '')), tp = th.pal[(seed >>> 5) % th.pal.length];
+  if(isHex(sp.base)){ const p = [sp.base, isHex(sp.foil) ? sp.foil : tp[1], isHex(sp.accent) ? sp.accent : tp[2]]; return sp.adjust !== false ? [adjustToTheme(p[0], th), p[1], p[2]] : p; }
+  const cp = b.coverPal && b.coverPal[0];
+  if(cp && isHex(cp[0]) && (typeof state === 'undefined' || !state.settings || state.settings.spineFromCover !== false)) return [adjustToTheme(cp[0], th), cp[1], cp[2]];
+  return tp;
+}
 /* Devuelve el html del lomo. ctx: { series:{ mode, idx, total, n, off, totalW, seed, scene, leader } } */
 function spineArt(b, u, th, ctx = {}){
   const seed = hash(b.id + (b.title || '')), sp = b.spine || {}, ser = ctx.series;
   let { w, h } = spineDims(b, seed);
   let style = SPINE_STYLES[sp.style] && sp.style !== 'auto' ? sp.style : th.styles[seed % th.styles.length];
-  let palIdx = (seed >>> 5) % th.pal.length;
-  let pal = isHex(sp.base) ? [sp.base, isHex(sp.foil) ? sp.foil : th.pal[palIdx][1], isHex(sp.accent) ? sp.accent : th.pal[palIdx][2]] : th.pal[palIdx];
-  if(isHex(sp.base) && sp.adjust !== false) pal = [adjustToTheme(pal[0], th), pal[1], pal[2]];
+  let pal = autoPal(b, th);
   let scene = sp.scene && SCENES[sp.scene] ? sp.scene : Object.keys(SCENES)[(seed >>> 9) % 4];
   const o = { title:b.title || 'Sin título' };
   if(ser){
     h = 156; const L = ser.leader, lsp = L.spine || {}, lseed = hash(L.id + (L.title || ''));
-    const lpi = (lseed >>> 5) % th.pal.length;
-    const lpal = isHex(lsp.base) ? [lsp.base, isHex(lsp.foil) ? lsp.foil : th.pal[lpi][1], isHex(lsp.accent) ? lsp.accent : th.pal[lpi][2]] : th.pal[lpi];
+    const lpi = (lseed >>> 5) % th.pal.length, lpal = autoPal(L, th);
     const lstyle = SPINE_STYLES[lsp.style] && lsp.style !== 'auto' ? lsp.style : th.styles[lseed % th.styles.length];
     o.num = ser.total <= 3 && ser.n <= 10 ? ROMAN[ser.n - 1] : String(ser.n);
     // Si este tomo tiene colores elegidos a mano, se respetan aunque la serie comparta diseño
@@ -211,7 +216,19 @@ function cabinetStyleVars(th){
   const w = th.wood;
   return `--w1:${lighten(w, .25)};--w2:${w};--w3:${darken(w, .45)};--back:${th.panel};--trimline:${th.acc}88;--labelbg:${th.acc};--labeltxt:${textOn(th.acc)};--sh:${th.light ? .2 : .4}`;
 }
-function crownHtml(u, th){ return scaleCrown(th.key === 'generico' ? genericCrown(u.name, th) : th.crown(esc(u.name))); }
+/* Todas las estanterías reservan la misma altura para el remate (CROWN_Z, en unidades de 358 de ancho):
+   así la primera balda queda a la misma altura en todos los muebles y, por tanto, todas las baldas a la par.
+   Remates más bajos: se añade un hueco superior dentro del mueble (crownHead). Más altos (gótico): se comprimen en vertical. */
+const CROWN_Z = 150;
+const crownH = html => +((/viewBox="0 0 358 (\d+(?:\.\d+)?)"/.exec(html) || [])[1] || CROWN_Z);
+function crownHtml(u, th){
+  let html = th.key === 'generico' ? genericCrown(u.name, th) : th.crown(esc(u.name)); const h = crownH(html);
+  if(h > CROWN_Z){ const f = CROWN_Z / h;
+    html = html.replace('<svg class="crown"', `<svg class="crown" preserveAspectRatio="none" style="aspect-ratio:358/${CROWN_Z}"`)
+      .replace(/(class="plaq" style="top:)(\d+(?:\.\d+)?)px/g, (m, a, n) => a + (Math.round(n * f * 10) / 10) + 'px'); }
+  return scaleCrown(html);
+}
+const crownHead = (u, th) => { const h = crownH(th.key === 'generico' ? genericCrown(u.name, th) : th.crown('')); return h < CROWN_Z ? `<div class="head" style="height:calc(${CROWN_Z - h} * 100cqw / 358)"></div>` : ''; };
 
 /* ---------- Colores desde la portada ---------- */
 /* Las portadas de otras webs no dejan leer sus colores: se piden a través de /api/portada (Vercel) */

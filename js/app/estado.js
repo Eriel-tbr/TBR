@@ -26,7 +26,7 @@ function defaultState(){
   const U = (name, preset, shelves) => ({ id:uid(), name, tipo:'', preset, shelves:shelves.map(mkShelf) });
   const units = [U('Fantasía', 'fantasia', ['Épica', 'Gótica', 'Paranormal', 'Cozy']), U('Romantasy', 'romantasy', ['Fae', 'Dragones', 'Otras']),
     U('Ciencia ficción', 'cienciaficcion', ['Space opera', 'Distopía']), U('Dark academia', 'darkacademia', ['General']),
-    U('Contemporánea', 'contemporanea', ['General']), U('Romance', 'romance', ['General'])];
+    U('Contemporánea y thriller', 'contemporanea', ['Contemporánea', 'Thriller y misterio']), U('Romance', 'romance', ['General'])];
   const s = { v:1, fresh:true, settings:{ theme:'auto', decor:true }, units, books:[], seriesStyle:{} };
   const ex = [
     ['El nombre del viento','Patrick Rothfuss',660,['es','en'],['épica'],0,0,['Crónica del asesino de reyes',1,3]],['Juego de tronos','George R. R. Martin',800,['es','en'],['épica'],0,0,['Canción de hielo y fuego',1,7]],
@@ -48,7 +48,17 @@ function load(){
   try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); if(s && s.v === 1 && Array.isArray(s.units) && Array.isArray(s.books)){ s.seriesStyle = s.seriesStyle || {}; return s; } } }catch(e){}
   return defaultState();
 }
-let state = load();
+/* Cambios de una sola vez en colecciones ya creadas (la marca va en settings, que es lo que se conserva al juntar con la nube) */
+function migrate(s){
+  s.settings = s.settings || { theme:'auto', decor:true };
+  if(!s.settings.migThriller){ // la estantería de contemporánea pasa a ser también la de thriller
+    s.units.filter(u => u.preset === 'contemporanea' && norm(u.name) === 'contemporanea').forEach(u => { u.name = 'Contemporánea y thriller';
+      if(!u.shelves.some(sh => /thriller|misterio|suspense/.test(norm(sh.name)))) u.shelves.push(mkShelf('Thriller y misterio')); });
+    s.settings.migThriller = 1;
+  }
+  return s;
+}
+let state = migrate(load());
 const ui = { active:0, filters:{ q:'', status:'', lang:'', tags:[], len:'' }, lastShelf:null, width:0 };
 let saveT = null;
 function save(){

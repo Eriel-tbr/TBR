@@ -76,7 +76,7 @@ function cabinetHtml(u, i){
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';
   return `<section class="slide" data-unit="${u.id}" data-i="${i}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
     <button class="unit-btn" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Editar la estantería ${esc(u.name)}">${ICON.dots}</button>${manual && decorOn ? `<button class="unit-btn deco-add" type="button" data-act="addDecor" data-unit="${u.id}" aria-label="Añadir decoración">${ICON.plus}</button>` : ''}${crownHtml(u, th)}
-    <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${rowsHtml}</div><div class="pil r"></div></div>
+    <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${crownHead(u, th)}${rowsHtml}</div><div class="pil r"></div></div>
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
 }
 function renderHeader(){

@@ -21,6 +21,9 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Decoración: los objetos automáticos se pintan como `auto:<unidad>:<n>`; al tocarlos o arrastrarlos, `materializeDecor()` pasa la estantería a manual guardando los que se ven. En la hoja del objeto hay botones «Antes / Después» además de arrastrar.
 - Colores de lomo: `spineArt()` devuelve también `pal` y `ink` efectivos (los selectores parten de ahí). `sp.ink` = color de letras elegido; si no, el título se fuerza a contraste ≥ 2,6 con su fondo (`legibleOn`). Un color elegido a mano pone `adjust:false` y se respeta aunque la serie comparta diseño.
 - `DECO_C`: cada tema parte de la paleta de fantasía; si a un tema le falta un color, el dibujo de objetos fallaba y la ventana de editar estantería dejaba de responder (pasó con Ciencia ficción).
+- Baldas a la par: todos los muebles reservan `CROWN_Z` (150 de 358) para el remate (temas.js `crownHtml`/`crownHead`): los remates bajos llevan un hueco superior `.head` dentro del mueble; el gótico (200) se comprime en vertical. Así la primera balda queda a la misma altura en todos.
+- Estantería «Contemporánea y thriller» (preset `contemporanea`): `migrate()` en estado.js renombra la antigua «Contemporánea» y le añade la balda «Thriller y misterio» una sola vez (`settings.migThriller`).
+- Lomos automáticos con colores de su portada: `autoPal()`; `refreshCoverPals()` (inicio.js) calcula `b.coverPal` en segundo plano. Ajustes → «Colores de los lomos automáticos» (`settings.spineFromCover`).
 - Arte: lomos SVG (`spine`), muebles por tema (`THEMES` en temas.js: fantasía→gótico, romantasy→rococó, ciencia ficción→chip, dark academia→academia, contemporánea→moderno, romance→romance, resto→genérico). Decoración automática o manual (`u.decorMode`).
 
 ## Nube (fase 2, hecha)
@@ -47,6 +50,6 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 - Commits en español.
 
 ## Pendiente
-- Tanda 2: baldas alineadas entre muebles, estantería «Contemporánea y thriller», revisar estilos de lomo y las fichas de la colección real (Leyre pasa una copia JSON).
+- Revisar las fichas y lomos de la colección real cuando Leyre pase una copia JSON (Ajustes → Guardar copia).
 - Tanda 3: informe (audiolibros, tienda tipo Books2Door en español, análisis de la app Mistbook).
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.

@@ -27,6 +27,21 @@ let rzT = 0; addEventListener('resize', () => { clearTimeout(rzT); rzT = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setAccent);
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 initCloud();
+/* Colores de portada para los lomos automáticos: se calculan poco a poco y se guardan con el libro (coverPal) */
+const palFailed = new Set();
+async function refreshCoverPals(){
+  if(refreshCoverPals.busy) return; refreshCoverPals.busy = true; let n = 0;
+  const paint = () => { if(typeof drag !== 'undefined' && drag) return setTimeout(paint, 1500); save(); renderCarousel(); };
+  try{
+    for(const b of [...state.books]){
+      const src = b.coverData || b.cover || b.cover2 || '';
+      if(!src || b.coverPalSrc === src || palFailed.has(src)) continue;
+      const p = await coverPalette(src), cur = bookOf(b.id); if(!cur) continue;
+      if(p && p.length){ cur.coverPal = p.slice(0, 3); cur.coverPalSrc = src; if(++n % 5 === 0) paint(); } else palFailed.add(src);
+    }
+  }catch(e){} finally{ refreshCoverPals.busy = false; if(n) paint(); }
+}
+setTimeout(refreshCoverPals, 2500);
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---------- Aviso de versión nueva ---------- */

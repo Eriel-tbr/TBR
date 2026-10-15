@@ -123,7 +123,7 @@ async function syncNow(manual){
 function applyState(s){
   const before = JSON.stringify(state); state = s; state.seriesStyle = state.seriesStyle || {}; state.settings = state.settings || { theme:'auto', decor:true };
   syncMeta.h = hashAll(state); writeLocal();
-  if(JSON.stringify(state) !== before){ ui.active = Math.min(ui.active, state.units.length - 1); applyTheme(); renderAll(); }
+  if(JSON.stringify(state) !== before){ ui.active = Math.min(ui.active, state.units.length - 1); applyTheme(); renderAll(); if(typeof refreshCoverPals === 'function') setTimeout(refreshCoverPals, 1000); }
 }
 /* Dispositivo con libros propios que se junta por primera vez con una nube que ya tiene datos */
 function askFirstJoin(remote){

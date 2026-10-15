@@ -1,6 +1,6 @@
 /* Mi TBR · service worker: la app abre sin conexión.
    La versión la escribe tools/version.py en cada publicación; no hace falta tocarla a mano. */
-const VERSION = '2026.10.15-2';
+const VERSION = '2026.10.15-3';
 const CACHE = 'mi-tbr-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'version.json', 'css/styles.css', 'css/furniture.css',
   'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/muebles.js', 'js/art/temas.js',

@@ -100,6 +100,15 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     const bad = await ev(() => [...document.querySelectorAll('.tt')].filter(t => t.getBoundingClientRect().height > t.parentElement.getBoundingClientRect().height + 2).map(t => t.textContent));
     assert(!bad.length, 'se salen: ' + bad.join(', '));
   });
+  await test('las baldas de todos los muebles están a la misma altura', async () => {
+    const tops = await ev(() => [...document.querySelectorAll('.slide')].map(s => { const m = s.querySelector('.mueble').getBoundingClientRect(), r = s.querySelector('.row').getBoundingClientRect(); return Math.round(r.top - m.top); }));
+    assert(Math.max(...tops) - Math.min(...tops) <= 1, 'primera balda en ' + tops.join(', '));
+  });
+  await test('contemporánea es también la estantería de thriller (y se migra)', async () => {
+    const r = await ev(() => { const u = state.units.find(x => x.preset === 'contemporanea'); const old = { v:1, settings:{ theme:'auto' }, units:[{ id:'c', name:'Contemporánea', preset:'contemporanea', shelves:[mkShelf('General')] }], books:[] };
+      const m = migrate(old); return { name:u.name, shelves:u.shelves.map(s => s.name), mig:m.units[0].name + '|' + m.units[0].shelves.map(s => s.name).join('/'), sug:JSON.stringify(suggestShelf(state, ['thriller'])) === JSON.stringify({ unitId:u.id, shelfId:u.shelves[1].id }) }; });
+    assert(r.name === 'Contemporánea y thriller' && r.mig === 'Contemporánea y thriller|General/Thriller y misterio' && r.sug, JSON.stringify(r));
+  });
   await test('una trilogía va junta, en orden y con números I II III', async () => {
     const nums = await ev(() => { const ids = state.books.filter(b => b.series && b.series.name === 'The Folk of the Air').map(b => b.id);
       return [...document.querySelectorAll('.it[data-id]')].filter(i => ids.includes(i.dataset.id)).map(i => (i.querySelector('.num') || {}).textContent); });

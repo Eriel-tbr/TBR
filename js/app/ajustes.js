@@ -46,6 +46,7 @@ function openUnitForm(unitId){
     if(g('[data-sortshelf]')){ openSort(g('[data-sortshelf]').dataset.sortshelf); return; }
     if(g('[data-preset]')){ presetSel = g('[data-preset]').dataset.preset; if(presetSel === 'gen') u.hue = u.hue ?? Math.floor(Math.random() * 360); drawStyle(); }
     else if(g('[data-wood]')){ u.wood = g('[data-wood]').dataset.wood; drawStyle(); }
+    else if(g('[data-spcov]')){ state.settings.spineFromCover = g('[data-spcov]').dataset.spcov === '1'; save(); renderAll(); $$('[data-spcov]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-spcov]'))); }
     else if(g('[data-decor]')){ const k = g('[data-decor]').dataset.decor; const cur = [...themeDecor(tmp(), themeOf(tmp()))]; const i = cur.indexOf(k); if(i >= 0) cur.splice(i, 1); else cur.push(k); u.decor = cur.length ? cur : null; drawStyle(); }
     else if(g('#u-decor-auto')){ u.decor = null; drawStyle(); }
     else if(g('[data-dmode]')){ const m = g('[data-dmode]').dataset.dmode;
@@ -158,6 +159,7 @@ function statsHtml(){
 function openSettings(){
   const body = `
     <div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
+    <div class="sec"><span class="lbl">Colores de los lomos automáticos</span><div class="chips">${chipsHtml([['1', 'Sacados de la portada'], ['0', 'De la paleta de la estantería']], state.settings.spineFromCover === false ? '0' : '1', 'data-spcov')}</div><p class="note">Los lomos que hayas pintado a mano no cambian.</p></div>
     <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>
     <div class="sec"><span class="lbl">Estadísticas</span>${statsHtml()}</div>
     <div class="sec"><span class="lbl">Cuenta y copia en la nube</span><div id="cloud-sec">${cloudSecHtml()}</div></div>
@@ -169,6 +171,7 @@ function openSettings(){
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
     if(g('[data-theme]')){ state.settings.theme = g('[data-theme]').dataset.theme; save(); applyTheme(); $$('[data-theme]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-theme]'))); }
+    else if(g('[data-spcov]')){ state.settings.spineFromCover = g('[data-spcov]').dataset.spcov === '1'; save(); renderAll(); $$('[data-spcov]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-spcov]'))); }
     else if(g('[data-decor]')){ state.settings.decor = g('[data-decor]').dataset.decor === '1'; save(); renderAll(); $$('[data-decor]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-decor]'))); }
     else if(g('[data-do="export"]')) exportJson();
     else if(g('[data-do="share"]')) shareJson();
