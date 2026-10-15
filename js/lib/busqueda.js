@@ -15,6 +15,29 @@ function stripHtml(h){
   const d = new DOMParser().parseFromString(String(h).replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n'), 'text/html');
   return d.body.textContent.replace(/\n{3,}/g, '\n\n').trim();
 }
+/* Idioma de un texto por palabras frecuentes (Google a veces devuelve sinopsis en inglés aunque se pidan ediciones en español) */
+function textLang(s){
+  const t = ' ' + norm(s).replace(/[^a-z ]+/g, ' ') + ' ', c = w => w.split(' ').reduce((n, x) => n + (t.split(' ' + x + ' ').length - 1), 0);
+  const es = c('el la los las de que y en un una por con para su sus se del al es'), en = c('the and of to a in is her his with for that she he it');
+  return es > en * 1.2 ? 'es' : en > es * 1.2 ? 'en' : '';
+}
+/* Sinopsis sin las reseñas de prensa y blogs que algunas editoriales añaden detrás (o entre párrafos) */
+function cleanSynopsis(s){
+  if(!s) return s || '';
+  let t = String(s).replace(/\r/g, '').split(/\n\s*(?:reseñas|críticas|la crítica ha dicho|lo que dice la crítica|los blogs opinan|opiniones|praise for[^\n]*|elogios[^\n]*)\s*:?\s*(?:\n|$)/i)[0];
+  const quote = p => { const q = p.trim(); return /^[«"“]/.test(q) && /[»"”][.!]?\s*(?:\n[^\n]{1,80}|\s*[(A-ZÁÉÍÓÚÑ][^.\n]{0,70})?$/.test(q); };
+  const out = t.split(/\n{2,}/).filter(p => p.trim() && !quote(p)).join('\n\n').trim();
+  return out.length > 80 ? out : String(s).trim(); // si casi todo eran citas, mejor no tocarla
+}
+/* El resultado que corresponde a un libro (títulos posibles + autor/a); sure = sin dudas razonables */
+function bestMatch(items, titles, author){
+  const nts = titles.filter(Boolean).map(norm), na = lastName(author) && norm(lastName(author));
+  const tScore = x => Math.max(...nts.map(nt => norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0));
+  const score = x => tScore(x) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
+  const ranked = [...(items || [])].sort((a, b) => score(b) - score(a));
+  const sure = !!ranked[0] && score(ranked[0]) >= 4.5 && !(ranked[1] && score(ranked[1]) >= score(ranked[0]) && bookKey(ranked[1]) !== bookKey(ranked[0]));
+  return { ranked, item:ranked[0] || null, sure };
+}
 const yearOf = s => { const m = String(s || '').match(/\d{4}/); return m ? +m[0] : null; };
 async function getJson(url, signal){
   const r = await fetch(url, { signal });
@@ -93,7 +116,8 @@ async function enrichBook(item, signal){
   if(!out.desc || out.descLang !== 'es'){
     tasks.push(searchGoogle('intitle:' + item.title + (author ? ' inauthor:' + author : ''), signal, 'es').then(list => {
       esIsbns(list, author).forEach(i => isbns.add(i));
-      const m = list.find(x => x.desc && bookKey(x) === bookKey(item)) || list.find(x => x.desc && norm(x.title) === norm(item.title));
+      const okEs = x => x.desc && x.lang === 'es' && textLang(x.desc) !== 'en';
+      const m = list.find(x => okEs(x) && bookKey(x) === bookKey(item)) || list.find(x => okEs(x) && norm(x.title) === norm(item.title));
       if(m){ out.desc = m.desc; out.descLang = 'es'; if(!out.covers.length) out.covers = m.covers; out.pages = out.pages || m.pages; }
     }).catch(() => {}));
   }
@@ -105,7 +129,7 @@ async function enrichBook(item, signal){
       const list = await searchGoogle('intitle:' + out.wd.esTitle + (author ? ' inauthor:' + author : ''), signal, 'es');
       esIsbns(list, author).forEach(i => isbns.add(i));
       const m = list.find(x => x.lang === 'es' && (!author || norm(x.author).includes(norm(author).split(' ').pop())));
-      if(m){ out.esFound = true; if(m.desc){ out.desc = m.desc; out.descLang = 'es'; } }
+      if(m){ out.esFound = true; if(m.desc && textLang(m.desc) !== 'en'){ out.desc = m.desc; out.descLang = 'es'; } }
     }catch(e){}
   }
   // Ediciones en español: ISBN de Google Books y Open Library → fichas con los datos de las editoriales (API propia)
@@ -132,6 +156,7 @@ async function enrichBook(item, signal){
   const cleanT = s => { s = String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); return s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
   const esT = cleanT((out.wd && out.wd.esTitle) || ((out.eds || []).find(e => e.title) || {}).title);
   if(esT && norm(esT) !== norm(item.title) && (out.esFound || (out.wd && out.wd.es))) out.esTitle = esT;
+  out.desc = cleanSynopsis(out.desc); if(out.desc && textLang(out.desc) === 'en') out.descLang = 'en';
   return out;
 }
 async function englishEditions(title, author, signal){

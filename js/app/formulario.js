@@ -186,10 +186,7 @@ function openBookForm({ book, item }){
       const qT = d.origTitle || d.title; // con el título original se encuentra en todas las fuentes; el español sale después
       const res = await searchBooks(qT + ' ' + lastName(d.author), new AbortController().signal);
       const items = (res && res.items) || []; if(!items.length){ toast(res && res.failed ? 'No se pudo consultar internet' : 'No he encontrado este libro'); return; }
-      const nts = [d.title, d.origTitle].filter(Boolean).map(norm), na = lastName(d.author) && norm(lastName(d.author));
-      const tScore = x => Math.max(...nts.map(nt => norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0));
-      const score = x => tScore(x) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
-      const ranked = [...items].sort((a, b) => score(b) - score(a)), sure = score(ranked[0]) >= 4.5 && !(ranked[1] && score(ranked[1]) >= score(ranked[0]) && bookKey(ranked[1]) !== bookKey(ranked[0]));
+      const { ranked, sure } = bestMatch(items, [d.title, d.origTitle], d.author);
       const it = sure ? ranked[0] : await chooseItem(ranked.slice(0, 6)); if(!it) return;
       btn.textContent = 'Completando datos…';
       reviewItem(await enrichBook(it, new AbortController().signal));

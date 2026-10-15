@@ -161,6 +161,8 @@ function openSettings(){
     <div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
     <div class="sec"><span class="lbl">Colores de los lomos automáticos</span><div class="chips">${chipsHtml([['1', 'Sacados de la portada'], ['0', 'De la paleta de la estantería']], state.settings.spineFromCover === false ? '0' : '1', 'data-spcov')}</div><p class="note">Los lomos que hayas pintado a mano no cambian.</p></div>
     <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>
+    <div class="sec"><span class="lbl">Fichas</span><p class="note">Busca en internet las sinopsis que faltan y cambia por la española las que están en inglés si el libro está traducido. Las que escribiste tú en español no se tocan.</p>
+      <button class="btn" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div></div>
     <div class="sec"><span class="lbl">Estadísticas</span>${statsHtml()}</div>
     <div class="sec"><span class="lbl">Cuenta y copia en la nube</span><div id="cloud-sec">${cloudSecHtml()}</div></div>
     <div class="sec"><span class="lbl">Copia en archivo</span><p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
@@ -173,6 +175,7 @@ function openSettings(){
     if(g('[data-theme]')){ state.settings.theme = g('[data-theme]').dataset.theme; save(); applyTheme(); $$('[data-theme]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-theme]'))); }
     else if(g('[data-spcov]')){ state.settings.spineFromCover = g('[data-spcov]').dataset.spcov === '1'; save(); renderAll(); $$('[data-spcov]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-spcov]'))); }
     else if(g('[data-decor]')){ state.settings.decor = g('[data-decor]').dataset.decor === '1'; save(); renderAll(); $$('[data-decor]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-decor]'))); }
+    else if(g('[data-do="fillsyn"]')) fillSynopses(g('[data-do="fillsyn"]'), $('#s-fill', sh));
     else if(g('[data-do="export"]')) exportJson();
     else if(g('[data-do="share"]')) shareJson();
     else if(g('[data-do="import"]')) $('#s-file', sh).click();
@@ -189,6 +192,31 @@ function openSettings(){
       $('#s-import', sh).innerHTML = `<div class="notice">Copia con ${data.books.length} libros y ${data.units.length} estanterías.</div><div class="actions" style="margin-top:8px"><button class="btn primary" type="button" data-imp="merge">Añadir a lo que tengo</button><button class="btn danger" type="button" data-imp="replace">Reemplazar todo</button></div>`;
     }catch(err){ toast('Ese archivo no es una copia válida de Mi TBR'); }
   });
+}
+/* Completar sinopsis en bloque: vacías, o en inglés cuando el libro existe en español (misma regla que al añadir) */
+let fillRun = null;
+async function fillSynopses(btn, out){
+  if(fillRun){ fillRun.stop = true; btn.textContent = 'Parando…'; return; }
+  const list = state.books.filter(b => !(b.synopsis || '').trim() || ((b.langs || []).includes('es') && textLang(b.synopsis) === 'en'));
+  if(!list.length){ out.textContent = 'Todas las fichas tienen sinopsis (en español si el libro está traducido).'; return; }
+  const run = fillRun = { stop:false }; btn.textContent = 'Parar'; let done = 0; const miss = [];
+  for(const [i, b0] of list.entries()){
+    if(run.stop) break;
+    out.textContent = `Buscando ${i + 1} de ${list.length}: ${b0.title}…`;
+    try{
+      const res = await searchBooks((b0.origTitle || b0.title) + ' ' + lastName(b0.author), new AbortController().signal);
+      const m = bestMatch((res && res.items) || [], [b0.title, b0.origTitle], b0.author);
+      if(!m.sure){ miss.push(b0.title); continue; }
+      const it = await enrichBook(m.item, new AbortController().signal), b = bookOf(b0.id); if(!b) continue;
+      const empty = !(b.synopsis || '').trim();
+      if(it.desc && (empty || (it.descLang === 'es' && textLang(it.desc) === 'es'))){ b.synopsis = it.desc; done++; } else miss.push(b0.title);
+      if(it.esTitle && !b.esTitle && norm(it.esTitle) !== norm(b.title)) b.esTitle = it.esTitle;
+      if(it.eds && it.eds.length && !(b.eds || []).length) b.eds = it.eds.map(({ synopsis, ...e }) => e);
+      save();
+    }catch(e){ miss.push(b0.title); }
+  }
+  fillRun = null; btn.textContent = 'Completar sinopsis'; renderAll();
+  out.textContent = `${done} ${done === 1 ? 'sinopsis completada' : 'sinopsis completadas'}.` + (miss.length ? ` Sin encontrar o sin dudas razonables: ${miss.join(', ')}. Prueba «Buscar y comparar datos» en su ficha.` : '');
 }
 let pendingImport = null;
 function applyImport(mode){

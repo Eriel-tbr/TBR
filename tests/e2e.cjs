@@ -277,6 +277,13 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
     assert(r.t === 'El rey malvado' && /The Wicked King/.test(r.n), JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
+  await test('Ajustes: completar sinopsis que faltan', async () => {
+    await ev(() => { state.books.forEach(b => { if(!b.synopsis) b.synopsis = 'Texto puesto para la prueba en español, con la historia de la que va el libro.'; }); const b = state.books.find(x => x.title === 'El rey malvado'); b.synopsis = ''; save(); });
+    await page.click('#btnSettings'); await page.click('[data-do="fillsyn"]');
+    await page.waitForFunction(() => /completada/.test(document.querySelector('#s-fill').textContent), null, { timeout:30000 });
+    const s = await ev(() => state.books.find(x => x.title === 'El rey malvado').synopsis); assert(/Sinopsis oficial/.test(s), s);
+    await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
   await test('arrastrar un libro lo mueve', async () => {
     await ev(() => goTo(0, false)); await page.waitForTimeout(300);
     const order0 = await ev(() => [...document.querySelectorAll('.slide[data-i="0"] .it[data-id]')].map(i => i.dataset.id));
