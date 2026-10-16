@@ -39,8 +39,8 @@ function openBookForm({ book, item }){
     <div class="sec"><span class="lbl">Etiquetas</span><div class="tagin" id="ftags"></div><div class="chips" id="ftagsug"></div></div>
     <div class="sec"><label for="f-syn">Sinopsis</label><textarea class="field" id="f-syn" data-f="synopsis">${esc(d.synopsis)}</textarea><div class="note" id="f-synsrc"></div></div>
     ${fold('Notas personales', `<textarea class="field" id="f-notes" data-f="notes" aria-label="Notas personales" placeholder="Por qué lo quieres leer, quién te lo recomendó…">${esc(d.notes)}</textarea>`, !!d.notes)}
-    ${fold('Ediciones <small>quiero · tengo</small>', `<p class="note">Toca un formato para alternar: quiero · tengo · nada.</p><div class="chips" id="ffmt"></div><div id="feds"></div>`, Object.keys(d.formats || {}).length > 0)}
-    ${isNew ? '' : fold('Revisar con internet', '<p class="note">Busca este libro, te enseña qué datos son distintos o faltan y tú eliges cuáles cambiar.</p><button class="btn" type="button" data-do="refill">Buscar y comparar datos</button>')}`;
+    ${isNew ? '' : fold('Revisar con internet', '<p class="note">Busca este libro, te enseña qué datos son distintos o faltan y tú eliges cuáles cambiar.</p><button class="btn" type="button" data-do="refill">Buscar y comparar datos</button>')}
+    ${isNew ? '' : '<button class="btn danger" type="button" data-do="delbook">Borrar libro</button>'}`;
   const pSerie = `
     <div class="sec"><span class="lbl">Serie</span><p class="note">Déjalo vacío si es un libro suelto.</p>
       <div class="three">${lineHtml('class="field" id="f-sname" placeholder="Nombre de la serie" aria-label="Nombre de la serie"', d.series ? d.series.name : '')}
@@ -62,10 +62,11 @@ function openBookForm({ book, item }){
       <div class="chips"><button class="chip" type="button" data-do="newshelf">+ Nueva balda aquí</button><button class="chip" type="button" data-do="newunit">+ Nueva estantería</button></div></div>`;
   const body = tabPanel('libro', 'datos', tab0, pDatos) + tabPanel('libro', 'serie', tab0, pSerie) + tabPanel('libro', 'lomo', tab0, pLomo) + tabPanel('libro', 'lugar', tab0, pLugar);
   const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>', tabsBar('libro', TABS, tab0)));
+  sh.draft = d; // para las pruebas: datos del libro mientras se edita
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
-  const drawFmt = () => { const av = edAvail(d);
+  const drawFmt = () => { if(!q('#ffmt')) return; const av = edAvail(d);
     q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av[k] || ''}">${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
     q('#feds').innerHTML = edsHtml(d.eds) + edsHtml(d.edsEn, true); };
   const drawTags = () => {
@@ -171,6 +172,7 @@ function openBookForm({ book, item }){
     else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2], parts:{} }); }
     else if(g('[data-do="spauto"]')){ d.spine = null; drawSpine(); }
     else if(g('[data-do="usees"]')){ d.origTitle = d.origTitle || d.title; d.title = d.esTitle; q('#f-title').value = d.title; drawEsTitle(); drawSpine(); drawCover(); }
+    else if(g('[data-do="delbook"]')){ if(confirmTap(g('[data-do="delbook"]'), 'Borrar libro')){ await closeSheet(); deleteBook(d.id); } }
     else if(g('[data-do="newshelf"]')){ const s = await newShelfIn(d.unitId); if(s){ d.shelfId = s.id; setPick(q('#f-shelf'), shelfOpts(d.unitId), s.id); } }
     else if(g('[data-do="newunit"]')){ const u = await newUnitQuick(); if(u){ d.unitId = u.id; d.shelfId = u.shelves[0].id; setPick(q('#f-unit'), state.units.map(x => [x.id, x.name]), u.id); setPick(q('#f-shelf'), shelfOpts(u.id), d.shelfId); drawSpine(); } }
     else if(g('[data-part]')){ const b = g('[data-part]'), f = b.dataset.part, th = themeOf(unitNow());
@@ -272,7 +274,7 @@ function openBookForm({ book, item }){
     { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ d.coverPal = coverTrios.slice(0, 3); d.coverPalSrc = src; } }
     ui.lastShelf = d.shelfId; save(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 800);
     const idx = state.units.findIndex(u => u.id === d.unitId); if(idx >= 0) ui.active = idx;
-    renderAll(); await closeSheet(); goTo(ui.active); flash(d.id); toast(isNew ? `Añadido a ${locName(d)}` : 'Cambios guardados');
+    renderAll(); await closeSheet(); if(isNew && ui.view !== 'shelves') showView('shelves'); goTo(ui.active); flash(d.id); toast(isNew ? `Añadido a ${locName(d)}` : 'Cambios guardados');
   }
   if(isNew && item){
     const ac = new AbortController(); sheets[sheets.length - 1].onClose = () => ac.abort();

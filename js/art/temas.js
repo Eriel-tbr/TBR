@@ -34,7 +34,7 @@ const DECO_NAMES = { vidriera:'Vidriera', linterna:'Farol', buho:'Búho', calder
   huevo:'Huevo de dragón', libros:'Libros apilados', planta:'Planta', flores:'Flores', taza:'Taza', marco:'Cuadro', cristal:'Cristales', globo:'Globo terráqueo', planeta:'Planeta',
   cohete:'Cohete', matraz:'Matraz', mano:'Mano robótica', holoplaneta:'Planeta holográfico', holocubo:'Cubo holográfico', adn:'ADN holográfico', satelite:'Satélite', robot:'Robot' };
 const THEMES = {
-  gotico:{ cls:'t-got', name:'Gótico', P:26, mullion:true, motif:'leaf', crown:n => crownGothic2(n), colors:C => C.fan,
+  gotico:{ cls:'t-got', name:'Gótico', P:26, mullion:true, overCrown:true, motif:'leaf', crown:n => crownGothic2(n), colors:C => C.fan,
     styles:['nervios','marco','jaspeado','ilustrado','deco','grimorio','escamas','estrellado','acuarela','enredadera'],
     decor:['vidriera','linterna','buho','caldero','lavanda','libroab','vela','calavera','pocion','huevo','libros'],
     range:{ s:[.15,.65], l:[.1,.4] },
@@ -126,7 +126,7 @@ function autoPal(b, th){
   const sp = b.spine || {}, seed = hash(b.id + (b.title || '')), tp = th.pal[(seed >>> 5) % th.pal.length];
   if(isHex(sp.base)){ const p = [sp.base, isHex(sp.foil) ? sp.foil : tp[1], isHex(sp.accent) ? sp.accent : tp[2]]; return sp.adjust !== false ? [adjustToTheme(p[0], th), p[1], p[2]] : p; }
   const cp = b.coverPal && b.coverPal[0];
-  if(cp && isHex(cp[0]) && (typeof state === 'undefined' || !state.settings || state.settings.spineFromCover !== false)) return [adjustToTheme(cp[0], th), cp[1], cp[2]];
+  if(cp && isHex(cp[0]) && true) return [adjustToTheme(cp[0], th), cp[1], cp[2]];
   return tp;
 }
 /* Devuelve el html del lomo. ctx: { series:{ mode, idx, total, n, off, totalW, seed, scene, leader } } */
@@ -240,19 +240,27 @@ function cabinetStyleVars(th){
   const w = th.wood;
   return `--w1:${lighten(w, .25)};--w2:${w};--w3:${darken(w, .45)};--back:${th.panel};--trimline:${th.acc}88;--labelbg:${th.acc};--labeltxt:${textOn(th.acc)};--sh:${th.light ? .2 : .4}`;
 }
-/* Todas las estanterías reservan la misma altura para el remate (CROWN_Z, en unidades de 358 de ancho):
-   así la primera balda queda a la misma altura en todos los muebles y, por tanto, todas las baldas a la par.
-   Remates más bajos: se añade un hueco superior dentro del mueble (crownHead). Más altos (gótico): se comprimen en vertical. */
-const CROWN_Z = 150;
+/* Todos los remates ocupan la misma altura (CROWN_Z, en unidades de 358 de ancho), sin huecos vacíos debajo:
+   - los que miden eso (academia, clásico) tal cual; los bajos (moderno, romance) están dibujados a esa altura;
+   - rococó y chip, algo más altos, se comprimen un poco en vertical;
+   - el gótico no se comprime: sus dos arcos bajan por encima de la primera balda y por ellos asoma la parte alta de los tomos
+     (arcos huecos y sin toques: los libros de debajo se pueden tocar). */
+const CROWN_Z = 110;
 const crownH = html => +((/viewBox="0 0 358 (\d+(?:\.\d+)?)"/.exec(html) || [])[1] || CROWN_Z);
 function crownHtml(u, th){
   let html = th.key === 'generico' ? genericCrown(u.name, th) : th.crown(esc(u.name)); const h = crownH(html);
+  // El rótulo abre el editor de la estantería: zona táctil del alto del remate
+  const hit = `<button class="crown-hit" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Editar la estantería ${esc(u.name)}" style="height:calc(${CROWN_Z} * 100cqw / 358)"></button>`;
+  if(th.overCrown && h > CROWN_Z){
+    html = html.replace('<div class="crownw">', `<div class="crownw over" style="margin-bottom:calc(${CROWN_Z - h} * 100cqw / 358)">`);
+    return scaleCrown(html).replace(/<\/div>$/, hit + '</div>');
+  }
   if(h > CROWN_Z){ const f = CROWN_Z / h;
     html = html.replace('<svg class="crown"', `<svg class="crown" preserveAspectRatio="none" style="aspect-ratio:358/${CROWN_Z}"`)
       .replace(/(class="plaq" style="top:)(\d+(?:\.\d+)?)px/g, (m, a, n) => a + (Math.round(n * f * 10) / 10) + 'px'); }
-  return scaleCrown(html);
+  return scaleCrown(html).replace(/<\/div>$/, hit + '</div>');
 }
-const crownHead = (u, th) => { const h = crownH(th.key === 'generico' ? genericCrown(u.name, th) : th.crown('')); return h < CROWN_Z ? `<div class="head" style="height:calc(${CROWN_Z - h} * 100cqw / 358)"></div>` : ''; };
+const crownHead = () => '';
 
 /* ---------- Colores desde la portada ---------- */
 /* Las portadas de otras webs no dejan leer sus colores: se piden a través de /api/portada (Vercel) */

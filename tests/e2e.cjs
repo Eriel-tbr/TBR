@@ -84,6 +84,11 @@ const ev = (f, ...a) => page.evaluate(f, ...a);
 /* La app usa pestañas y secciones plegables: estas ayudas abren la pestaña o despliegan todo antes de tocar */
 const tab = k => page.click(`.sheet .tabbar [data-tab="${k}"] >> nth=-1`);
 const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEach(d => d.open = true));
+/* Añadir: el buscador está en una hoja que se abre con el botón grande de la barra de abajo */
+const addSheet = async (pg = page) => { if(!await pg.locator('.sheet .addbar').count()){ await pg.click('#navAdd'); await pg.waitForSelector('.sheet .addbar'); } };
+/* Ediciones encontradas (ya no se ven en la ficha): se miran en los datos del formulario abierto */
+const draftHas = (k, ms = 8000) => page.waitForFunction(k => { const s = [...document.querySelectorAll('.sheet')].pop(); return s && s.draft && (s.draft[k] || []).length; }, k, { timeout:ms });
+const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')].pop().draft; return { eds:JSON.stringify(d.eds || []), edsEn:JSON.stringify(d.edsEn || []), av:edAvail(d) }; });
 
 (async () => {
   await new Promise(r => server.listen(0, r)); const BASE = `http://localhost:${server.address().port}/`;
@@ -109,8 +114,12 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(!bad.length, 'se salen: ' + bad.join(', '));
   });
   await test('las baldas de todos los muebles están a la misma altura', async () => {
-    const tops = await ev(() => [...document.querySelectorAll('.slide')].map(s => { const m = s.querySelector('.mueble').getBoundingClientRect(), r = s.querySelector('.row').getBoundingClientRect(); return Math.round(r.top - m.top); }));
-    assert(Math.max(...tops) - Math.min(...tops) <= 1, 'primera balda en ' + tops.join(', '));
+    // Remates de la misma altura (el gótico pisa la primera balda con sus arcos) y bases iguales y del mismo ancho que el mueble
+    const r = await ev(() => state.units.map((u, i) => { goTo(i); const s = document.querySelector(`.slide[data-i="${i}"]`), m = s.querySelector('.mueble').getBoundingClientRect(), b = s.querySelector('.body').getBoundingClientRect(), base = s.querySelector('.base').getBoundingClientRect();
+      return [Math.round(b.top - m.top), Math.round(base.height), Math.round(base.width - m.width)]; }));
+    await ev(() => goTo(0));
+    const col = k => r.map(x => x[k]);
+    assert(Math.max(...col(0)) - Math.min(...col(0)) <= 1 && Math.max(...col(1)) - Math.min(...col(1)) <= 1 && col(2).every(x => Math.abs(x) <= 1), JSON.stringify(r));
   });
   await test('contemporánea es también la estantería de thriller (y se migra)', async () => {
     const r = await ev(() => { const u = state.units.find(x => x.preset === 'contemporanea'); const old = { v:1, settings:{ theme:'auto' }, units:[{ id:'c', name:'Contemporánea', preset:'contemporanea', shelves:[mkShelf('General')] }], books:[] };
@@ -135,7 +144,7 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(st === 'leyendo' || st === 'pendiente', 'estado: ' + st);
   });
   await test('buscar un libro rellena serie, idiomas y sinopsis en español', async () => {
-    await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
+    await addSheet(); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
     await page.click('#suggest [data-pick="0"]'); await page.waitForFunction(() => document.querySelector('#f-sname') && document.querySelector('#f-sname').value);
     await page.waitForTimeout(500);
     const r = await ev(() => ({ s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value, t:document.querySelector('#f-st').value,
@@ -143,31 +152,29 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(r.n === '2' && r.t === '3', 'serie ' + JSON.stringify(r)); assert(r.l === 'en,es', 'idiomas ' + r.l); assert(r.syn.includes('español'), 'sinopsis ' + r.syn);
   });
   await test('encuentra la edición española: editorial, formato y sinopsis oficial', async () => {
-    await page.waitForSelector('#feds a', { timeout:5000, state:'attached' });
-    const r = await ev(() => ({ eds:document.querySelector('#feds').textContent, dura:document.querySelector('[data-fmt="dura"]').dataset.av,
-      syn:document.querySelector('#f-syn').value, src:document.querySelector('#f-synsrc').textContent }));
-    assert(/Hidra/.test(r.eds) && r.dura === 'ES', JSON.stringify(r)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
+    await draftHas('eds', 5000); const dd = await draft();
+    const r = await ev(() => ({ syn:document.querySelector('#f-syn').value, src:document.querySelector('#f-synsrc').textContent }));
+    assert(/Hidra/.test(dd.eds) && dd.av.dura === 'ES', JSON.stringify(dd)); assert(r.syn.startsWith('Sinopsis oficial') && /Hidra/.test(r.src), 'sinopsis ' + r.syn);
   });
   await test('si Google no responde, salen los resultados de Open Library y se avisa', async () => {
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    googleDown = true; await page.fill('#addInput', 'wicked king'); await page.waitForSelector('#suggest [data-pick="0"]', { timeout:6000 });
+    googleDown = true; await addSheet(); await page.fill('#addInput', 'wicked king'); await page.waitForSelector('#suggest [data-pick="0"]', { timeout:6000 });
     await page.waitForFunction(() => !/Buscando más/.test(document.querySelector('#suggest').innerText), null, { timeout:8000 });
     const t = await page.locator('#suggest').innerText(); googleDown = false;
     assert(/Wicked King/.test(t) && /no han respondido/.test(t), t);
-    await page.fill('#addInput', ''); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
-    await page.click('#suggest [data-pick="0"]'); await page.waitForSelector('#feds a', { timeout:6000, state:'attached' });
+    await addSheet(); await page.fill('#addInput', ''); await addSheet(); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
+    await page.click('#suggest [data-pick="0"]'); await draftHas('eds', 6000);
   });
   await test('Hardcover: libro en inglés con serie y ediciones de Books2Door', async () => {
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    await page.fill('#addInput', 'quicksilver'); await page.waitForSelector('#suggest [data-pick]');
+    await addSheet(); await page.fill('#addInput', 'quicksilver'); await page.waitForSelector('#suggest [data-pick]');
     await page.waitForFunction(() => /Quicksilver/.test(document.querySelector('#suggest').innerText));
-    await page.locator('#suggest [data-pick]', { hasText:'Quicksilver' }).first().click(); await page.waitForSelector('#feds a', { timeout:8000, state:'attached' });
-    const r = await ev(() => ({ s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value, eds:document.querySelector('#feds').textContent,
-      esp:document.querySelector('[data-fmt="especial"]').dataset.av, en:document.querySelector('[data-lang="en"]').getAttribute('aria-pressed') }));
-    assert(r.s === 'Fae & Alchemy' && r.n === '1', 'serie ' + JSON.stringify(r)); assert(/Books2Door/.test(r.eds) && /£22/.test(r.eds) && r.esp === 'EN' && r.en === 'true', JSON.stringify(r));
+    await page.locator('#suggest [data-pick]', { hasText:'Quicksilver' }).first().click(); await draftHas('edsEn'); const dd = await draft();
+    const r = await ev(() => ({ s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value, en:document.querySelector('[data-lang="en"]').getAttribute('aria-pressed') }));
+    assert(r.s === 'Fae & Alchemy' && r.n === '1', 'serie ' + JSON.stringify(r)); assert(/books2door/i.test(dd.edsEn) && /£22/.test(dd.edsEn) && dd.av.especial === 'EN' && r.en === 'true', JSON.stringify([r, dd]));
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
-    await page.locator('#suggest .sg', { hasText:'El rey malvado' }).first().click(); await page.waitForSelector('#feds a', { timeout:6000, state:'attached' });
+    await addSheet(); await page.fill('#addInput', 'El rey malvado'); await page.waitForSelector('#suggest [data-pick="0"]');
+    await page.locator('#suggest .sg', { hasText:'El rey malvado' }).first().click(); await draftHas('eds', 6000);
   });
   await test('editar el lomo cambia la vista previa y se guarda', async () => {
     await tab('lomo'); await page.click('[data-spstyle="grimorio"]'); await unfold(); await page.click('#fsp-pal .trio >> nth=2');
@@ -175,12 +182,12 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     const sp = await ev(() => state.books[state.books.length - 1].spine); assert(sp && sp.style === 'grimorio' && sp.base, 'lomo ' + JSON.stringify(sp));
   });
   await test('añadir a mano un libro', async () => {
-    await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro de prueba'); await page.fill('#f-pages', '250');
+    await addSheet(); await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro de prueba'); await page.fill('#f-pages', '250');
     await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
     assert(await page.locator('.bk[aria-label^="Libro de prueba"]').count() === 1, 'no aparece');
   });
   await test('selector propio: estantería y balda del libro (la balda depende de la estantería)', async () => {
-    await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro movido');
+    await addSheet(); await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro movido');
     assert(await page.locator('.sheet select').count() === 0, 'quedan <select> nativos');
     const u = await ev(() => { const u = state.units.find(x => x.shelves.length > 1 && x.id !== document.querySelector('#f-unit').value); return { id:u.id, s:u.shelves.map(s => s.id) }; });
     await tab('lugar'); await page.click('#f-unit'); await page.waitForSelector('.pick-sheet [role="radiogroup"]');
@@ -206,7 +213,7 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
   await test('selector propio: al eliminar una estantería, sus libros van a la elegida', async () => {
     const t = await ev(() => { const b = state.books.find(x => x.title === 'Libro movido'), u = { id:'tmpu', name:'Temporal', tipo:'', preset:'gen', shelves:[mkShelf('Única')] };
       state.units.push(u); b.unitId = u.id; b.shelfId = u.shelves[0].id; save(); renderAll(); openUnitForm(u.id); return state.units[2]; });
-    await tab('baldas'); await unfold(); await page.click('#u-moveto'); await page.click(`.pick-sheet [data-pv="${t.id}"]`); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    await unfold(); await page.click('#u-moveto'); await page.click(`.pick-sheet [data-pv="${t.id}"]`); await page.waitForSelector('.pick-sheet', { state:'detached' });
     await page.click('#u-del'); await page.click('#u-del'); await page.waitForSelector('.sheet', { state:'detached' });
     const r = await ev(() => ({ n:state.units.length, b:state.books.find(x => x.title === 'Libro movido').unitId }));
     assert(r.n === 6 && r.b === t.id, JSON.stringify(r));
@@ -219,7 +226,7 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(!errors.length, errors.join(' | '));
   });
   await test('sin campos <input> de texto (la barra de autorrellenar de Chrome) y Enter no salta de línea', async () => {
-    await page.click('#btnAddManual');
+    await addSheet(); await page.click('#btnAddManual');
     const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file])').length); assert(n === 0, n + ' campos input');
     await page.fill('#f-title', 'Prueba'); await page.focus('#f-pages'); await page.keyboard.type('12a3'); await page.keyboard.press('Enter');
     const r = await ev(() => ({ t:document.querySelector('#f-title').value, p:document.querySelector('#f-pages').value })); assert(r.t === 'Prueba' && r.p === '123', JSON.stringify(r));
@@ -271,6 +278,48 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     await ev(() => openSettings()); const d = page.locator('.sheet details.fold').nth(2); await d.locator('summary').click();
     assert(await d.evaluate(e => e.open), 'el plegable no se abre'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
+  await test('borrar un libro: desde la ficha y desde Editar, con Deshacer', async () => {
+    const ids = await ev(() => { const mk = t => { const b = { id:uid(), title:t, author:'X', langs:['es'], formats:{}, tags:[], status:'pendiente', unitId:state.units[0].id, shelfId:state.units[0].shelves[0].id, added:Date.now() }; state.books.push(b); return b.id; };
+      const r = [mk('Para borrar 1'), mk('Para borrar 2')]; save(); renderAll(); return r; });
+    await ev(id => openDetail(id), ids[0]); await tab('detalles'); await page.click('[data-do="del"]'); await page.click('[data-do="del"]');
+    await page.waitForSelector('.sheet', { state:'detached' }); assert(await ev(id => !bookOf(id), ids[0]), 'no se borró desde la ficha');
+    await page.click('#toast button'); assert(await ev(id => !!bookOf(id), ids[0]), 'Deshacer no lo recuperó');
+    await ev(id => openBookForm({ book:bookOf(id) }), ids[1]); await page.click('[data-do="delbook"]'); await page.click('[data-do="delbook"]');
+    await page.waitForSelector('.sheet', { state:'detached' }); assert(await ev(id => !bookOf(id), ids[1]), 'no se borró desde Editar');
+    assert(!(await ev(() => document.querySelector('#toast').hidden)), 'sin aviso');
+    await ev(id => { state.books = state.books.filter(b => b.id !== id); save(); renderAll(); }, ids[0]);
+  });
+  await test('navegación: una estantería cada vez, barra de abajo, Lectura y añadir', async () => {
+    await ev(() => goTo(0)); await page.click('#tabs .tab[data-i="2"]');
+    const r = await ev(() => ({ on:[...document.querySelectorAll('#carousel .slide.on')].map(s => s.dataset.i), sw:getComputedStyle(document.querySelector('#carousel')).overflowX, act:ui.active }));
+    assert(r.on.join() === '2' && r.act === 2 && r.sw === 'visible', JSON.stringify(r));
+    await ev(() => goTo(0));
+    const b = await ev(() => { const x = state.books[0]; x.status = 'leyendo'; const y = state.books[1]; y.status = 'leido'; y.readAt = Date.now(); y.rating = 4; save(); renderAll(); return [x.id, y.id]; });
+    await page.click('#navReading'); await page.waitForSelector('#view-reading:not([hidden]) .rd');
+    const t = await ev(() => ({ txt:document.querySelector('#view-reading').innerText, shelves:document.querySelector('#view-shelves').hidden, cur:document.querySelector('#navReading').getAttribute('aria-current') }));
+    assert(/Leyendo ahora/.test(t.txt) && /Leídos/.test(t.txt) && /★★★★☆/.test(t.txt) && t.shelves && t.cur === 'page', JSON.stringify(t));
+    await page.click(`#view-reading [data-open="${b[0]}"]`); await page.waitForSelector('.sheet .tabbar'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(ids => { ids.forEach(id => { const x = bookOf(id); x.status = 'pendiente'; x.readAt = null; x.rating = 0; }); save(); }, b);
+    await page.click('#navAdd'); await page.waitForSelector('.sheet .addbar #addInput');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    assert(await ev(() => !!document.querySelector('#addhome .addbar')), 'la barra de añadir no volvió a su sitio');
+    await page.click('#navShelves'); assert(await ev(() => !document.querySelector('#view-shelves').hidden), 'no vuelve a Estanterías');
+  });
+  await test('editor de estanterías: se abre tocando el remate; General con baldas; sin «Tipo»', async () => {
+    await ev(() => goTo(1)); await page.click('.slide[data-i="1"] .crown-hit'); await page.waitForSelector('#u-save');
+    const r = await ev(() => ({ tabs:[...document.querySelectorAll('.sheet .tabbar [data-tab]')].map(x => x.dataset.tab), tipo:!!document.querySelector('#u-tipo'),
+      shelvesInGeneral:!!document.querySelector('[data-panel="estanteria:general"] #u-shelves'), btns:document.querySelectorAll('.unit-btn').length }));
+    assert(r.tabs.join() === 'general,deco' && !r.tipo && r.shelvesInGeneral && r.btns === 0, JSON.stringify(r));
+    await tab('deco'); await page.click('[data-dmode="none"]'); await page.click('#u-save'); await page.waitForSelector('.sheet', { state:'detached' });
+    assert(await ev(() => state.units[1].decorMode === 'none' && !document.querySelector('.slide[data-i="1"] .dc')), 'Sin objetos no quita la decoración');
+    await ev(() => { state.units[1].decorMode = 'auto'; save(); renderAll(); goTo(0); });
+  });
+  await test('Ajustes sin colores automáticos, objetos ni completar fichas; la migración pasa «ocultar objetos» a cada estantería', async () => {
+    await page.click('#btnSettings'); await unfold(); const t = await page.locator('.sheet').innerText();
+    assert(!/lomos automáticos|Objetos decorativos|Completar/i.test(t), t.slice(0, 300)); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    const m = await ev(() => { const s = migrate({ v:1, settings:{ migThriller:1, migAdjust:1, decor:false, spineFromCover:false }, units:[{ id:'a', name:'A', shelves:[mkShelf('G')] }], books:[] }); return [s.units[0].decorMode, 'decor' in s.settings, 'spineFromCover' in s.settings]; });
+    assert(m.join() === 'none,false,false', m.join());
+  });
   await test('objetos automáticos: se pueden mover y la estantería pasa a manual', async () => {
     await ev(() => { const u = state.units[1]; u.decorMode = 'auto'; u.decorItems = []; save(); renderAll(); });
     const id = await ev(() => document.querySelector('.slide[data-i="1"] .dcm').dataset.dec); assert(/^auto:/.test(id), id);
@@ -310,7 +359,9 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     await page.waitForSelector('#d-audio .aud', { timeout:5000 });
     await tab('comprar');
     const a = await ev(() => ({ n:document.querySelectorAll('#d-audio .aud').length, t:document.querySelector('#d-audio').innerText, shops:[...document.querySelectorAll('a.chip')].map(x => x.textContent) }));
-    assert(a.n === 2 && /10 h 0 min/.test(a.t) && /Caitlin Kelly/.test(a.t), JSON.stringify(a)); assert(a.shops.some(s => /Amazon/.test(s)) && a.shops.some(s => /Buscalibre/.test(s)), a.shops.join());
+    assert(a.n === 2 && /10 h 0 min/.test(a.t) && /Caitlin Kelly/.test(a.t), JSON.stringify(a)); assert(['Amazon', 'Buscalibre', 'Casa del Libro', 'Books2Door', 'Come In'].every(n => a.shops.some(s => s.includes(n))), a.shops.join());
+    assert(await ev(() => [...document.querySelectorAll('a.chip')].find(x => /Come In/.test(x.textContent)).href.includes('libreriainglesa.com/producto/listadobuscar?buscar=The%20Cruel%20Prince')), 'enlace de Come In');
+    assert(!(await ev(() => document.querySelector('.sheet').innerText)).includes('Ediciones'), 'la ficha aún enseña Ediciones');
     await tab('extra'); await page.click('[data-adrama]'); assert(await ev(id => bookOf(id).audioDrama, id) === true, 'dramatizado');
     await page.click('[data-addvol="4"]'); await page.waitForSelector('#f-title');
     const f = await ev(() => ({ t:document.querySelector('#f-title').value, s:document.querySelector('#f-sname').value, n:document.querySelector('#f-sn').value }));
@@ -327,9 +378,9 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(r.t === 'El rey malvado' && /The Wicked King/.test(r.n), JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
-  await test('Ajustes: completar sinopsis que faltan', async () => {
+  await test('Estanterías → Completar fichas: sinopsis que faltan', async () => {
     await ev(() => { state.books.forEach(b => { if(!b.synopsis) b.synopsis = 'Texto puesto para la prueba en español, con la historia de la que va el libro.'; }); const b = state.books.find(x => x.title === 'El rey malvado'); b.synopsis = ''; save(); });
-    await page.click('#btnSettings'); await unfold(); await page.click('[data-do="fillsyn"]');
+    await page.click('#btnFill'); await page.click('[data-do="fillsyn"]');
     await page.waitForFunction(() => /completada/.test(document.querySelector('#s-fill').textContent), null, { timeout:30000 });
     const s = await ev(() => state.books.find(x => x.title === 'El rey malvado').synopsis); assert(/Sinopsis oficial/.test(s), s);
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
@@ -392,7 +443,7 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
     assert(r.u === db.row.data.units.length && r.ids === r.n, JSON.stringify(r));
   });
   await test('un libro añadido en un móvil llega al otro', async () => {
-    const p2 = dev2.p; await p2.click('#btnAddManual'); await p2.fill('#f-title', 'Desde el otro móvil'); await p2.click('[data-do="save"]');
+    const p2 = dev2.p; await addSheet(p2); await p2.click('#btnAddManual'); await p2.fill('#f-title', 'Desde el otro móvil'); await p2.click('[data-do="save"]');
     await until(() => dbTitles().includes('Desde el otro móvil'), 8000, 'no llegó a la nube');
     await ev(() => syncNow()); assert(await ev(() => state.books.some(b => b.title === 'Desde el otro móvil')), 'no llegó al primero');
     assert(await page.locator('.bk[aria-label^="Desde el otro móvil"]').count() === 1, 'no se dibuja');
@@ -413,7 +464,7 @@ const unfold = () => ev(() => document.querySelectorAll('.sheet details').forEac
   });
   await test('un móvil con libros propios pregunta y junta sin repetir', async () => {
     dev3 = await newDevice(browser); const p3 = dev3.p; await p3.goto(BASE); await p3.waitForSelector('.slide .bk');
-    await p3.click('#btnAddManual'); await p3.fill('#f-title', 'Solo en el tercero'); await p3.click('[data-do="save"]'); await p3.waitForSelector('.sheet', { state:'detached' });
+    await addSheet(p3); await p3.click('#btnAddManual'); await p3.fill('#f-title', 'Solo en el tercero'); await p3.click('[data-do="save"]'); await p3.waitForSelector('.sheet', { state:'detached' });
     await p3.waitForSelector('#cloudban:not([hidden])', { timeout:3000 });
     await p3.click('#cloudban [data-cloud="login"]'); await p3.waitForSelector('[data-join="join"]', { timeout:5000 }); await p3.click('[data-join="join"]');
     await until(() => dbTitles().includes('Solo en el tercero'), 8000, 'no se juntó');

@@ -13,12 +13,15 @@ document.addEventListener('click', e => {
     else if(a === 'clearExamples'){ const n = state.books.filter(b => b.ejemplo).length; state.books = state.books.filter(b => !b.ejemplo); state.units.forEach(u => u.shelves.forEach(s => s.order = s.order.filter(id => bookOf(id)))); save(); renderAll(); toast(`${n} libros de ejemplo borrados`); }
     return;
   }
-  const tab = g('#tabs .tab[data-i]'); if(tab){ ui.active = +tab.dataset.i; $$('#tabs .tab[data-i]').forEach(t => t.setAttribute('aria-selected', t === tab)); setAccent(); goTo(ui.active); }
-  if(g('.arrow.l')) goTo(Math.max(0, ui.active - 1)); if(g('.arrow.r')) goTo(Math.min(state.units.length - 1, ui.active + 1));
+  const tab = g('#tabs .tab[data-i]'); if(tab) goTo(+tab.dataset.i);
 });
+document.addEventListener('keydown', e => { const p = e.target.closest && e.target.closest('.crown-hit'); if(p && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); p.click(); } });
 $('#btnFilter').addEventListener('click', openFilters);
+$('#btnFill').addEventListener('click', openFill);
 $('#btnRandom').addEventListener('click', openRandom);
 $('#btnSettings').addEventListener('click', openSettings);
+$('#navAdd').addEventListener('click', openAdd);
+$$('.bottombar [data-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
 
 /* ---------- Inicio ---------- */
 applyTheme(); renderAll();

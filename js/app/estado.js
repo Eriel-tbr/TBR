@@ -61,6 +61,10 @@ function migrate(s){
     s.books.forEach(b => { const sp = b.spine; if(sp && sp.base && sp.adjust === undefined && !pals.has([sp.base, sp.foil, sp.accent].join(',').toLowerCase())) sp.adjust = false; });
     s.settings.migAdjust = 1;
   }
+  if(!s.settings.migDecor){ // «Ocultar objetos» deja de ser un ajuste general: pasa a cada estantería («Sin objetos»); los lomos automáticos siempre salen de la portada
+    if(s.settings.decor === false) s.units.forEach(u => { u.decorMode = 'none'; });
+    delete s.settings.decor; delete s.settings.spineFromCover; s.settings.migDecor = 1;
+  }
   return s;
 }
 let state = migrate(load());

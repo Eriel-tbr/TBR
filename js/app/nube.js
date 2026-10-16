@@ -11,7 +11,7 @@ let syncMeta = (() => { try{ return JSON.parse(localStorage.getItem(SYNC_KEY)) |
 const saveMeta = () => { try{ localStorage.setItem(SYNC_KEY, JSON.stringify(syncMeta)); }catch(e){} };
 
 /* ---------- Marcar qué ha cambiado en este dispositivo ---------- */
-const entHash = x => { const { upd, ...r } = x; return hash(JSON.stringify(r)); };
+const entHash = x => { const { upd, coverPal, coverPalSrc, audio, ...r } = x; return hash(JSON.stringify(r)); }; // lo calculado en segundo plano no cuenta como cambio (si no, un libro borrado en otro móvil podía «revivir»)
 const metaHash = s => hash(JSON.stringify([s.settings, s.seriesStyle, s.units.map(u => u.id)]));
 function hashAll(s){ const h = { b:{}, u:{}, m:metaHash(s) }; s.books.forEach(b => h.b[b.id] = entHash(b)); s.units.forEach(u => h.u[u.id] = entHash(u)); return h; }
 function syncStamp(){

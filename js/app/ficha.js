@@ -10,7 +10,6 @@ function openDetail(id){
   const draw = () => {
     const b = bookOf(id); if(!b){ closeSheet(); return; }
     const cur = startTab('ficha', TABS);
-    const fm = FORMATS.filter(([k]) => b.formats && b.formats[k]).map(([k, l]) => `<span class="chip fmt" data-st="${b.formats[k]}">${l}: ${b.formats[k]}</span>`).join('');
     const resumen = `
       <div class="hero"><div class="cover-box">${coverHtml(b)}</div><div class="meta"><h2>${esc(b.title)}</h2>${b.origTitle && norm(b.origTitle) !== norm(b.title) ? `<div class="note">Título original: ${esc(b.origTitle)}</div>` : ''}<div>${esc(b.author) || '<span class="note">Autor sin indicar</span>'}</div>
         <div class="chips">${langBadges(b)}<span class="badge">${STATUS[b.status || 'pendiente']}</span>${b.next ? '<span class="badge">Siguiente lectura</span>' : ''}</div>
@@ -32,7 +31,6 @@ function openDetail(id){
         ${b.readAt ? `<dt>Leído</dt><dd>${new Date(b.readAt).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}</dd>` : ''}</dl>
       ${(b.tags || []).length ? `<div class="sec"><span class="lbl">Etiquetas</span><div class="chips">${b.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div></div>` : ''}
       ${b.notes ? `<div class="sec"><span class="lbl">Notas</span><div class="synopsis">${esc(b.notes)}</div></div>` : ''}
-      ${fm || (b.eds || []).length || (b.edsEn || []).length ? fold('Ediciones', `${fm ? `<div class="chips">${fm}</div>` : ''}${edsHtml(b.eds)}${edsHtml(b.edsEn, true)}`, !!fm) : ''}
       <button class="btn danger" type="button" data-do="del">Borrar libro</button>`;
     $('#dbody', sh).innerHTML = tabPanel('ficha', 'resumen', cur, resumen) + tabPanel('ficha', 'detalles', cur, detalles)
       + tabPanel('ficha', 'extra', cur, '<div id="dextra" style="display:flex;flex-direction:column;gap:18px"></div>') + tabPanel('ficha', 'comprar', cur, '<div id="dshop"></div>');
@@ -50,15 +48,22 @@ function openDetail(id){
     else if(a === 'edit'){ await closeSheet(); openBookForm({ book:b }); return; }
     else if(a === 'move'){ openMove(id, draw); return; }
     else if(a === 'more'){ const s = $('#dsyn', sh); s.classList.toggle('clamp'); act.textContent = s.classList.contains('clamp') ? 'Leer más' : 'Leer menos'; return; }
-    else if(a === 'del'){
-      if(act.dataset.sure){ const copy = JSON.parse(JSON.stringify(b)), s = shelfOf(b.shelfId);
-        state.books = state.books.filter(x => x.id !== id); if(s) s.s.order = s.s.order.filter(x => x !== id); save(); renderAll(); await closeSheet();
-        toast('Libro borrado', () => { state.books.push(copy); save(); renderAll(); }); }
-      else { act.dataset.sure = '1'; act.textContent = 'Toca otra vez para borrar'; setTimeout(() => { act.dataset.sure = ''; act.textContent = 'Borrar libro'; }, 3000); }
-      return;
-    }
+    else if(a === 'del'){ if(confirmTap(act, 'Borrar libro')){ await closeSheet(); deleteBook(id); } return; }
     save(); renderAll(); draw();
   });
+}
+/* Borrar con dos toques (el primero avisa) y con «Deshacer» en el aviso */
+function confirmTap(btn, label){
+  if(btn.dataset.sure) return true;
+  btn.dataset.sure = '1'; btn.textContent = 'Toca otra vez para borrar'; setTimeout(() => { if(btn.isConnected){ btn.dataset.sure = ''; btn.textContent = label; } }, 3000);
+  return false;
+}
+function deleteBook(id){
+  const b = bookOf(id); if(!b) return; const copy = JSON.parse(JSON.stringify(b)), s = shelfOf(b.shelfId);
+  state.books = state.books.filter(x => x.id !== id); if(s) s.s.order = s.s.order.filter(x => x !== id);
+  state.units.forEach(u => (u.gaps || []).forEach(g => { if(g.after === id) g.after = null; }));
+  save(); renderAll();
+  toast(`«${b.title}» borrado`, () => { copy.upd = Date.now(); state.books.push(copy); if(state.deleted) delete state.deleted[id]; save(); renderAll(); });
 }
 function openMove(id, after){
   const b = bookOf(id);

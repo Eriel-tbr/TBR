@@ -81,12 +81,52 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 .banner{margin:10px 14px 0;padding:10px 12px;border-radius:12px;border:1px dashed var(--line);font-size:.86rem;color:var(--muted);
   display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 
-/* ---------- Carrusel de estanterías ---------- */
-.carousel{position:relative;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:14px 14px 40px;scrollbar-width:none;
-  overscroll-behavior-x:contain}
-.carousel::-webkit-scrollbar{display:none}
-.slide{flex:0 0 min(100%,420px);scroll-snap-align:center;min-width:0}
-@media (min-width:700px){.carousel{padding-inline:max(14px,calc((100vw - 420px)/2))}}
+/* ---------- Estanterías: una a la vez (se cambia con los nombres de arriba; sin deslizar) ---------- */
+.carousel{position:relative;display:block;padding:14px 14px 24px}
+.slide{display:none;max-width:420px;margin:0 auto;min-width:0}
+.slide.on{display:block}
+.shelftools{display:flex;gap:8px;padding:8px 14px 0;overflow-x:auto;scrollbar-width:none}
+.shelftools .btn{display:inline-flex;align-items:center;gap:6px;flex:none;font-weight:600}
+.shelftools svg,.btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.shelftools .btn[aria-pressed="true"]{border-color:var(--acc);color:var(--acc)}
+.view[hidden]{display:none}
+
+/* ---------- Barra de abajo ---------- */
+:root{--navh:64px}
+body{padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom,0px))}
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;
+  height:calc(var(--navh) + env(safe-area-inset-bottom,0px));padding:0 6px env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1px solid var(--line);
+  box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.nb{height:var(--navh);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);
+  font-size:.7rem;font-weight:700;padding:0;touch-action:manipulation;min-width:0}
+.nb svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nb[aria-current="page"]{color:var(--acc)}
+.nb.add{align-self:center;justify-self:center;width:58px;height:58px;border-radius:50%;background:var(--acc);color:var(--acc-fg);margin-top:-22px;
+  box-shadow:0 6px 16px rgba(0,0,0,.25),0 0 0 4px var(--bg)}
+.nb.add svg{width:28px;height:28px;stroke-width:2.4}
+.nb:active{transform:scale(.95)}
+@media (min-width:700px){.bottombar{left:50%;right:auto;width:520px;transform:translateX(-50%);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0}}
+
+/* ---------- Añadir (hoja) ---------- */
+.sheet .addbar{margin-top:0}
+.sheet .suggest{position:static;margin-top:10px;max-height:none;box-shadow:none}
+
+/* ---------- Lectura ---------- */
+#view-reading{padding:6px 14px 24px;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+#view-reading[hidden]{display:none}
+.rd-sec h2{font-size:1.15rem;margin:10px 0 10px}
+.rd-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.rd{display:flex;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);width:100%;text-align:left}
+.rd .cv{flex:none;width:46px;height:68px;border-radius:4px;overflow:hidden;background:var(--surface2)}
+.rd .cv img,.rd .cv .cover-fb{width:100%;height:100%;object-fit:cover;display:block}
+.rd .cv .cover-fb{padding:4px;overflow:hidden}.rd .cv .cover-fb b{font-size:8px;line-height:1.15}.rd .cv .cover-fb i{display:none}
+.rd .tx .stars-t{display:block;color:var(--acc);letter-spacing:.08em}
+.rd .tx{flex:1;min-width:0}
+.rd .tx b{display:block;overflow-wrap:anywhere}
+.rd .tx span{font-size:.84rem;color:var(--muted)}
+.rd .go{flex:none}
+.rd-year{display:flex;align-items:baseline;justify-content:space-between;margin:14px 0 8px;font-weight:700}
+.rd-empty{color:var(--muted);font-size:.92rem;padding:10px 0}
 
 /* Los muebles y lomos están en furniture.css */
 .slide{position:relative}
@@ -173,7 +213,7 @@ textarea.field.one{min-height:44px;height:44px;resize:none}
 .random-card .cover-box{width:150px}
 .spin{animation:spin .5s ease}
 @keyframes spin{from{transform:rotateY(90deg);opacity:0}to{transform:none;opacity:1}}
-.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:300;background:var(--fg);color:var(--bg);
+.toast{position:fixed;left:50%;bottom:calc(var(--navh) + 14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:300;background:var(--fg);color:var(--bg);
   border-radius:12px;padding:10px 14px;display:flex;gap:14px;align-items:center;box-shadow:var(--shadow);max-width:min(92vw,460px);font-size:.9rem}
 .toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:4px}
 .hint-empty{margin:30px 14px;text-align:center;color:var(--muted)}
@@ -238,9 +278,9 @@ a.chip{color:inherit;text-decoration:none}
 .eds a{font-size:.86rem;color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
 
 /* ---------- Pestañas y plegables ---------- */
-.tabbar{display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none;flex:none;border-bottom:1px solid var(--line)}
+.tabbar{display:flex;gap:5px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none;flex:none;border-bottom:1px solid var(--line)}
 .tabbar::-webkit-scrollbar{display:none}
-.tabb{flex:1 0 auto;min-height:38px;padding:0 11px;white-space:nowrap;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:.88rem;touch-action:manipulation}
+.tabb{flex:1 0 auto;min-height:38px;padding:0 9px;white-space:nowrap;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:.84rem;touch-action:manipulation}
 .tabb[aria-selected="true"]{background:var(--acc);color:var(--acc-fg);border-color:transparent}
 .tabpanel{display:flex;flex-direction:column;gap:16px}
 /* Con pestañas, la hoja no cambia de alto al pasar de una a otra */

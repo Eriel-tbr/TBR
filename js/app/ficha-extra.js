@@ -13,11 +13,17 @@ function storeLinksHtml(b){
   const links = [
     ['Amazon.es', `https://www.amazon.es/s?k=${enc(q)}&i=stripbooks`],
     ['Buscalibre', `https://www.buscalibre.es/libros/search?q=${enc(q)}`],
-    ['Casa del Libro', `https://www.google.com/search?q=${enc('site:casadellibro.com ' + q)}`],
-    ...((b.langs || []).includes('en') ? [['Books2Door', `https://www.books2door.com/search?q=${enc(qEn)}`]] : [])
+    ['Casa del Libro', `https://www.google.com/search?q=${enc('site:casadellibro.com ' + q)}`]
   ];
-  return `<div class="sec"><span class="lbl">Buscar en</span><div class="chips">${links.map(([l, u]) => `<a class="chip" href="${esc(u)}" target="_blank" rel="noopener">${esc(l)} ↗</a>`).join('')}</div>
-    <p class="note">${isbn ? 'Busca por el ISBN de la edición española.' : 'Busca por título y autor/a.'} Casa del Libro se abre a través de Google.</p></div>`;
+  // En inglés: Books2Door y Come In (librería inglesa de Barcelona; su buscador solo encuentra por título, sin autor/a)
+  const linksEn = [
+    ['Books2Door', `https://www.books2door.com/search?q=${enc(qEn)}`],
+    ['Come In', `https://www.libreriainglesa.com/producto/listadobuscar?buscar=${enc(t)}`]
+  ];
+  const chips = l => `<div class="chips">${l.map(([n, u]) => `<a class="chip" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)} ↗</a>`).join('')}</div>`;
+  const found = (b.edsEn || []).filter(e => e.url).slice(0, 6);
+  return `<div class="sec"><span class="lbl">En español</span>${chips(links)}<p class="note">${isbn ? 'Busca por el ISBN de la edición española.' : 'Busca por título y autor/a.'} Casa del Libro se abre a través de Google.</p></div>
+    <div class="sec"><span class="lbl">En inglés</span>${chips(linksEn)}${found.length ? `<div class="eds"><span class="note">Encontradas en Books2Door:</span>${found.map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${[e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''].filter(Boolean).map(esc).join(' · ')}</a>`).join('')}</div>` : ''}</div>`;
 }
 
 /* ---------- Audiolibro ---------- */

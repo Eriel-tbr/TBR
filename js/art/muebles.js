@@ -15,23 +15,28 @@ function crownAcademia(name) {
 }
 
 function crownModern(name) {
-  const inner = `<path d="M0 54V12Q0 0 12 0H346Q358 0 358 12V54Z" fill="#fff" stroke="#d4d0c8" stroke-width="1"/><rect x="0" y="48" width="358" height="6" fill="#ece9e3"/><rect x="14" y="14" width="330" height="1" fill="#22201d" opacity=".12"/>`;
-  return `<div class="crownw">${sv(54, inner)}<div class="plaq" style="top:21px;color:#22201d;font:600 11px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
+  // Rótulo blanco a la altura común (110): placa limpia con el nombre y una línea de luz debajo
+  const inner = `<path d="M0 110V12Q0 0 12 0H346Q358 0 358 12V110Z" fill="#fff" stroke="#d4d0c8" stroke-width="1"/><rect x="0" y="100" width="358" height="10" fill="#ece9e3"/><rect x="0" y="99" width="358" height="1" fill="#22201d" opacity=".08"/>
+   <rect x="24" y="26" width="310" height="1" fill="#22201d" opacity=".14"/><rect x="24" y="76" width="310" height="1" fill="#22201d" opacity=".14"/><circle cx="179" cy="26.5" r="3" fill="#d9764a"/>`;
+  return `<div class="crownw">${sv(110, inner)}<div class="plaq" style="top:45px;color:#22201d;font:600 12.500px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
 }
 
 function crownRomance(name) {
+  // Toldo de festones sobre un friso rosa con el nombre (todo a la altura común, 110)
   const n = 13, ww = 358 / n; let d = 'M0 10H358V46'; for (let i = 0; i < n; i++) d += `a${ww / 2} ${ww / 2} 0 0 1 ${-ww} 0`; d += 'Z';
-  const defs = `${G.lin('rp', [[0, '#fbc9d6'], [1, '#e08aa4']], 0, 1)}${G.lin('rg', [[0, '#fff3d6'], [1, '#d9b25f']], 0, 1)}`;
+  const defs = `${G.lin('rp', [[0, '#fbc9d6'], [1, '#e08aa4']], 0, 1)}${G.lin('rg', [[0, '#fff3d6'], [1, '#d9b25f']], 0, 1)}${G.lin('rf', [[0, '#fde3ea'], [1, '#f6c4d2']], 0, 1)}`;
   let dots = ''; for (let i = 0; i < n; i++) dots += `<circle cx="${358 - ww / 2 - i * ww}" cy="${46 + ww / 2 - 5}" r="2" fill="url(#rg)"/>`;
-  const heart = x => `<g transform="translate(${x} 28) scale(.55)"><path d="M0 8C-14 -4 -9 -14 0 -6 9 -14 14 -4 0 8z" fill="url(#rg)" stroke="#a8782a" stroke-width=".8"/></g>`;
-  const inner = `<rect x="-6" y="0" width="370" height="10" rx="4" fill="url(#rp)" stroke="#c9728f" stroke-width=".6"/><path d="${d}" fill="url(#rp)" stroke="#c9728f" stroke-width=".8"/><path d="M0 14H358" stroke="#fff" stroke-width="1.500" opacity=".7"/>${dots}${heart(92)}${heart(266)}`;
-  return `<div class="crownw">${sv(66, inner, defs)}<div class="plaq" style="top:22px;color:#8a3a52;font:700 11px 'GFS Baskerville',serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.7)">${name}</div></div>`;
+  const heart = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 8C-14 -4 -9 -14 0 -6 9 -14 14 -4 0 8z" fill="url(#rg)" stroke="#a8782a" stroke-width=".8"/></g>`;
+  const inner = `<rect x="0" y="8" width="358" height="102" fill="url(#rf)" stroke="#e7a3b8" stroke-width=".8"/><rect x="0" y="104" width="358" height="6" fill="#e9a9bc"/><path d="M0 104H358" stroke="#fff" stroke-width="1" opacity=".7"/>
+   <rect x="-6" y="0" width="370" height="10" rx="4" fill="url(#rp)" stroke="#c9728f" stroke-width=".6"/><path d="${d}" fill="url(#rp)" stroke="#c9728f" stroke-width=".8"/><path d="M0 14H358" stroke="#fff" stroke-width="1.500" opacity=".7"/>${dots}
+   <rect x="94" y="70" width="170" height="26" rx="13" fill="#fff" fill-opacity=".55" stroke="#d98aa2" stroke-width="1"/>${heart(80, 84, .6)}${heart(278, 84, .6)}${heart(92, 30, .5)}${heart(266, 30, .5)}`;
+  return `<div class="crownw">${sv(110, inner, defs)}<div class="plaq" style="top:77px;color:#8a3a52;font:700 11.500px 'GFS Baskerville',serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.7)">${name}</div></div>`;
 }
 
 function archQ(x0, x1, ys, A, base, inset = 0) { const xm = (x0 + x1) / 2, a = x0 + inset, b = x1 - inset, ap = A - inset * 1.1; return `M${a} ${base}V${ys}C${a} ${ys - ap * .42} ${xm - 8} ${ys - ap * .8} ${xm} ${ys - ap}C${xm + 8} ${ys - ap * .8} ${b} ${ys - ap * .42} ${b} ${ys}V${base}`; }
 
 function crownGothic2(name) {
-  const defs = `${G.lin('gw', [[0, '#94684a'], [.5, '#62402a'], [1, '#3e2617']], 0, 1)}${G.lin('gh', [[0, '#d2a47c'], [1, '#8a5e3c']], 0, 1)}${G.lin('gb', [[0, '#120a06'], [.55, '#241710'], [1, '#2a1c13']], 0, 1)}
+  const defs = `${G.lin('gw', [[0, '#94684a'], [.5, '#62402a'], [1, '#3e2617']], 0, 1)}${G.lin('gh', [[0, '#d2a47c'], [1, '#8a5e3c']], 0, 1)}${G.lin('gb', [[0, '#120a06'], [.55, '#241710'], [1, '#2a1c13']], 0, 1)}${G.lin('gbh', [[0, '#0a0502', .55], [.35, '#0a0502', .15], [.6, '#0a0502', 0], [1, '#0a0502', 0]], 0, 1)}
    <pattern id="gr" width="7" height="160" patternUnits="userSpaceOnUse"><path d="M2 0V160M5 0V160" stroke="#000" stroke-width=".4" opacity=".09"/></pattern>`;
   const W = 'url(#gw)', HL = 'url(#gh)', D = '#140b06', E = '#1c0f07';
   const pin = x => `<rect x="${x}" y="96" width="26" height="104" fill="${W}" stroke="${E}"/><rect x="${x}" y="96" width="26" height="104" fill="url(#gr)"/><path d="M${x + 2} 96L${x + 13} 26L${x + 24} 96Z" fill="${W}" stroke="${E}"/>${[0, 1, 2, 3].map(k => `<path d="M${x + 4 + k * 2.200} ${86 - k * 15}l-4 -3 5 -2z M${x + 22 - k * 2.200} ${86 - k * 15}l4 -3 -5 -2z" fill="${W}" stroke="${E}" stroke-width=".6"/>`).join('')}<path d="M${x + 13} 26v-9" stroke="#62402a" stroke-width="2.400"/><circle cx="${x + 13}" cy="15" r="3.200" fill="${W}" stroke="${E}" stroke-width=".8"/><rect x="${x - 2}" y="92" width="30" height="7" rx="1.500" fill="${HL}" stroke="${E}" stroke-width=".8"/><path d="M${x + 8} 92L${x + 13} 48L${x + 18} 92" fill="none" stroke="${HL}" stroke-width=".8"/><rect x="${x + 6}" y="108" width="14" height="80" rx="7" fill="none" stroke="${HL}" stroke-width=".8" opacity=".8"/>`;
@@ -41,8 +46,10 @@ function crownGothic2(name) {
     for (let i = 0; i < 8; i++) { const a = (i + .5) * Math.PI / 4; s += `<circle cx="${cx + Math.cos(a) * R * .62}" cy="${cy + Math.sin(a) * R * .62}" r="${R * .27}" fill="none" stroke="${W}" stroke-width="2.400"/>`; }
     return s + `<circle cx="${cx}" cy="${cy}" r="${R * .24}" fill="${W}" stroke="${HL}" stroke-width=".8"/><circle cx="${cx}" cy="${cy}" r="${R * .1}" fill="${HL}"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${W}" stroke-width="3.500"/><circle cx="${cx}" cy="${cy}" r="${R + 2.500}" fill="none" stroke="${HL}" stroke-width=".9"/>`; };
   const quat = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r + 5}" fill="${W}" stroke="${E}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="${D}"/>${[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => `<circle cx="${cx + dx * r * .45}" cy="${cy + dy * r * .45}" r="${r * .45}" fill="none" stroke="${W}" stroke-width="2.400"/>`).join('')}<circle cx="${cx}" cy="${cy}" r="${r * .16}" fill="${W}"/><circle cx="${cx}" cy="${cy}" r="${r + 2}" fill="none" stroke="${HL}" stroke-width=".8"/>`;
-  const bay = (x0, x1) => `<path d="${archQ(x0, x1, 178, 50, 200)}Z" fill="url(#gb)"/><path d="${archQ(x0, x1, 178, 50, 200)}" fill="none" stroke="${HL}" stroke-width="2"/><path d="${archQ(x0, x1, 178, 50, 200, 5)}" fill="none" stroke="${E}" stroke-width=".9"/><path d="${archQ(x0, x1, 178, 50, 200, 8)}" fill="none" stroke="${HL}" stroke-width=".6" opacity=".55"/>`;
-  const inner = `<path d="${gable}" fill="${W}" stroke="${E}" stroke-width="1.200"/><path d="${gable}" fill="url(#gr)"/><path d="M34 200V114C34 74 114 46 179 16C244 46 324 74 324 114V200" fill="none" stroke="${HL}" stroke-width="1.300"/><path d="M39 200V116C39 80 116 52 179 23C242 52 319 80 319 116V200" fill="none" stroke="${E}" stroke-width=".8"/>
+  const bay = (x0, x1) => `<path d="${archQ(x0, x1, 178, 50, 200)}Z" fill="url(#gbh)"/><path d="${archQ(x0, x1, 178, 50, 200)}" fill="none" stroke="${HL}" stroke-width="2"/><path d="${archQ(x0, x1, 178, 50, 200, 5)}" fill="none" stroke="${E}" stroke-width=".9"/><path d="${archQ(x0, x1, 178, 50, 200, 8)}" fill="none" stroke="${HL}" stroke-width=".6" opacity=".55"/>`;
+  // Los dos arcos quedan huecos (máscara): por ellos asoma la parte alta de los tomos de la primera balda
+  const mask = `<mask id="gmask" maskUnits="userSpaceOnUse" x="0" y="0" width="358" height="200"><rect width="358" height="200" fill="#fff"/><path d="${archQ(26, 172, 178, 50, 200)}Z" fill="#000"/><path d="${archQ(186, 332, 178, 50, 200)}Z" fill="#000"/></mask>`;
+  const inner = `${mask}<g mask="url(#gmask)"><path d="${gable}" fill="${W}" stroke="${E}" stroke-width="1.200"/><path d="${gable}" fill="url(#gr)"/><path d="M34 200V114C34 74 114 46 179 16C244 46 324 74 324 114V200" fill="none" stroke="${HL}" stroke-width="1.300"/><path d="M39 200V116C39 80 116 52 179 23C242 52 319 80 319 116V200" fill="none" stroke="${E}" stroke-width=".8"/></g>
    ${rose(179, 66, 29)}${quat(99, 95, 20)}${quat(259, 95, 20)}${bay(26, 172)}${bay(186, 332)}
    <rect x="172" y="150" width="14" height="50" fill="${W}"/><rect x="170" y="172" width="18" height="6" rx="1.500" fill="${HL}" stroke="${E}" stroke-width=".6"/>
    <circle cx="179" cy="6" r="3.600" fill="${W}" stroke="${E}" stroke-width=".8"/>${pin(0)}${pin(332)}`;

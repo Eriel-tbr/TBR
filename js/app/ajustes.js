@@ -7,50 +7,50 @@ function openUnitForm(unitId){
   if(!isNew && !PRESETS[u.preset]) u.preset = u.preset || 'gen';
   let presetSel = isNew ? 'auto' : (u.preset || 'gen'); const del = new Set();
   const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}">${lineHtml('class="field" data-sname aria-label="Nombre de la balda"', s.name)}<button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
-  // Pestañas: General (nombre, estilo, madera) · Decoración · Baldas (y eliminar)
-  const TABS = [['general', 'General'], ['deco', 'Decoración'], ['baldas', 'Baldas']], tab0 = lastTab.estanteria = 'general';
+  // Pestañas: General (nombre, diseño, baldas y eliminar) · Decoración
+  const TABS = [['general', 'General'], ['deco', 'Decoración']], tab0 = lastTab.estanteria = 'general';
   const pGeneral = `
-    <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…" data-autofocus', u.name)}</div>
-    <div class="sec"><label for="u-tipo">Tipo de libros (para elegir estilo y decoración)</label>${lineHtml('class="field" id="u-tipo" placeholder="Opcional: fantasía gótica, ciencia ficción, viajes…"', u.tipo)}</div>
-    <div class="sec"><span class="lbl">Estilo</span><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div><div class="chips" id="u-presets"></div></div>
+    <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…"' + (isNew ? ' data-autofocus' : ''), u.name)}</div>
+    <div class="sec"><span class="lbl">Diseño del mueble</span><p class="note">Cambia el mueble, sus colores y los objetos que se ponen solos. «Automático» lo elige por el nombre.</p><div class="chips" id="u-presets"></div><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div></div>
     <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>`;
   const pDeco = `<div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>`;
-  const pBaldas = `<div class="sec"><span class="lbl">Baldas</span><p class="note">Grupos dentro de la estantería: ordenan los libros, no se ven como rótulos.</p><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
+  const pBaldas = `<div class="sec"><span class="lbl">Baldas</span><p class="note">Grupos dentro de la estantería: ordenan los libros, no se ven como rótulos. Con «Orden» eliges cómo se ordena cada una.</p><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
       ${isNew ? lineHtml('class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras"') : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
     ${isNew ? '' : '<p class="note">Para dejar un hueco en la estantería, abre la ficha de un libro → «Mover a…» → «Hueco antes / después».</p>'}
     ${isNew || state.units.length < 2 ? '' : fold('Eliminar estantería', `${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button>`)}`;
-  const body = tabPanel('estanteria', 'general', tab0, pGeneral) + tabPanel('estanteria', 'deco', tab0, pDeco) + tabPanel('estanteria', 'baldas', tab0, pBaldas);
+  const body = tabPanel('estanteria', 'general', tab0, pGeneral + pBaldas) + tabPanel('estanteria', 'deco', tab0, pDeco);
   const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>', tabsBar('estanteria', TABS, tab0)));
   const q = s => $(s, sh);
-  const curKey = () => presetSel === 'auto' ? detectPreset(q('#u-name').value, q('#u-tipo').value) : presetSel;
-  const tmp = () => ({ ...u, name:q('#u-name').value, tipo:q('#u-tipo').value, preset:curKey(), wood:u.wood, decor:u.decor });
+  const curKey = () => presetSel === 'auto' ? detectPreset(q('#u-name').value, u.tipo) : presetSel;
+  const tmp = () => ({ ...u, name:q('#u-name').value, preset:curKey(), wood:u.wood, decor:u.decor });
   function drawStyle(){
     const t = tmp(), th = themeOf(t);
-    q('#u-preview').textContent = (presetSel === 'auto' ? 'Automático: ' + (PRESETS[curKey()] ? PRESETS[curKey()].name : 'paleta propia según el nombre') : 'Elegido: ' + (PRESETS[presetSel] ? PRESETS[presetSel].name : 'paleta propia')) + ' · mueble ' + th.name.toLowerCase();
+    q('#u-preview').textContent = (presetSel === 'auto' ? 'Ahora: ' + (PRESETS[curKey()] ? PRESETS[curKey()].name : 'colores propios') + ' · ' : '') + 'mueble ' + th.name.toLowerCase();
     q('#u-pal').innerHTML = th.pal.slice(0, 9).map(c => `<i style="background:${c[0]}"></i>`).join('');
     q('#u-woodsec').hidden = th.key !== 'generico';
-    q('#u-presets').innerHTML = [['auto', 'Automático'], ...Object.entries(PRESETS).map(([k, p]) => [k, p.name]), ['gen', 'Paleta propia']].map(([k, l]) => `<button class="chip" type="button" data-preset="${k}" aria-pressed="${presetSel === k}">${l}</button>`).join('');
+    const furn = k => themeOf({ ...t, preset:k }).name.toLowerCase();
+    q('#u-presets').innerHTML = [['auto', 'Automático', ''], ...Object.entries(PRESETS).map(([k, p]) => [k, p.name, furn(k)]), ['gen', 'Colores propios', 'clásico']].map(([k, l, f]) => `<button class="chip" type="button" data-preset="${k}" aria-pressed="${presetSel === k}">${l}${f ? ` <small>${esc(f)}</small>` : ''}</button>`).join('');
     q('#u-wood').innerHTML = `<button class="chip" type="button" data-wood="" aria-pressed="${!u.wood}">Del estilo</button>` + WOODS.map(w => `<button class="chip" type="button" data-wood="${w}" aria-pressed="${u.wood === w}" aria-label="Madera ${w}" style="background:${w};min-width:40px;border-color:${u.wood === w ? 'var(--acc)' : 'transparent'}"></button>`).join('');
     const on = new Set(themeDecor(t, th));
     q('#u-decor').innerHTML = Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC); return `<button class="decor-opt" type="button" data-decor="${k}" aria-pressed="${on.has(k)}" aria-label="${DECO_NAMES[k]}" title="${DECO_NAMES[k]}"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * Math.min(.9, 50 / d.h)}" height="${d.h * Math.min(.9, 50 / d.h)}">${d.s}</svg></button>`; }).join('');
     q('#u-decor-auto').setAttribute('aria-pressed', u.decor ? 'false' : 'true');
     const man = u.decorMode === 'manual';
-    q('#u-dmode').innerHTML = chipsHtml([['auto', 'Automática'], ['manual', 'La elijo y la coloco yo']], man ? 'manual' : 'auto', 'data-dmode');
-    q('#u-dnote').textContent = man ? 'Toca un objeto para añadirlo al final. Luego, en la estantería, mantenlo pulsado para moverlo, o tócalo para cambiar su tamaño o quitarlo.' : 'Marca qué objetos puede usar; se reparten solos entre los libros.';
-    q('#u-dauto').hidden = man;
+    const none = u.decorMode === 'none';
+    q('#u-dmode').innerHTML = chipsHtml([['auto', 'Automática'], ['manual', 'La elijo y la coloco yo'], ['none', 'Sin objetos']], none ? 'none' : man ? 'manual' : 'auto', 'data-dmode');
+    q('#u-dnote').textContent = none ? 'Esta estantería no lleva objetos decorativos.' : man ? 'Toca un objeto para añadirlo al final. Luego, en la estantería, mantenlo pulsado para moverlo, o tócalo para cambiar su tamaño o quitarlo.' : 'Marca qué objetos puede usar; se reparten solos entre los libros.';
+    q('#u-dauto').hidden = man || none; q('#u-decor').hidden = none;
     if(man){ q('#u-decor').innerHTML = Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC), s = Math.min(.9, 50 / d.h); return `<button class="decor-opt" type="button" data-dadd="${k}" aria-label="Añadir ${DECO_NAMES[k]}" style="opacity:1"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * s}" height="${d.h * s}">${d.s}</svg></button>`; }).join('');
       const items = u.decorItems || [];
       q('#u-dplaced').innerHTML = items.length ? `<div class="chips">${items.map(it => `<span class="chip on">${esc(DECO_NAMES[it.k] || it.k)} <button type="button" data-drm="${it.id}" aria-label="Quitar" style="all:unset;cursor:pointer">×</button></span>`).join('')}</div>` : '<span class="note">Aún no hay objetos colocados.</span>'; }
     else q('#u-dplaced').innerHTML = '';
   }
   drawStyle();
-  sh.addEventListener('input', e => { if(e.target.id === 'u-name' || e.target.id === 'u-tipo') drawStyle(); });
+  sh.addEventListener('input', e => { if(e.target.id === 'u-name') drawStyle(); });
   sh.addEventListener('click', async e => {
     const t = e.target, g = s => t.closest(s);
     if(g('[data-sortshelf]')){ openSort(g('[data-sortshelf]').dataset.sortshelf); return; }
     if(g('[data-preset]')){ presetSel = g('[data-preset]').dataset.preset; if(presetSel === 'gen') u.hue = u.hue ?? Math.floor(Math.random() * 360); drawStyle(); }
     else if(g('[data-wood]')){ u.wood = g('[data-wood]').dataset.wood; drawStyle(); }
-    else if(g('[data-spcov]')){ state.settings.spineFromCover = g('[data-spcov]').dataset.spcov === '1'; save(); renderAll(); $$('[data-spcov]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-spcov]'))); }
     else if(g('[data-decor]')){ const k = g('[data-decor]').dataset.decor; const cur = [...themeDecor(tmp(), themeOf(tmp()))]; const i = cur.indexOf(k); if(i >= 0) cur.splice(i, 1); else cur.push(k); u.decor = cur.length ? cur : null; drawStyle(); }
     else if(g('#u-decor-auto')){ u.decor = null; drawStyle(); }
     else if(g('[data-dmode]')){ const m = g('[data-dmode]').dataset.dmode;
@@ -76,7 +76,7 @@ function openUnitForm(unitId){
     }
     else if(g('#u-save')){
       const name = q('#u-name').value.trim(); if(!name){ toast('Ponle un nombre a la estantería'); return; }
-      const key = curKey(), data = { name, tipo:q('#u-tipo').value.trim(), preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue, decorMode:u.decorMode || 'auto', decorItems:u.decorItems || [] };
+      const key = curKey(), data = { name, tipo:u.tipo || '', preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue, decorMode:u.decorMode || 'auto', decorItems:u.decorItems || [] };
       if(isNew){
         const names = (q('#u-newshelves').value || '').split(',').map(s => s.trim()).filter(Boolean);
         Object.assign(u, data); u.shelves = (names.length ? names : ['General']).map(mkShelf); state.units.push(u); ui.active = state.units.length - 1;
@@ -163,12 +163,8 @@ function statsHtml(){
 function openSettings(){
   // Secciones plegables: lo de uso diario abierto (apariencia, nube); el resto, cerrado
   const body = `
-    ${fold('Apariencia', `<div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>
-      <div class="sec"><span class="lbl">Colores de los lomos automáticos</span><div class="chips">${chipsHtml([['1', 'Sacados de la portada'], ['0', 'De la paleta de la estantería']], state.settings.spineFromCover === false ? '0' : '1', 'data-spcov')}</div><p class="note">Los lomos que hayas pintado a mano no cambian.</p></div>
-      <div class="sec"><span class="lbl">Objetos decorativos</span><div class="chips">${chipsHtml([['1', 'Mostrar'], ['0', 'Ocultar']], state.settings.decor === false ? '0' : '1', 'data-decor')}</div></div>`, true)}
+    ${fold('Apariencia', `<div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>`, true)}
     ${fold('Cuenta y copia en la nube', `<div id="cloud-sec">${cloudSecHtml()}</div>`, true)}
-    ${fold('Completar fichas', `<p class="note">Busca en internet las sinopsis que faltan y cambia por la española las que están en inglés si el libro está traducido. Las que escribiste tú en español no se tocan.</p>
-      <button class="btn" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div>`)}
     ${fold('Copia en archivo', `<p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
       <div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir copia</button><button class="btn" type="button" data-do="import">Importar copia</button></div>
       <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div>`)}
@@ -180,9 +176,6 @@ function openSettings(){
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
     if(g('[data-theme]')){ state.settings.theme = g('[data-theme]').dataset.theme; save(); applyTheme(); $$('[data-theme]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-theme]'))); }
-    else if(g('[data-spcov]')){ state.settings.spineFromCover = g('[data-spcov]').dataset.spcov === '1'; save(); renderAll(); $$('[data-spcov]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-spcov]'))); }
-    else if(g('[data-decor]')){ state.settings.decor = g('[data-decor]').dataset.decor === '1'; save(); renderAll(); $$('[data-decor]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-decor]'))); }
-    else if(g('[data-do="fillsyn"]')) fillSynopses(g('[data-do="fillsyn"]'), $('#s-fill', sh));
     else if(g('[data-do="export"]')) exportJson();
     else if(g('[data-do="share"]')) shareJson();
     else if(g('[data-do="import"]')) $('#s-file', sh).click();

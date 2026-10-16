@@ -2,7 +2,7 @@
 /* Mi TBR — barra de añadir con sugerencias */
 /* ---------- Añadir: búsqueda con sugerencias ---------- */
 const addInput = $('#addInput'); let sAbort = null, sTimer = null, results = [];
-function hideSuggest(){ $('#suggest').hidden = true; }
+function hideSuggest(){ const s = $('#suggest'); if(s) s.hidden = true; }
 function suggestMsg(msg, withManual){
   const ul = $('#suggest'); ul.hidden = false;
   ul.innerHTML = `<li class="sg-note">${esc(msg)}</li>${withManual ? manualRow() : ''}`;
@@ -27,10 +27,10 @@ async function runSearch(q){
 }
 addInput.addEventListener('input', () => { clearTimeout(sTimer); const q = addInput.value.trim(); if(q.length < 3){ hideSuggest(); return; } sTimer = setTimeout(() => runSearch(q), 350); });
 addInput.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(sTimer); const q = addInput.value.trim(); if(q.length >= 2) runSearch(q); } });
-$('#suggest').addEventListener('click', e => {
+$('#suggest').addEventListener('click', async e => {
   const p = e.target.closest('[data-pick]'), m = e.target.closest('[data-manual]');
-  if(p){ const it = results[+p.dataset.pick]; hideSuggest(); addInput.value = ''; openBookForm({ item:it }); }
-  else if(m){ const t = addInput.value.trim(); hideSuggest(); addInput.value = ''; openBookForm({ item:{ title:t } }); }
+  if(p){ const it = results[+p.dataset.pick]; hideSuggest(); addInput.value = ''; await leaveAdd(); openBookForm({ item:it }); }
+  else if(m){ const t = addInput.value.trim(); hideSuggest(); addInput.value = ''; await leaveAdd(); openBookForm({ item:{ title:t } }); }
 });
 document.addEventListener('click', e => { if(!e.target.closest('.addbar')) hideSuggest(); });
-$('#btnAddManual').addEventListener('click', () => { const t = addInput.value.trim(); hideSuggest(); addInput.value = ''; openBookForm({ item:t ? { title:t } : null }); });
+$('#btnAddManual').addEventListener('click', async () => { const t = addInput.value.trim(); hideSuggest(); addInput.value = ''; await leaveAdd(); openBookForm({ item:t ? { title:t } : null }); });

@@ -64,7 +64,7 @@ function materializeDecor(id){
 }
 function innerWidth(th){ const c = $('#carousel'); const slide = Math.min((c.clientWidth || 360) - 28, 420); return slide - 2 * th.P - 20; }
 function cabinetHtml(u, i){
-  const th = themeOf(u), W = innerWidth(th), decorOn = state.settings.decor !== false, manual = u.decorMode === 'manual';
+  const th = themeOf(u), W = innerWidth(th), decorOn = u.decorMode !== 'none', manual = u.decorMode === 'manual';
   const seq = unitSeq(u), total = u.shelves.reduce((n, sh) => n + state.books.filter(b => b.shelfId === sh.id).length, 0), shown = seq.length;
   // Las baldas (subgéneros) se colocan seguidas: solo hay tantas filas como hagan falta.
   const plan = !decorOn ? [] : manual ? (u.decorItems || []) : autoPlan(u, th, seq);
@@ -83,11 +83,11 @@ function cabinetHtml(u, i){
   const rows = packRows(items, W, th.mullion);
   // Una balda solo con un adorno automático no merece una fila nueva
   if(!manual) while(rows.length > 1 && !rows[rows.length - 1].some(it => it.book || it.gap)) rows.pop();
-  const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro desde arriba'}</div>` : '';
+  const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro con el botón + de abajo'}</div>` : '';
   const rowsHtml = rows.map((row, ri) => `<div class="row" data-row="${u.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>${ri === 0 ? hint : ''}</div>`).join('');
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';
-  return `<section class="slide" data-unit="${u.id}" data-i="${i}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
-    <button class="unit-btn" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Editar la estantería ${esc(u.name)}">${ICON.dots}</button>${manual && decorOn ? `<button class="unit-btn deco-add" type="button" data-act="addDecor" data-unit="${u.id}" aria-label="Añadir decoración">${ICON.plus}</button>` : ''}${crownHtml(u, th)}
+  return `<section class="slide${i === ui.active ? ' on' : ''}" data-unit="${u.id}" data-i="${i}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
+    ${crownHtml(u, th)}
     <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${crownHead(u, th)}${rowsHtml}</div><div class="pil r"></div></div>
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
 }
@@ -110,16 +110,14 @@ function renderHeader(){
   const ban = $('#banner');
   if(state.books.some(b => b.ejemplo)){ ban.hidden = false; ban.innerHTML = `<span>Los libros de ejemplo te muestran cómo queda. Cuando quieras, bórralos.</span><button class="btn sm" type="button" data-act="clearExamples">Borrar ejemplos</button>`; }
   else ban.hidden = true;
-  document.body.dataset.nodecor = state.settings.decor === false ? '1' : '';
 }
 function renderTabs(){
   $('#tabs').innerHTML = state.units.map((u, i) => `<button class="tab" type="button" role="tab" data-i="${i}" aria-selected="${i === ui.active}">${esc(u.name)} <small>${state.books.filter(b => b.unitId === u.id).length}</small></button>`).join('')
     + `<button class="tab add" type="button" data-act="newUnit" aria-label="Nueva estantería">+</button>`;
 }
 function renderCarousel(){
-  const c = $('#carousel'), sl = c.scrollLeft; ui.width = c.clientWidth;
+  const c = $('#carousel'); ui.width = c.clientWidth;
   c.innerHTML = state.units.map(cabinetHtml).join('');
-  c.style.scrollBehavior = 'auto'; c.scrollLeft = sl; c.style.scrollBehavior = '';
 }
 function setAccent(){
   const u = state.units[ui.active]; if(!u) return;
@@ -129,22 +127,16 @@ function setAccent(){
 }
 function renderAll(){
   ui.active = clamp(ui.active, 0, state.units.length - 1);
-  renderHeader(); renderTabs(); renderCarousel(); setAccent();
+  renderHeader(); renderTabs(); renderCarousel(); setAccent(); if(typeof renderReading === 'function') renderReading();
 }
-function goTo(i, smooth = true){
-  const c = $('#carousel'), s = c.children[i]; if(!s) return;
-  c.scrollTo({ left:s.offsetLeft - (c.clientWidth - s.offsetWidth) / 2, behavior:smooth ? 'smooth' : 'auto' });
+/* Se ve una estantería cada vez; se cambia tocando su nombre en la fila de arriba */
+function goTo(i){
+  i = clamp(i, 0, state.units.length - 1); const changed = i !== ui.active; ui.active = i;
+  $$('#carousel .slide').forEach(s => s.classList.toggle('on', +s.dataset.i === i));
+  $$('#tabs .tab[data-i]').forEach(t => t.setAttribute('aria-selected', +t.dataset.i === i)); setAccent();
+  const t = $(`#tabs .tab[data-i="${i}"]`); t && t.scrollIntoView({ inline:'center', block:'nearest', behavior:'smooth' });
+  if(changed) scrollTo({ top:0 });
 }
-let scrollRaf = 0;
-$('#carousel').addEventListener('scroll', () => {
-  cancelAnimationFrame(scrollRaf);
-  scrollRaf = requestAnimationFrame(() => {
-    const c = $('#carousel'), mid = c.scrollLeft + c.clientWidth / 2; let best = 0, bd = 1e9;
-    [...c.children].forEach((s, i) => { const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid); if(d < bd){ bd = d; best = i; } });
-    if(best !== ui.active){ ui.active = best; $$('#tabs .tab[data-i]').forEach(t => t.setAttribute('aria-selected', t.dataset.i == best)); setAccent();
-      const t = $(`#tabs .tab[data-i="${best}"]`); t && t.scrollIntoView({ inline:'center', block:'nearest', behavior:'smooth' }); }
-  });
-}, { passive:true });
 function flash(id){
   requestAnimationFrame(() => { const it = $(`.it[data-id="${id}"]`); if(it){ it.scrollIntoView({ block:'nearest', inline:'nearest' }); it.firstElementChild.animate([{ transform:'translateY(-18px)' }, { transform:'translateY(0)' }], { duration:600, easing:'ease-out' }); } });
 }
