@@ -19,14 +19,10 @@ function crownAcademia(name) {
 }
 
 function crownModern(name) {
-  // Rótulo blanco a la altura común (110) con un toque de thriller: cinta policial en la esquina y una lupa roja
-  const clip = `<clipPath id="mclip"><path d="M0 110V12Q0 0 12 0H346Q358 0 358 12V110Z"/></clipPath>`;
-  const tape = `<g clip-path="url(#mclip)"><g transform="rotate(32 330 18)"><rect x="262" y="10" width="150" height="14" fill="#f2c230" stroke="#1d1b18" stroke-width=".6"/>
-    <text x="337" y="20.200" text-anchor="middle" font-family="Poppins,sans-serif" font-size="7.200" font-weight="700" letter-spacing="1.200" fill="#1d1b18">NO PASAR · NO PASAR</text></g></g>`;
+  // Rótulo blanco a la altura común (110); la línea roja bajo el nombre es el guiño a thriller
   const inner = `<path d="M0 110V12Q0 0 12 0H346Q358 0 358 12V110Z" fill="#fff" stroke="#d4d0c8" stroke-width="1"/><rect x="0" y="100" width="358" height="10" fill="#ece9e3"/><rect x="0" y="99" width="358" height="1" fill="#22201d" opacity=".08"/>
-   <rect x="24" y="30" width="310" height="1" fill="#22201d" opacity=".14"/><rect x="24" y="78" width="310" height="1" fill="#c0392b" opacity=".55"/>
-   <g transform="translate(179 22)"><circle r="5" fill="#fff" stroke="#c0392b" stroke-width="1.800"/><path d="M3.600 3.600L8 8" stroke="#c0392b" stroke-width="2.200" stroke-linecap="round"/></g>${tape}`;
-  return `<div class="crownw">${sv(110, inner, clip)}<div class="plaq" style="top:47px;color:#22201d;font:600 12.500px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
+   <rect x="24" y="30" width="310" height="1" fill="#22201d" opacity=".14"/><rect x="24" y="78" width="310" height="1" fill="#c0392b" opacity=".55"/><circle cx="179" cy="30.500" r="3" fill="#d9764a"/>`;
+  return `<div class="crownw">${sv(110, inner)}<div class="plaq" style="top:47px;color:#22201d;font:600 12.500px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
 }
 
 function crownRomance(name) {
