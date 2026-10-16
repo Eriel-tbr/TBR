@@ -13,7 +13,7 @@ document.addEventListener('click', e => {
     else if(a === 'clearExamples'){ const n = state.books.filter(b => b.ejemplo).length; state.books = state.books.filter(b => !b.ejemplo); state.units.forEach(u => u.shelves.forEach(s => s.order = s.order.filter(id => bookOf(id)))); save(); renderAll(); toast(`${n} libros de ejemplo borrados`); }
     return;
   }
-  const tab = g('#tabs .tab[data-i]'); if(tab) goTo(+tab.dataset.i);
+  const tab = g('#tabs [data-i]'); if(tab) goTo(+tab.dataset.i);
 });
 document.addEventListener('keydown', e => { const p = e.target.closest && e.target.closest('.crown-hit'); if(p && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); p.click(); } });
 $('#btnFilter').addEventListener('click', openFilters);

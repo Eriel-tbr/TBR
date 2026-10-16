@@ -23,16 +23,17 @@ function renderReading(){
   const years = new Map(); read.forEach(b => { const y = b.readAt ? new Date(b.readAt).getFullYear() : 'Sin fecha'; (years.get(y) || years.set(y, []).get(y)).push(b); });
   const stars = b => b.rating ? `<span class="stars-t" aria-label="${b.rating} de 5">${'★'.repeat(b.rating)}${'☆'.repeat(5 - b.rating)}</span>` : '';
   el.innerHTML = `
-    <section class="rd-sec"><h2>Leyendo ahora</h2>${now.length ? `<ul class="rd-list">${now.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Nada empezado. Abre un libro y toca «Empezar a leer».</p>'}</section>
-    <section class="rd-sec"><h2>Siguiente lectura</h2>${next.length ? `<ul class="rd-list">${next.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Sin elegir. En la ficha de un libro: «Siguiente lectura», o deja que decida la ruleta.</p>'}</section>
-    <section class="rd-sec"><h2>Leídos</h2>${read.length ? [...years].map(([y, list]) => `<div class="rd-year"><span>${y}</span><span class="note">${list.length} ${list.length === 1 ? 'libro' : 'libros'}</span></div><ul class="rd-list">${list.map(b => readingRow(b, stars(b))).join('')}</ul>`).join('') : '<p class="rd-empty">Todavía ninguno marcado como leído.</p>'}</section>`;
+    <section class="rd-sec"><h2>Leyendo ahora</h2>${now.length ? `<ul class="rd-list">${now.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Nada empezado.</p>'}</section>
+    <section class="rd-sec"><h2>Siguiente lectura</h2>${next.length ? `<ul class="rd-list">${next.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Sin elegir.</p>'}</section>
+    <section class="rd-sec"><h2>Leídos</h2>${read.length ? [...years].map(([y, list]) => `<div class="rd-year"><span>${y}</span><span class="note">${list.length} ${list.length === 1 ? 'libro' : 'libros'}</span></div><ul class="rd-list">${list.map(b => readingRow(b, stars(b))).join('')}</ul>`).join('') : '<p class="rd-empty">Todavía ninguno.</p>'}</section>
+    <section class="rd-sec"><h2>Estadísticas</h2>${statsHtml()}</section>`;
 }
 
 /* ---------- Añadir un libro (botón grande del centro) ---------- */
 /* La barra de búsqueda vive escondida en #addhome y se mueve dentro de la hoja mientras está abierta */
 function openAdd(){
   const bar = $('.addbar');
-  const sh = openSheet(sheetT('Añadir un libro', '<div id="addslot"></div><p class="note">Escribe y elige el tuyo de la lista; si no aparece, «A mano».</p>'), () => { $('#addhome').append(bar); hideSuggest(); });
+  const sh = openSheet(sheetT('Añadir un libro', '<div id="addslot"></div>'), () => { $('#addhome').append(bar); hideSuggest(); });
   sh.classList.add('add-sheet'); $('#addslot', sh).append(bar);
   setTimeout(() => addInput.focus(), 60);
 }
@@ -41,8 +42,7 @@ async function leaveAdd(){ if($('.sheet .addbar')) await closeSheet(); }
 
 /* ---------- Completar fichas (desde Estanterías) ---------- */
 function openFill(){
-  const sh = openSheet(sheetT('Completar fichas', `<p class="note">Busca en internet las sinopsis que faltan y cambia por la española las que están en inglés si el libro está traducido. Las que escribiste tú en español no se tocan.</p>
-    <button class="btn primary" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div>
-    <p class="note">Para revisar un libro concreto (título, páginas, serie…): ábrelo → Editar → «Revisar con internet».</p>`));
+  const sh = openSheet(sheetT('Completar fichas', `<p class="note">Busca las sinopsis que faltan y las que están en inglés si el libro está traducido. Las tuyas no se tocan.</p>
+    <button class="btn primary" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div>`));
   sh.addEventListener('click', e => { const b = e.target.closest('[data-do="fillsyn"]'); if(b) fillSynopses(b, $('#s-fill', sh)); });
 }

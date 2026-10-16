@@ -64,6 +64,13 @@ const DECO = {
     <g>${fl(10, 15, 5, c.f1)}${fl(25, 8, 5.5, c.f2)}${fl(40, 17, 5, c.f1)}${fl(6, 27, 4, c.f3)}${fl(17, 20, 3.6, c.f3)}${fl(33, 24, 3.8, c.f2)}</g>
     <path d="M14 50h20c1 5 4 8 3 14-1 6-5 10-13 10s-12-4-13-10c-1-6 2-9 3-14z" fill="url(#${v})"/><ellipse cx="24" cy="50" rx="10" ry="2.4" fill="${darken(c.vase, .45)}"/><path d="M17 60c2 3 12 3 14 0" stroke="${c.f2}" stroke-width="1" fill="none" opacity=".6"/><ellipse cx="18" cy="62" rx="2" ry="8" fill="#fff" opacity=".35"/>` } },
 
+  // Toque de thriller: lupa y expediente con sello rojo
+  lupa: c => { const m = U('m'), g = U('g'); return { w: 58, h: 30, s: `<defs>${G.lin(m, [[0, '#f1d68f'], [.5, '#b98d3c'], [1, '#6a4a14']])}${G.rad(g, [[0, '#ffffff', .55], [.7, '#cfe3ee', .25], [1, '#9fb8c8', .35]], .35, .35, .7)}</defs>
+    <ellipse cx="30" cy="27" rx="26" ry="3" fill="#000" opacity=".22"/><rect x="30" y="16" width="26" height="6" rx="3" fill="#3a2414" transform="rotate(14 30 19)"/>
+    <circle cx="18" cy="15" r="12" fill="url(#${g})" stroke="url(#${m})" stroke-width="3.500"/><path d="M11 10a9 9 0 0 1 8-4" stroke="#fff" stroke-width="1.500" fill="none" opacity=".7" stroke-linecap="round"/>` } },
+  expediente: c => ({ w: 58, h: 22, s: `<ellipse cx="29" cy="20" rx="27" ry="2.500" fill="#000" opacity=".2"/><path d="M3 6h18l3 3h31v10H3z" fill="#c9a46a" stroke="#7a5a2a" stroke-width=".6"/>
+    <rect x="3" y="9" width="52" height="10" fill="#d8b77e" stroke="#7a5a2a" stroke-width=".6"/><rect x="14" y="11" width="30" height="6" rx="1" fill="none" stroke="#c0392b" stroke-width="1.100" transform="rotate(-6 29 14)"/>
+    <text x="29" y="15.800" text-anchor="middle" font-family="Poppins,sans-serif" font-size="4.300" font-weight="700" fill="#c0392b" transform="rotate(-6 29 14)" letter-spacing=".4">CONFIDENCIAL</text>` }),
   taza: c => { const a = U('a'); return { w: 54, h: 36, s: `<defs>${G.lin(a, [[0, lighten(c.cup, .4)], [.5, c.cup], [1, darken(c.cup, .25)]])}</defs>
     <ellipse cx="25" cy="31" rx="22" ry="4.5" fill="url(#${a})"/><ellipse cx="25" cy="30" rx="15" ry="2.6" fill="${darken(c.cup, .1)}"/>
     <path d="M10 12h30c0 11-3 19-15 19S10 23 10 12z" fill="url(#${a})"/><path d="M40 15h3c5 0 5 8 0 8h-3.5" fill="none" stroke="${c.cup}" stroke-width="2.6"/><ellipse cx="25" cy="12" rx="15" ry="3" fill="#7a4a2a"/><ellipse cx="25" cy="11.5" rx="12" ry="2" fill="#a46a3c"/>

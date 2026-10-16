@@ -22,8 +22,8 @@ function storeLinksHtml(b){
   ];
   const chips = l => `<div class="chips">${l.map(([n, u]) => `<a class="chip" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)} ↗</a>`).join('')}</div>`;
   const found = (b.edsEn || []).filter(e => e.url).slice(0, 6);
-  return `<div class="sec"><span class="lbl">En español</span>${chips(links)}<p class="note">${isbn ? 'Busca por el ISBN de la edición española.' : 'Busca por título y autor/a.'} Casa del Libro se abre a través de Google.</p></div>
-    <div class="sec"><span class="lbl">En inglés</span>${chips(linksEn)}${found.length ? `<div class="eds"><span class="note">Encontradas en Books2Door:</span>${found.map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${[e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''].filter(Boolean).map(esc).join(' · ')}</a>`).join('')}</div>` : ''}</div>`;
+  return `<div class="sec"><span class="lbl">Comprar en español</span>${chips(links)}</div>
+    <div class="sec"><span class="lbl">Comprar en inglés</span>${chips(linksEn)}${found.length ? `<div class="eds"><span class="note">Encontradas en Books2Door:</span>${found.map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${[e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''].filter(Boolean).map(esc).join(' · ')}</a>`).join('')}</div>` : ''}</div>`;
 }
 
 /* ---------- Audiolibro ---------- */
@@ -42,7 +42,7 @@ function audioHtml(b, st){
     <div class="chips"><button class="chip" type="button" data-xdo="audio">${a.at ? 'Volver a buscar' : 'Buscar audiolibro'}</button>
       <a class="chip" href="https://www.audible.es/search?keywords=${enc(q)}" target="_blank" rel="noopener">Audible ↗</a>
       <a class="chip" href="https://www.google.com/search?q=${enc('site:storytel.com ' + q)}" target="_blank" rel="noopener">Storytel ↗</a></div>
-    <p class="note">Ninguna fuente indica si un audiolibro es dramatizado: lo marcas tú. «¿Dramatizado?» sale cuando el título o la editorial lo sugieren.</p></div>`;
+    <p class="note">«¿Dramatizado?» es solo una sospecha por el título: márcalo tú.</p></div>`;
 }
 const audioBusy = new Set(), seriesBusy = new Set();
 async function loadAudio(id, paint){
@@ -83,6 +83,35 @@ function seriesHtml(b, st){
     ${remote ? `<p class="note">Títulos de los que faltan según <a href="${esc(remote.url || 'https://hardcover.app')}" target="_blank" rel="noopener">Hardcover</a> (suelen ser los originales en inglés).</p>`
       : `<button class="chip" type="button" data-xdo="serie">Ver los tomos que faltan</button>`}</div>`;
 }
+/* Tomos de una serie (Hardcover vía api/serie), con caché. Sirve también para un libro que aún no está guardado */
+async function fetchSeriesData(name, title, author){
+  const k = norm(name), c = seriesCache[k]; if(c && Date.now() - c.at < SERIES_TTL) return c.data;
+  const url = API_BASE + `api/serie?s=${enc(name)}&t=${enc(title || '')}&a=${enc(author || '')}`;
+  let r = await fetchTimeout(url, null, 15000).catch(() => null);
+  if(!r || r.status >= 500) r = await fetchTimeout(url, null, 15000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  seriesCache[k] = { at:Date.now(), data:await r.json() }; saveSeriesCache(); return seriesCache[k].data;
+}
+/* Libros añadidos de golpe (tomos de una saga): se completan en segundo plano con portada, páginas, año, sinopsis e idiomas */
+async function completeNewBooks(ids){
+  for(const id of ids){
+    const b0 = bookOf(id); if(!b0) continue;
+    try{
+      const res = await searchBooks(b0.title + ' ' + lastName(b0.author), new AbortController().signal);
+      const m = bestMatch((res && res.items) || [], [b0.title], b0.author); if(!m.item || !m.sure) continue;
+      const it = await enrichBook(m.item, new AbortController().signal), b = bookOf(id); if(!b) continue;
+      if(!b.cover && (it.covers || []).length){ b.cover = it.covers[0]; b.cover2 = it.covers[1] || ''; }
+      if(!b.pages && it.pages) b.pages = it.pages; if(!b.year && it.year) b.year = it.year;
+      if(!(b.synopsis || '').trim() && it.desc) b.synopsis = it.desc;
+      b.langs = [...new Set([...(b.langs || []), ...detectLangs(it)])];
+      if(it.eds && it.eds.length) b.eds = it.eds.map(({ synopsis, ...e }) => e); if(it.edsEn && it.edsEn.length) b.edsEn = it.edsEn;
+      if(it.esTitle && norm(it.esTitle) !== norm(b.title)){ if(b.useEs){ b.origTitle = b.title; b.title = it.esTitle; } else b.esTitle = it.esTitle; }
+      delete b.useEs; save(); renderAll();
+    }catch(e){}
+  }
+  ids.forEach(id => { const b = bookOf(id); if(b && b.useEs){ delete b.useEs; save(); } });
+  if(typeof refreshCoverPals === 'function') refreshCoverPals();
+}
 async function loadSeries(id, paint){
   const b = bookOf(id); if(!b || !b.series) return;
   const k = serKey(b), { t } = titlesOf(b); if(seriesBusy.has(k)) return; seriesBusy.add(k);
@@ -105,18 +134,20 @@ function addVolume(b, n){
 /* Engancha las tres partes en la ficha ya pintada */
 function fichaExtras(sh, id){
   const b = bookOf(id); if(!b) return;
-  const box = $('#dextra', sh), shop = $('#dshop', sh); if(!box) return;
+  // Serie en su pestaña (si la hay); audiolibro y tiendas en «Ediciones»
+  const box = $('#dextra', sh), shop = $('#dshop', sh); if(!shop) return;
   let aSt = '', sSt = '';
-  const paint = () => { const cur = bookOf(id); if(!cur || !box.isConnected) return; box.innerHTML = seriesHtml(cur, sSt) + audioHtml(cur, aSt); if(shop) shop.innerHTML = storeLinksHtml(cur); };
+  const paint = () => { const cur = bookOf(id); if(!cur || !shop.isConnected) return; if(box) box.innerHTML = seriesHtml(cur, sSt); shop.innerHTML = audioHtml(cur, aSt) + storeLinksHtml(cur); };
   paint();
   if(!b.audio || Date.now() - (b.audio.at || 0) > AUDIO_TTL) loadAudio(id, s => { aSt = s; paint(); });
   const sc = b.series && seriesCache[serKey(b)]; if(sc && Date.now() - sc.at > SERIES_TTL) loadSeries(id, s => { sSt = s; paint(); });
-  box.addEventListener('click', async e => {
+  const onClick = async e => {
     const g = s => e.target.closest(s), cur = bookOf(id); if(!cur) return;
     if(g('[data-xdo="audio"]')) loadAudio(id, s => { aSt = s; paint(); });
     else if(g('[data-xdo="serie"]')) loadSeries(id, s => { sSt = s; paint(); });
     else if(g('[data-addvol]')){ const n = +g('[data-addvol]').dataset.addvol; await closeSheet(); addVolume(cur, n); }
     else if(g('[data-open-book]')){ const o = g('[data-open-book]').dataset.openBook; if(o !== id){ await closeSheet(); openDetail(o); } }
-  });
-  box.addEventListener('change', e => { if(e.target.matches('[data-adrama]')){ const cur = bookOf(id); cur.audioDrama = e.target.checked; save(); } });
+  };
+  [box, shop].forEach(el => { if(!el) return; el.addEventListener('click', onClick);
+    el.addEventListener('change', e => { if(e.target.matches('[data-adrama]')){ const cur = bookOf(id); cur.audioDrama = e.target.checked; save(); } }); });
 }

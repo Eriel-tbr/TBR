@@ -3,8 +3,8 @@
 /* ---------- Ficha de un libro ---------- */
 function openDetail(id){
   const b0 = bookOf(id); if(!b0) return; lastTab.ficha = 'resumen'; // al abrir, siempre el resumen; al redibujar se mantiene la pestaña
-  // Pestañas: Resumen · Detalles · Serie y audio · Comprar. Editar y Mover, siempre a mano en el pie.
-  const TABS = [['resumen', 'Resumen'], ['detalles', 'Detalles'], ['extra', b0.series && b0.series.name ? 'Serie y audio' : 'Audio'], ['comprar', 'Comprar']];
+  // Pestañas: Resumen · Detalles · Serie (si es de una saga) · Ediciones (audiolibro y tiendas). Editar y Mover, siempre en el pie.
+  const TABS = [['resumen', 'Resumen'], ['detalles', 'Detalles'], ...(b0.series && b0.series.name ? [['extra', 'Serie']] : []), ['comprar', 'Ediciones']];
   const sh = openSheet(sheetT('Ficha', '<div id="dbody"></div>', '<button class="btn" type="button" data-do="move">Mover a…</button><button class="btn primary" type="button" data-do="edit">Editar</button>',
     tabsBar('ficha', TABS, startTab('ficha', TABS))));
   const draw = () => {
@@ -23,7 +23,7 @@ function openDetail(id){
         ${b.status === 'pendiente' ? '<button class="btn" type="button" data-do="finish">Ya lo he leído</button>' : ''}
         ${b.status === 'leido' ? '<button class="btn" type="button" data-do="pending">Volver a pendiente</button>' : ''}
         ${b.status !== 'leido' ? `<button class="btn" type="button" data-do="next">${b.next ? 'Quitar de siguiente' : 'Siguiente lectura'}</button>` : ''}</div>
-      ${b.synopsis ? `<div class="sec"><span class="lbl">Sinopsis</span><div class="synopsis clamp" id="dsyn">${esc(b.synopsis)}</div>${b.synopsis.length > 420 ? '<button class="linkbtn" type="button" data-do="more">Leer más</button>' : ''}</div>` : '<p class="note">Sin sinopsis. Puedes completarla en Editar → Revisar con internet.</p>'}`;
+      ${b.synopsis ? `<div class="sec"><span class="lbl">Sinopsis</span><div class="synopsis clamp" id="dsyn">${esc(b.synopsis)}</div>${b.synopsis.length > 420 ? '<button class="linkbtn" type="button" data-do="more">Leer más</button>' : ''}</div>` : '<p class="note">Sin sinopsis.</p>'}`;
     const detalles = `
       <dl class="kv"><dt>Páginas</dt><dd>${b.pages || '—'}</dd><dt>Publicación</dt><dd>${b.year || '—'}</dd>
         <dt>Idiomas</dt><dd>${(b.langs || []).length === 2 ? 'Español e inglés' : (b.langs || [])[0] === 'es' ? 'Solo español' : (b.langs || [])[0] === 'en' ? 'Solo inglés' : '—'}</dd>
@@ -33,14 +33,15 @@ function openDetail(id){
       ${b.notes ? `<div class="sec"><span class="lbl">Notas</span><div class="synopsis">${esc(b.notes)}</div></div>` : ''}
       <button class="btn danger" type="button" data-do="del">Borrar libro</button>`;
     $('#dbody', sh).innerHTML = tabPanel('ficha', 'resumen', cur, resumen) + tabPanel('ficha', 'detalles', cur, detalles)
-      + tabPanel('ficha', 'extra', cur, '<div id="dextra" style="display:flex;flex-direction:column;gap:18px"></div>') + tabPanel('ficha', 'comprar', cur, '<div id="dshop"></div>');
+      + (TABS.some(x => x[0] === 'extra') ? tabPanel('ficha', 'extra', cur, '<div id="dextra" style="display:flex;flex-direction:column;gap:18px"></div>') : '')
+      + tabPanel('ficha', 'comprar', cur, '<div id="dshop" style="display:flex;flex-direction:column;gap:18px"></div>');
     fichaExtras(sh, id);
   };
   draw();
   sh.addEventListener('click', async e => {
     const star = e.target.closest('[data-star]'), act = e.target.closest('[data-do]'), b = bookOf(id); if(!b) return;
     if(star){ b.rating = b.rating === +star.dataset.star ? 0 : +star.dataset.star; save(); draw(); return; }
-    if(!act || act.closest('#dextra')) return; const a = act.dataset.do; // lo de #dextra lo gestiona ficha-extra.js
+    if(!act || act.closest('#dextra, #dshop')) return; const a = act.dataset.do; // lo de #dextra lo gestiona ficha-extra.js
     if(a === 'start'){ b.status = 'leyendo'; }
     else if(a === 'finish'){ b.status = 'leido'; b.readAt = Date.now(); b.next = false; }
     else if(a === 'pending'){ b.status = 'pendiente'; b.readAt = null; }
@@ -70,7 +71,7 @@ function openMove(id, after){
   // La estantería actual primero y abierta; las demás plegadas. En cada una se puede crear una balda, y al final una estantería.
   const units = [...state.units].sort((x, y) => (y.id === b.unitId) - (x.id === b.unitId));
   const gapsHtml = `<div class="sec"><span class="lbl">Dejar espacio libre en la balda</span><div class="actions"><button class="btn" type="button" data-gap="before">Hueco antes</button><button class="btn" type="button" data-gap="after">Hueco después</button></div>
-    <p class="note">Luego eliges su tamaño: con «Hasta la otra mitad» el libro siguiente pasa al otro lado.</p></div>`;
+    <p class="note">Luego eliges su tamaño.</p></div>`;
   const body = units.map(u => fold(esc(u.name) + (u.id === b.unitId ? ' <small>ahora aquí</small>' : ''), `<div class="row-opts">${u.shelves.map(s => `<button class="opt" type="button" role="radio" data-m="${s.id}" aria-checked="${s.id === b.shelfId}"><span class="dot"></span>${esc(s.name)}</button>`).join('')}</div>
       <button class="chip" type="button" data-newshelf="${u.id}" style="align-self:flex-start">+ Nueva balda en ${esc(u.name)}</button>`, u.id === b.unitId)).join('')
     + '<button class="btn" type="button" data-do="newunitmove">+ Nueva estantería</button>' + gapsHtml;
@@ -112,7 +113,7 @@ function decoThumbs(th, cur, attr){
 }
 function openAddDecor(unitId){
   const u = unitOf(unitId); if(!u) return; const th = themeOf(u);
-  const sh = openSheet(sheetT('Añadir decoración', `<p class="note">Elige un objeto. Aparecerá al final de la estantería: mantenlo pulsado y arrástralo a donde quieras.</p>${decoThumbs(th, '', 'data-addk')}`));
+  const sh = openSheet(sheetT('Añadir decoración', `<p class="note">Aparece al final; mantenlo pulsado para moverlo.</p>${decoThumbs(th, '', 'data-addk')}`));
   sh.addEventListener('click', async e => { const b = e.target.closest('[data-addk]'); if(!b) return;
     u.decorItems = u.decorItems || []; const seq = unitSeq(u);
     u.decorItems.push({ id:uid(), k:b.dataset.addk, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); save(); renderAll(); await closeSheet(); toast('Mantén pulsado el objeto para moverlo'); });
@@ -120,7 +121,7 @@ function openAddDecor(unitId){
 /* Hueco: tamaño, posición y quitar */
 function openGap(gapId){
   const f = gapOfUnit(gapId); if(!f) return; const { u, g } = f;
-  const draw = () => `<p class="note">Un hueco es espacio libre en la balda. Mantenlo pulsado y arrástralo, o muévelo de libro en libro con estos botones.</p>
+  const draw = () => `<p class="note">Mantenlo pulsado en la estantería para moverlo.</p>
     <div class="sec"><span class="lbl">Tamaño</span><div class="row-opts">${Object.entries(GAP_SIZES).map(([k, [l]]) => `<button class="opt" type="button" role="radio" data-gsize="${k}" aria-checked="${(g.size || 'sm') === k}"><span class="dot"></span>${l}</button>`).join('')}</div></div>
     <div class="sec"><span class="lbl">Posición</span><div class="actions"><button class="btn" type="button" data-gmove="-1">‹ Antes</button><button class="btn" type="button" data-gmove="1">Después ›</button></div></div>
     <button class="btn danger" type="button" data-do="grm">Quitar el hueco</button>`;
@@ -137,7 +138,7 @@ function openDecor(decId){
   if(String(decId).startsWith('auto:')){ decId = materializeDecor(decId); save(); renderAll(); }
   const f = decorOfUnit(decId); if(!f) return; const { u, d } = f, th = themeOf(u);
   const sizes = [['.75', 'Pequeño'], ['1', 'Mediano'], ['1.25', 'Grande']];
-  const draw = () => `<p class="note">Mantén pulsado el objeto en la estantería y arrástralo, o muévelo de libro en libro con estos botones.</p>
+  const draw = () => `<p class="note">Mantenlo pulsado en la estantería para moverlo.</p>
     <div class="sec"><span class="lbl">Posición</span><div class="actions"><button class="btn" type="button" data-dmove="-1">‹ Antes</button><button class="btn" type="button" data-dmove="1">Después ›</button></div></div><div class="sec"><span class="lbl">Tamaño</span><div class="chips">${chipsHtml(sizes, String(d.size || 1), 'data-dsize')}</div></div>
     <div class="sec"><span class="lbl">Cambiar por</span>${decoThumbs(th, d.k, 'data-dk')}</div><button class="btn danger" type="button" data-do="drm">Quitar este objeto</button>`;
   const sh = openSheet(sheetT(DECO_NAMES[d.k] || 'Decoración', '<div id="decbody" style="display:flex;flex-direction:column;gap:16px"></div>'));

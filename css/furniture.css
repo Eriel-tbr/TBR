@@ -48,7 +48,7 @@
 .t-sci .pil::after{border:0;left:9px;right:9px;top:10px;bottom:10px;background:repeating-linear-gradient(180deg,#38e0d2 0 9px,transparent 9px 12px);box-shadow:0 0 8px rgba(56,224,210,.8);border-radius:2px}
 .t-sci .base .b2{background:repeating-linear-gradient(135deg,#f08a2c 0 8px,#1b1f2a 8px 16px)}
 /* ---- tema DARK ACADEMIA ---- */
-.t-aca{--P:24px;--w1:#35604d;--w2:#1d3b30;--w3:#0b1a14;--back:#101c16;--trimline:rgba(222,180,92,.7);--labelbg:linear-gradient(#f1d68f,#b98d3c);--labeltxt:#2b1d08;
+.t-aca{--P:24px;--w1:#7a5236;--w2:#4a2e1b;--w3:#26160b;--back:#14251d;--trimline:rgba(222,180,92,.7);--labelbg:linear-gradient(#f1d68f,#b98d3c);--labeltxt:#2b1d08;
   --pilbg:var(--grainV),linear-gradient(90deg,rgba(0,0,0,.35),rgba(255,255,255,.08) 30%,rgba(0,0,0,.2));
   --backfx:radial-gradient(100% 70% at 50% 0,rgba(255,200,120,.16),transparent 60%),repeating-linear-gradient(0deg,rgba(0,0,0,.0) 0,transparent 20px)}
 /* ---- tema CONTEMPORÁNEA ---- */
@@ -250,3 +250,14 @@ body[data-nodecor="1"] .row .dc{display:none}
 .crownw.over .crown-hit{pointer-events:auto}
 /* Gótico: la primera balda baja un poco para que los títulos asomen bien por los arcos */
 .t-got .mull + .row{height:calc(var(--H) + 40px)}
+/* Etiqueta de cada balda, en el canto de la tabla: al tocarla se abre el editor de la estantería */
+.blabel{position:absolute;left:14px;bottom:1px;z-index:7;height:12px;padding:0 9px;border:0;margin:0;font:600 7.5px/12px 'Karla',sans-serif;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--labeltxt);background:var(--labelbg);border-radius:2px;box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 0 0 .5px rgba(255,255,255,.4);white-space:nowrap;cursor:pointer;
+  max-width:60%;overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent}
+.blabel::before{content:"";position:absolute;inset:-12px -8px -8px}
+.blabel:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* Dark academia: nogal, fondo verde biblioteca con paneles y barra de latón (de las escaleras de biblioteca) en cada balda */
+.t-aca .inner{background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 1px,transparent 1px 60px),linear-gradient(180deg,#1c3328,#0f1d16)}
+.t-aca .row::after{content:"";position:absolute;left:6px;right:6px;top:10px;height:2.5px;border-radius:2px;background:linear-gradient(90deg,#6a4a14,#f1d68f 30%,#d9b25f 70%,#6a4a14);box-shadow:0 1px 2px rgba(0,0,0,.6);z-index:0;pointer-events:none}
+.t-aca .tabla{background:linear-gradient(180deg,#d9b25f 0 2px,#7a5236 2px,#4a2e1b 40%,#26160b)}

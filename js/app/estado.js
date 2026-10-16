@@ -61,6 +61,11 @@ function migrate(s){
     s.books.forEach(b => { const sp = b.spine; if(sp && sp.base && sp.adjust === undefined && !pals.has([sp.base, sp.foil, sp.accent].join(',').toLowerCase())) sp.adjust = false; });
     s.settings.migAdjust = 1;
   }
+  if(!s.settings.migSort){ // el orden pasa de cada balda a la estantería: se toma el más usado entre sus baldas
+    s.units.forEach(u => { if(u.sort) return; const c = {}; (u.shelves || []).forEach(sh => { const k = (sh.sort || 'added') + '|' + (sh.dir || 'asc'); c[k] = (c[k] || 0) + 1; });
+      const best = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; const [so, di] = (best ? best[0] : 'added|asc').split('|'); u.sort = so; u.dir = di; });
+    s.settings.migSort = 1;
+  }
   if(!s.settings.migDecor){ // «Ocultar objetos» deja de ser un ajuste general: pasa a cada estantería («Sin objetos»); los lomos automáticos siempre salen de la portada
     if(s.settings.decor === false) s.units.forEach(u => { u.decorMode = 'none'; });
     delete s.settings.decor; delete s.settings.spineFromCover; s.settings.migDecor = 1;
@@ -119,19 +124,21 @@ function shelfOf(shelfId){ for(const u of state.units){ const s = u.shelves.find
 const lastName = a => { const f = String(a || '').split(',')[0].trim().split(/\s+/); return f[f.length - 1] || ''; };
 
 /* ---------- Ordenar y filtrar ---------- */
+/* El orden es de la estantería (u.sort / u.dir), el mismo en todas sus baldas; los tomos de una saga siempre van juntos */
+const unitSort = u => ({ sort:u.sort || ((u.shelves || [])[0] || {}).sort || 'added', dir:u.dir || ((u.shelves || [])[0] || {}).dir || 'asc' });
 function sortedBooks(shelf){
-  const arr = state.books.filter(b => b.shelfId === shelf.id);
-  if(shelf.sort === 'manual'){
-    const idx = new Map(shelf.order.map((id, i) => [id, i]));
-    return arr.sort((a, b) => (idx.has(a.id) ? idx.get(a.id) : 1e9 + a.addedAt) - (idx.has(b.id) ? idx.get(b.id) : 1e9 + b.addedAt));
+  const arr = state.books.filter(b => b.shelfId === shelf.id), o = shelfOf(shelf.id), us = o ? unitSort(o.u) : { sort:shelf.sort || 'added', dir:shelf.dir || 'asc' };
+  if(us.sort === 'manual'){
+    const idx = new Map((shelf.order || []).map((id, i) => [id, i]));
+    return groupSeries(arr.sort((a, b) => (idx.has(a.id) ? idx.get(a.id) : 1e9 + a.addedAt) - (idx.has(b.id) ? idx.get(b.id) : 1e9 + b.addedAt)));
   }
-  const d = shelf.dir === 'desc' ? -1 : 1;
+  const d = us.dir === 'desc' ? -1 : 1;
   const num = { added:b => b.addedAt, pub:b => +b.year || null, pages:b => +b.pages || null };
-  if(num[shelf.sort]){
-    const f = num[shelf.sort], known = arr.filter(b => f(b) !== null).sort((a, b) => d * (f(a) - f(b))), unk = arr.filter(b => f(b) === null);
+  if(num[us.sort]){
+    const f = num[us.sort], known = arr.filter(b => f(b) !== null).sort((a, b) => d * (f(a) - f(b))), unk = arr.filter(b => f(b) === null);
     return groupSeries([...known, ...unk]);
   }
-  const key = shelf.sort === 'author' ? b => lastName(b.author) + ' ' + b.title : b => b.title;
+  const key = us.sort === 'author' ? b => lastName(b.author) + ' ' + b.title : b => b.title;
   return groupSeries(arr.sort((a, b) => d * key(a).localeCompare(key(b), 'es')));
 }
 /* Los libros de una misma serie se colocan juntos y en orden, donde aparece el primero */

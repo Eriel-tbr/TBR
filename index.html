@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mi TBR</title>
 <meta name="theme-color" content="#1e1428">
-<meta name="app-version" content="2026.10.16-1">
+<meta name="app-version" content="2026.10.16-2">
 <meta name="description" content="Mi lista de libros por leer, organizada en estanterías.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -17,8 +17,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=Josefin+Sans:wght@600;700&family=Karla:wght@400;700&family=Lora:wght@600;700&family=Parisienne&family=Poppins:wght@600;700&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=2026.10.16-1">
-<link rel="stylesheet" href="css/furniture.css?v=2026.10.16-1">
+<link rel="stylesheet" href="css/styles.css?v=2026.10.16-2">
+<link rel="stylesheet" href="css/furniture.css?v=2026.10.16-2">
 </head>
 <body>
 <header class="top">
@@ -28,11 +28,12 @@
   <div id="nextchip"></div>
 </header>
 <section class="view" id="view-shelves">
-  <nav class="tabs" id="tabs" role="tablist" aria-label="Estanterías"></nav>
   <div class="shelftools">
     <button class="btn sm" id="btnFilter" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Buscar</button>
     <button class="btn sm" id="btnFill" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 12h10M4 18h6M16 15l2.5 2.5L22 13"/></svg>Completar fichas</button>
+    <button class="btn sm icon" id="btnNewUnit" type="button" data-act="newUnit" aria-label="Nueva estantería"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
   </div>
+  <nav class="dots" id="tabs" aria-label="Estanterías"></nav>
   <div class="filterbar" id="filterbar" hidden></div>
   <div class="banner" id="banner" hidden></div>
   <div class="banner cloudban" id="cloudban" hidden></div>
@@ -51,30 +52,30 @@
   <button type="button" class="nb" id="navReading" data-view="reading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 6.5 4.5 3.5 5v13c3-.5 6.5 0 8.5 1.5 2-1.5 5.5-2 8.5-1.5V5c-3-.5-6.5 0-8.5 1.5zM12 6.5v13"/></svg><span>Lectura</span></button>
   <button type="button" class="nb add" id="navAdd" aria-label="Añadir un libro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
   <button type="button" class="nb" id="btnRandom"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.1"/><circle cx="15" cy="15" r="1.1"/><circle cx="15" cy="9" r="1.1"/><circle cx="9" cy="15" r="1.1"/></svg><span>Ruleta</span></button>
-  <button type="button" class="nb" id="btnSettings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg><span>Ajustes</span></button>
+  <button type="button" class="nb" id="btnSettings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.8h3.4l.5 2.6a7.4 7.4 0 0 1 1.9 1.1l2.5-.9 1.7 2.9-2 1.8a7.6 7.6 0 0 1 0 2.2l2 1.8-1.7 2.9-2.5-.9a7.4 7.4 0 0 1-1.9 1.1l-.5 2.6h-3.4l-.5-2.6a7.4 7.4 0 0 1-1.9-1.1l-2.5.9-1.7-2.9 2-1.8a7.6 7.6 0 0 1 0-2.2l-2-1.8 1.7-2.9 2.5.9a7.4 7.4 0 0 1 1.9-1.1z"/><circle cx="12" cy="12" r="3"/></svg><span>Ajustes</span></button>
 </nav>
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 <div class="update" id="update" hidden><span>Hay una versión nueva</span><button class="btn sm primary" type="button" id="btnUpdate">Actualizar</button></div>
 <script id="sb-lib" async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
-<script src="js/lib/util.js?v=2026.10.16-1"></script>
-<script src="js/lib/busqueda.js?v=2026.10.16-1"></script>
-<script src="js/lib/etiquetas.js?v=2026.10.16-1"></script>
-<script src="js/art/decoracion.js?v=2026.10.16-1"></script>
-<script src="js/art/lomos.js?v=2026.10.16-1"></script>
-<script src="js/art/muebles.js?v=2026.10.16-1"></script>
-<script src="js/art/temas.js?v=2026.10.16-1"></script>
-<script src="js/app/estado.js?v=2026.10.16-1"></script>
-<script src="js/app/hojas.js?v=2026.10.16-1"></script>
-<script src="js/app/colores.js?v=2026.10.16-1"></script>
-<script src="js/app/estanterias.js?v=2026.10.16-1"></script>
-<script src="js/app/ficha.js?v=2026.10.16-1"></script>
-<script src="js/app/ficha-extra.js?v=2026.10.16-1"></script>
-<script src="js/app/formulario.js?v=2026.10.16-1"></script>
-<script src="js/app/anadir.js?v=2026.10.16-1"></script>
-<script src="js/app/ajustes.js?v=2026.10.16-1"></script>
-<script src="js/app/arrastrar.js?v=2026.10.16-1"></script>
-<script src="js/app/nube.js?v=2026.10.16-1"></script>
-<script src="js/app/lectura.js?v=2026.10.16-1"></script>
-<script src="js/app/inicio.js?v=2026.10.16-1"></script>
+<script src="js/lib/util.js?v=2026.10.16-2"></script>
+<script src="js/lib/busqueda.js?v=2026.10.16-2"></script>
+<script src="js/lib/etiquetas.js?v=2026.10.16-2"></script>
+<script src="js/art/decoracion.js?v=2026.10.16-2"></script>
+<script src="js/art/lomos.js?v=2026.10.16-2"></script>
+<script src="js/art/muebles.js?v=2026.10.16-2"></script>
+<script src="js/art/temas.js?v=2026.10.16-2"></script>
+<script src="js/app/estado.js?v=2026.10.16-2"></script>
+<script src="js/app/hojas.js?v=2026.10.16-2"></script>
+<script src="js/app/colores.js?v=2026.10.16-2"></script>
+<script src="js/app/estanterias.js?v=2026.10.16-2"></script>
+<script src="js/app/ficha.js?v=2026.10.16-2"></script>
+<script src="js/app/ficha-extra.js?v=2026.10.16-2"></script>
+<script src="js/app/formulario.js?v=2026.10.16-2"></script>
+<script src="js/app/anadir.js?v=2026.10.16-2"></script>
+<script src="js/app/ajustes.js?v=2026.10.16-2"></script>
+<script src="js/app/arrastrar.js?v=2026.10.16-2"></script>
+<script src="js/app/nube.js?v=2026.10.16-2"></script>
+<script src="js/app/lectura.js?v=2026.10.16-2"></script>
+<script src="js/app/inicio.js?v=2026.10.16-2"></script>
 </body>
 </html>

@@ -182,7 +182,7 @@ function initCloud(){
 const ago = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'hace un momento' : s < 3600 ? `hace ${Math.round(s / 60)} min` : s < 86400 ? `hace ${Math.round(s / 3600)} h` : new Date(t).toLocaleDateString('es'); };
 function cloudSecHtml(){
   if(!nube.sb) return `<p class="note">Ahora mismo no se puede conectar con la nube (¿sin conexión?). Tus libros están guardados en este dispositivo.</p>`;
-  if(!nube.user) return `<p class="note">Entra con tu cuenta de Google para guardar tu colección en la nube: no la pierdes si cambias de móvil y la tienes igual en el ordenador. Sin cuenta, todo sigue funcionando solo en este dispositivo.</p>
+  if(!nube.user) return `<p class="note">Entra con Google para tener la colección en la nube y en todos tus dispositivos. Sin cuenta, todo funciona solo en este.</p>
     <div class="actions"><button class="btn primary" type="button" data-cloud="login">Entrar con Google</button></div>`;
   const st = nube.busy ? 'Sincronizando…' : nube.err ? nube.err + ' · se reintentará solo' : nube.last ? 'Sincronizado ' + ago(nube.last) : 'Pendiente de sincronizar';
   return `<div class="notice cloud-st${nube.err ? ' bad' : ''}"><b>${esc(nube.user.email || 'Cuenta de Google')}</b><br><span id="cloud-st">${esc(st)}</span></div>

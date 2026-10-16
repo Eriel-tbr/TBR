@@ -12,7 +12,7 @@ function shelfRuns(list){
     const leader = all.sort((a, b) => (+a.series.n || 99) - (+b.series.n || 99))[0] || run[0];
     const widths = run.map(b => spineDims(b, hash(b.id + (b.title || ''))).w + 1), totalW = widths.reduce((a, c) => a + c, 0);
     let off = 0;
-    run.forEach((b, idx) => { ctx.set(b.id, { mode:m.mode, scene:m.scene, total, n:+b.series.n || idx + 1, idx:(+b.series.n || idx + 1) - 1, off, totalW, seed:hash(k), leader }); off += widths[idx]; });
+    run.forEach((b, idx) => { ctx.set(b.id, { mode:m.mode, scene:m.scene, style:m.style, total, n:+b.series.n || idx + 1, idx:(+b.series.n || idx + 1) - 1, off, totalW, seed:hash(k), leader }); off += widths[idx]; });
     i = j;
   }
   return ctx;
@@ -66,27 +66,33 @@ function innerWidth(th){ const c = $('#carousel'); const slide = Math.min((c.cli
 function cabinetHtml(u, i){
   const th = themeOf(u), W = innerWidth(th), decorOn = u.decorMode !== 'none', manual = u.decorMode === 'manual';
   const seq = unitSeq(u), total = u.shelves.reduce((n, sh) => n + state.books.filter(b => b.shelfId === sh.id).length, 0), shown = seq.length;
-  // Las baldas (subgéneros) se colocan seguidas: solo hay tantas filas como hagan falta.
   const plan = !decorOn ? [] : manual ? (u.decorItems || []) : autoPlan(u, th, seq);
   const ids = new Set(seq.map(b => b.id)), after = new Map(), tail = [];
   plan.forEach(p => { if(p.after === null || p.after === undefined){ (after.get(null) || after.set(null, []).get(null)).push(p); } else if(ids.has(p.after)){ (after.get(p.after) || after.set(p.after, []).get(p.after)).push(p); } else tail.push(p); });
   // Los objetos automáticos también se pueden tocar y arrastrar: al hacerlo, la estantería pasa a decoración manual (ver materializeDecor)
   plan.forEach((p, i) => { if(!manual) p.id = `auto:${u.id}:${i}`; });
-  const items = [], deco = p => { const it = decoItem(p.k, th, p.size, p.id); if(it) items.push(it); };
-  // Huecos: se ven aunque la decoración esté oculta o sea automática; van justo después de su libro
+  // Cada balda se ve como tal: empieza en una fila nueva y lleva una etiqueta con su nombre (si hay más de una)
   const gapsAfter = new Map(); (u.gaps || []).forEach(g => { const k = g.after && ids.has(g.after) ? g.after : g.after ? 'tail' : null; (gapsAfter.get(k) || gapsAfter.set(k, []).get(k)).push(g); });
-  const gap = g => items.push(gapItem(g));
-  (gapsAfter.get(null) || []).forEach(gap); (after.get(null) || []).forEach(deco);
-  const runsByShelf = new Map(); u.shelves.forEach(sh => runsByShelf.set(sh.id, shelfRuns(seq.filter(b => b.shelfId === sh.id))));
-  seq.forEach(b => { items.push(bookItem(b, u, th, runsByShelf.get(b.shelfId).get(b.id))); (gapsAfter.get(b.id) || []).forEach(gap); (after.get(b.id) || []).forEach(deco); });
-  tail.forEach(deco); (gapsAfter.get('tail') || []).forEach(gap);
-  const rows = packRows(items, W, th.mullion);
-  // Una balda solo con un adorno automático no merece una fila nueva
-  if(!manual) while(rows.length > 1 && !rows[rows.length - 1].some(it => it.book || it.gap)) rows.pop();
-  const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro con el botón + de abajo'}</div>` : '';
-  const rowsHtml = rows.map((row, ri) => `<div class="row" data-row="${u.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>${ri === 0 ? hint : ''}</div>`).join('');
+  const multi = u.shelves.length > 1, filtering = filtersActive(), last = u.shelves.length - 1, out = [];
+  const hint = !shown ? `<div class="empty-hint">${total ? 'Ningún libro coincide con el filtro' : 'Estantería vacía: añade un libro con el botón +'}</div>` : '';
+  u.shelves.forEach((sh, si) => {
+    const items = [], deco = p => { const it = decoItem(p.k, th, p.size, p.id); if(it) items.push(it); }, gap = g => items.push(gapItem(g));
+    const list = seq.filter(b => b.shelfId === sh.id), runs = shelfRuns(list);
+    if(filtering && !list.length) return; // con filtro, las baldas sin coincidencias no se pintan
+    if(si === 0){ (gapsAfter.get(null) || []).forEach(gap); (after.get(null) || []).forEach(deco); }
+    list.forEach(b => { items.push(bookItem(b, u, th, runs.get(b.id))); (gapsAfter.get(b.id) || []).forEach(gap); (after.get(b.id) || []).forEach(deco); });
+    if(si === last){ tail.forEach(deco); (gapsAfter.get('tail') || []).forEach(gap); }
+    const rows = packRows(items, W, th.mullion);
+    // Una fila solo con un adorno automático no merece aparecer
+    if(!manual) while(rows.length > 1 && !rows[rows.length - 1].some(it => it.book || it.gap)) rows.pop();
+    rows.forEach((row, ri) => out.push(`<div class="row" data-row="${u.id}" data-shelf="${sh.id}">${row.map(it => it.spacer ? `<div class="sp" style="width:${it.spacer}px"></div>` : it.html).join('')}<div class="tabla"></div>`
+      + (multi && ri === 0 ? `<button class="blabel" type="button" data-act="editUnit" data-unit="${u.id}" aria-label="Balda ${esc(sh.name)}: editar la estantería">${esc(sh.name)}</button>` : '')
+      + (!out.length ? hint : '') + '</div>'));
+  });
+  if(!out.length) out.push(`<div class="row" data-row="${u.id}" data-shelf="${u.shelves[0].id}"><div class="tabla"></div>${hint}</div>`);
+  const rowsHtml = out.join('');
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';
-  return `<section class="slide${i === ui.active ? ' on' : ''}" data-unit="${u.id}" data-i="${i}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
+  return `<section class="slide${i === ui.active ? ' on' : ''}" data-unit="${u.id}" data-i="${i}" aria-label="${esc(u.name)}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
     ${crownHtml(u, th)}
     <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${crownHead(u, th)}${rowsHtml}</div><div class="pil r"></div></div>
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
@@ -111,13 +117,14 @@ function renderHeader(){
   if(state.books.some(b => b.ejemplo)){ ban.hidden = false; ban.innerHTML = `<span>Los libros de ejemplo te muestran cómo queda. Cuando quieras, bórralos.</span><button class="btn sm" type="button" data-act="clearExamples">Borrar ejemplos</button>`; }
   else ban.hidden = true;
 }
+/* Puntos de posición (una estantería por punto); al tocarlos se va a esa estantería */
 function renderTabs(){
-  $('#tabs').innerHTML = state.units.map((u, i) => `<button class="tab" type="button" role="tab" data-i="${i}" aria-selected="${i === ui.active}">${esc(u.name)} <small>${state.books.filter(b => b.unitId === u.id).length}</small></button>`).join('')
-    + `<button class="tab add" type="button" data-act="newUnit" aria-label="Nueva estantería">+</button>`;
+  $('#tabs').innerHTML = state.units.map((u, i) => `<button class="dot-b" type="button" data-i="${i}" aria-label="${esc(u.name)}" title="${esc(u.name)}" aria-current="${i === ui.active}"><i></i></button>`).join('');
 }
 function renderCarousel(){
-  const c = $('#carousel'); ui.width = c.clientWidth;
+  const c = $('#carousel'), sl = c.scrollLeft; ui.width = c.clientWidth;
   c.innerHTML = state.units.map(cabinetHtml).join('');
+  c.style.scrollBehavior = 'auto'; c.scrollLeft = sl; c.style.scrollBehavior = '';
 }
 function setAccent(){
   const u = state.units[ui.active]; if(!u) return;
@@ -129,14 +136,24 @@ function renderAll(){
   ui.active = clamp(ui.active, 0, state.units.length - 1);
   renderHeader(); renderTabs(); renderCarousel(); setAccent(); if(typeof renderReading === 'function') renderReading();
 }
-/* Se ve una estantería cada vez; se cambia tocando su nombre en la fila de arriba */
-function goTo(i){
-  i = clamp(i, 0, state.units.length - 1); const changed = i !== ui.active; ui.active = i;
-  $$('#carousel .slide').forEach(s => s.classList.toggle('on', +s.dataset.i === i));
-  $$('#tabs .tab[data-i]').forEach(t => t.setAttribute('aria-selected', +t.dataset.i === i)); setAccent();
-  const t = $(`#tabs .tab[data-i="${i}"]`); t && t.scrollIntoView({ inline:'center', block:'nearest', behavior:'smooth' });
-  if(changed) scrollTo({ top:0 });
+/* Se desliza entre estanterías (una en una); goTo lleva a una concreta */
+function markActive(i){
+  ui.active = i; $$('#carousel .slide').forEach(s => s.classList.toggle('on', +s.dataset.i === i));
+  $$('#tabs [data-i]').forEach(t => t.setAttribute('aria-current', +t.dataset.i === i)); setAccent();
 }
+function goTo(i, smooth = true){
+  i = clamp(i, 0, state.units.length - 1); const c = $('#carousel'), s = c.children[i]; markActive(i); if(!s) return;
+  c.scrollTo({ left:s.offsetLeft - (c.clientWidth - s.offsetWidth) / 2, behavior:smooth ? 'smooth' : 'auto' });
+}
+let scrollRaf = 0;
+$('#carousel').addEventListener('scroll', () => {
+  cancelAnimationFrame(scrollRaf);
+  scrollRaf = requestAnimationFrame(() => {
+    const c = $('#carousel'), mid = c.scrollLeft + c.clientWidth / 2; let best = 0, bd = 1e9;
+    [...c.children].forEach((s, i) => { const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid); if(d < bd){ bd = d; best = i; } });
+    if(best !== ui.active) markActive(best);
+  });
+}, { passive:true });
 function flash(id){
   requestAnimationFrame(() => { const it = $(`.it[data-id="${id}"]`); if(it){ it.scrollIntoView({ block:'nearest', inline:'nearest' }); it.firstElementChild.animate([{ transform:'translateY(-18px)' }, { transform:'translateY(0)' }], { duration:600, easing:'ease-out' }); } });
 }

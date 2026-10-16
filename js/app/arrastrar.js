@@ -42,7 +42,8 @@ function updateTarget(){
   Object.assign(drag.marker.style, { left:x + 'px', top:Math.max(0, top - 4) + 'px', height:'168px' });
   const rowsOf = $$(`.row[data-row="${row.dataset.row}"]`), before = rowsOf.slice(0, rowsOf.indexOf(row)).reduce((n, r) => n + $$('.it[data-id]', r).filter(it => it.dataset.id !== drag.id).length, 0);
   const all = rowsOf.flatMap(r => $$('.it[data-id]', r).filter(it => it.dataset.id !== drag.id)), gi = before + idx, nxt = all[gi], prv = all[gi - 1];
-  const u = unitOf(row.dataset.row), shelfId = prv ? prv.dataset.shelf : nxt ? nxt.dataset.shelf : (u ? u.shelves[0].id : null);
+  // Cada fila pertenece a una balda (data-shelf): el libro va a la balda de la fila donde se suelta
+  const u = unitOf(row.dataset.row), shelfId = row.dataset.shelf || (prv ? prv.dataset.shelf : nxt ? nxt.dataset.shelf : (u ? u.shelves[0].id : null));
   drag.target = drag.dec ? { unitId:row.dataset.row, after:prv ? prv.dataset.id : null } : shelfId ? { shelfId, beforeId:nxt && nxt.dataset.shelf === shelfId ? nxt.dataset.id : null } : null;
 }
 function endDrag(drop){
@@ -64,9 +65,12 @@ function moveBook(id, t){
   const order = sortedBooks(to.s).map(x => x.id).filter(x => x !== id), pos = t.beforeId ? order.indexOf(t.beforeId) : order.length;
   order.splice(pos < 0 ? order.length : pos, 0, id);
   if(from && from.s !== to.s) from.s.order = from.s.order.filter(x => x !== id);
-  b.unitId = to.u.id; b.shelfId = to.s.id; ui.lastShelf = to.s.id; to.s.order = order;
-  const changed = to.s.sort !== 'manual'; to.s.sort = 'manual';
-  save(); renderAll(); flash(id); if(changed) toast(`El orden de «${to.s.name}» ahora es manual`);
+  b.unitId = to.u.id; b.shelfId = to.s.id; ui.lastShelf = to.s.id;
+  // El orden es de la estantería: al colocar un libro a mano, toda ella pasa a orden manual (se conserva cómo estaba cada balda)
+  const changed = unitSort(to.u).sort !== 'manual';
+  if(changed){ to.u.shelves.forEach(s => { if(s !== to.s) s.order = sortedBooks(s).map(x => x.id); }); to.u.sort = 'manual'; }
+  to.s.order = order;
+  save(); renderAll(); flash(id); if(changed) toast(`El orden de «${to.u.name}» ahora es manual`);
 }
 addEventListener('pointerup', () => { if(pend){ clearTimeout(pend.timer); pend = null; } endDrag(true); });
 addEventListener('pointercancel', () => { if(pend){ clearTimeout(pend.timer); pend = null; } endDrag(false); });

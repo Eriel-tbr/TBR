@@ -6,30 +6,39 @@ function openUnitForm(unitId){
   const u = isNew ? { id:uid(), name:'', tipo:'', preset:'auto', wood:'', decor:null, shelves:[] } : JSON.parse(JSON.stringify(orig));
   if(!isNew && !PRESETS[u.preset]) u.preset = u.preset || 'gen';
   let presetSel = isNew ? 'auto' : (u.preset || 'gen'); const del = new Set();
-  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}">${lineHtml('class="field" data-sname aria-label="Nombre de la balda"', s.name)}<button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button>${unitId && orig.shelves.some(x => x.id === s.id) ? `<button class="btn sm" type="button" data-sortshelf="${s.id}">Orden</button>` : ''}<button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
+  const shelfRow = s => `<div class="shelf-edit" data-sid="${s.id}">${lineHtml('class="field" data-sname aria-label="Nombre de la balda"', s.name)}<button class="iconbtn sm" type="button" data-up aria-label="Subir">${ICON.left.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-down aria-label="Bajar">${ICON.right.replace('<svg', '<svg style="transform:rotate(90deg)"')}</button><button class="iconbtn sm" type="button" data-delshelf aria-label="Eliminar balda">${ICON.x}</button></div>`;
   // Pestañas: General (nombre, diseño, baldas y eliminar) · Decoración
   const TABS = [['general', 'General'], ['deco', 'Decoración']], tab0 = lastTab.estanteria = 'general';
+  const us = unitSort(u); let sortSel = us.sort, dirSel = us.dir;
   const pGeneral = `
-    <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…"' + (isNew ? ' data-autofocus' : ''), u.name)}</div>
-    <div class="sec"><span class="lbl">Diseño del mueble</span><p class="note">Cambia el mueble, sus colores y los objetos que se ponen solos. «Automático» lo elige por el nombre.</p><div class="chips" id="u-presets"></div><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div></div>
-    <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>`;
+    <div class="sec"><label for="u-name">Nombre</label>${lineHtml('class="field" id="u-name" placeholder="Fantasía, Terror, Psicología…"' + (isNew ? ' data-autofocus' : ''), u.name)}</div>`;
+  // El diseño se elige una vez: va plegado al final (abierto solo al crear una estantería)
+  const pDesign = fold('Diseño del mueble', `<div class="chips" id="u-presets"></div><div id="u-preview" class="note"></div><div class="palette" id="u-pal"></div>
+    <div class="sec" id="u-woodsec"><span class="lbl">Madera</span><div class="chips" id="u-wood"></div></div>`, isNew);
   const pDeco = `<div class="sec"><span class="lbl">Decoración</span><div class="chips" id="u-dmode"></div><div class="note" id="u-dnote"></div><div class="chips" id="u-dauto"><button class="chip" type="button" id="u-decor-auto">Todos los del estilo</button></div><div class="decor-grid" id="u-decor"></div><div id="u-dplaced"></div></div>`;
-  const pBaldas = `<div class="sec"><span class="lbl">Baldas</span><p class="note">Grupos dentro de la estantería: ordenan los libros, no se ven como rótulos. Con «Orden» eliges cómo se ordena cada una.</p><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
-      ${isNew ? lineHtml('class="field" id="u-newshelves" placeholder="Nombres separados por comas: Épica, Gótica, Otras"') : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
-    ${isNew ? '' : '<p class="note">Para dejar un hueco en la estantería, abre la ficha de un libro → «Mover a…» → «Hueco antes / después».</p>'}
-    ${isNew || state.units.length < 2 ? '' : fold('Eliminar estantería', `${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button>`)}`;
-  const body = tabPanel('estanteria', 'general', tab0, pGeneral + pBaldas) + tabPanel('estanteria', 'deco', tab0, pDeco);
+  const pBaldas = `<div class="sec"><span class="lbl">Baldas</span><div id="u-shelves" style="display:flex;flex-direction:column;gap:8px">${isNew ? '' : u.shelves.map(shelfRow).join('')}</div>
+      ${isNew ? lineHtml('class="field" id="u-newshelves" placeholder="Separadas por comas: Épica, Gótica…"') : '<button class="btn sm" type="button" id="u-addshelf" style="align-self:flex-start">Añadir balda</button>'}</div>
+    <div class="sec"><span class="lbl">Orden de los libros</span><div class="chips" id="u-sort"></div><div class="chips" id="u-dir"></div></div>`;
+  const pDel = `${isNew || state.units.length < 2 ? '' : fold('Eliminar estantería', `${state.books.some(b => b.unitId === u.id) ? pickHtml('u-moveto', 'Sus libros pasarán a', state.units.filter(x => x.id !== u.id).map(x => [x.id, x.name])) : ''}<button class="btn danger" type="button" id="u-del">Eliminar estantería</button>`)}`;
+  const body = tabPanel('estanteria', 'general', tab0, pGeneral + pBaldas + pDesign + pDel) + tabPanel('estanteria', 'deco', tab0, pDeco);
   const sh = openSheet(sheetT(isNew ? 'Nueva estantería' : 'Editar estantería', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" id="u-save">Guardar</button>', tabsBar('estanteria', TABS, tab0)));
   const q = s => $(s, sh);
   const curKey = () => presetSel === 'auto' ? detectPreset(q('#u-name').value, u.tipo) : presetSel;
   const tmp = () => ({ ...u, name:q('#u-name').value, preset:curKey(), wood:u.wood, decor:u.decor });
+  function drawSort(){
+    q('#u-sort').innerHTML = chipsHtml(Object.entries(SORTS), sortSel, 'data-usort');
+    const dirs = SORT_DIR[sortSel]; q('#u-dir').innerHTML = dirs ? chipsHtml([['asc', dirs[0]], ['desc', dirs[1]]], dirSel, 'data-udir') : '<span class="note">Mantén pulsado un libro y arrástralo a su sitio.</span>';
+    q('#u-dir').insertAdjacentHTML('beforeend', '<span class="note" style="flex-basis:100%">Las sagas siempre van juntas.</span>');
+  }
   function drawStyle(){
     const t = tmp(), th = themeOf(t);
     q('#u-preview').textContent = (presetSel === 'auto' ? 'Ahora: ' + (PRESETS[curKey()] ? PRESETS[curKey()].name : 'colores propios') + ' · ' : '') + 'mueble ' + th.name.toLowerCase();
     q('#u-pal').innerHTML = th.pal.slice(0, 9).map(c => `<i style="background:${c[0]}"></i>`).join('');
     q('#u-woodsec').hidden = th.key !== 'generico';
     const furn = k => themeOf({ ...t, preset:k }).name.toLowerCase();
-    q('#u-presets').innerHTML = [['auto', 'Automático', ''], ...Object.entries(PRESETS).map(([k, p]) => [k, p.name, furn(k)]), ['gen', 'Colores propios', 'clásico']].map(([k, l, f]) => `<button class="chip" type="button" data-preset="${k}" aria-pressed="${presetSel === k}">${l}${f ? ` <small>${esc(f)}</small>` : ''}</button>`).join('');
+    // Solo los diseños que de verdad cambian el mueble (los demás eran el mismo con otros colores); si una estantería ya usa otro, se sigue viendo
+    const SHOWN = ['fantasia', 'romantasy', 'cienciaficcion', 'darkacademia', 'contemporanea', 'romance'];
+    q('#u-presets').innerHTML = [['auto', 'Automático', ''], ...Object.entries(PRESETS).filter(([k]) => SHOWN.includes(k) || k === presetSel).map(([k, p]) => [k, p.name, furn(k)]), ...(presetSel === 'gen' ? [['gen', 'Colores propios', 'clásico']] : [])].map(([k, l, f]) => `<button class="chip" type="button" data-preset="${k}" aria-pressed="${presetSel === k}">${l}${f ? ` <small>${esc(f)}</small>` : ''}</button>`).join('');
     q('#u-wood').innerHTML = `<button class="chip" type="button" data-wood="" aria-pressed="${!u.wood}">Del estilo</button>` + WOODS.map(w => `<button class="chip" type="button" data-wood="${w}" aria-pressed="${u.wood === w}" aria-label="Madera ${w}" style="background:${w};min-width:40px;border-color:${u.wood === w ? 'var(--acc)' : 'transparent'}"></button>`).join('');
     const on = new Set(themeDecor(t, th));
     q('#u-decor').innerHTML = Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC); return `<button class="decor-opt" type="button" data-decor="${k}" aria-pressed="${on.has(k)}" aria-label="${DECO_NAMES[k]}" title="${DECO_NAMES[k]}"><svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w * Math.min(.9, 50 / d.h)}" height="${d.h * Math.min(.9, 50 / d.h)}">${d.s}</svg></button>`; }).join('');
@@ -44,11 +53,12 @@ function openUnitForm(unitId){
       q('#u-dplaced').innerHTML = items.length ? `<div class="chips">${items.map(it => `<span class="chip on">${esc(DECO_NAMES[it.k] || it.k)} <button type="button" data-drm="${it.id}" aria-label="Quitar" style="all:unset;cursor:pointer">×</button></span>`).join('')}</div>` : '<span class="note">Aún no hay objetos colocados.</span>'; }
     else q('#u-dplaced').innerHTML = '';
   }
-  drawStyle();
+  drawStyle(); drawSort();
   sh.addEventListener('input', e => { if(e.target.id === 'u-name') drawStyle(); });
   sh.addEventListener('click', async e => {
     const t = e.target, g = s => t.closest(s);
-    if(g('[data-sortshelf]')){ openSort(g('[data-sortshelf]').dataset.sortshelf); return; }
+    if(g('[data-usort]')){ sortSel = g('[data-usort]').dataset.usort; drawSort(); return; }
+    if(g('[data-udir]')){ dirSel = g('[data-udir]').dataset.udir; drawSort(); return; }
     if(g('[data-preset]')){ presetSel = g('[data-preset]').dataset.preset; if(presetSel === 'gen') u.hue = u.hue ?? Math.floor(Math.random() * 360); drawStyle(); }
     else if(g('[data-wood]')){ u.wood = g('[data-wood]').dataset.wood; drawStyle(); }
     else if(g('[data-decor]')){ const k = g('[data-decor]').dataset.decor; const cur = [...themeDecor(tmp(), themeOf(tmp()))]; const i = cur.indexOf(k); if(i >= 0) cur.splice(i, 1); else cur.push(k); u.decor = cur.length ? cur : null; drawStyle(); }
@@ -76,16 +86,17 @@ function openUnitForm(unitId){
     }
     else if(g('#u-save')){
       const name = q('#u-name').value.trim(); if(!name){ toast('Ponle un nombre a la estantería'); return; }
-      const key = curKey(), data = { name, tipo:u.tipo || '', preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue, decorMode:u.decorMode || 'auto', decorItems:u.decorItems || [] };
+      const key = curKey(), data = { sort:sortSel, dir:dirSel, name, tipo:u.tipo || '', preset:key, wood:u.wood || '', decor:u.decor, hue:u.hue, decorMode:u.decorMode || 'auto', decorItems:u.decorItems || [] };
       if(isNew){
         const names = (q('#u-newshelves').value || '').split(',').map(s => s.trim()).filter(Boolean);
         Object.assign(u, data); u.shelves = (names.length ? names : ['General']).map(mkShelf); state.units.push(u); ui.active = state.units.length - 1;
       } else {
+        if(sortSel === 'manual' && unitSort(orig).sort !== 'manual') orig.shelves.forEach(s => { s.order = sortedBooks(s).map(b => b.id); }); // pasa a manual tal como estaba
         Object.assign(orig, data);
         const rows = $$('.shelf-edit', sh), keep = [];
         rows.forEach(r => { const id = r.dataset.sid, name = r.querySelector('.field').value.trim() || 'Balda'; let s = orig.shelves.find(x => x.id === id); if(!s){ s = mkShelf(name); s.id = id; } s.name = name; keep.push(s); });
         const first = keep[0];
-        orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; first.order = []; first.sort = first.sort === 'manual' ? 'added' : first.sort; }));
+        orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; first.order = [];  }));
         orig.shelves = keep;
       }
       save(); renderAll(); await closeSheet(); if(isNew) setTimeout(() => goTo(ui.active), 50);
@@ -161,16 +172,15 @@ function statsHtml(){
     ${state.units.map(u => `<dt>${esc(u.name)}</dt><dd>${bs.filter(b => b.unitId === u.id).length}</dd>`).join('')}</dl>`;
 }
 function openSettings(){
-  // Secciones plegables: lo de uso diario abierto (apariencia, nube); el resto, cerrado
+  // Secciones a la vista (sin plegables); las estadísticas están en «Lectura»
+  const sec = (title, html) => `<section class="set-sec"><h3>${title}</h3>${html}</section>`;
   const body = `
-    ${fold('Apariencia', `<div class="sec"><span class="lbl">Tema</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div></div>`, true)}
-    ${fold('Cuenta y copia en la nube', `<div id="cloud-sec">${cloudSecHtml()}</div>`, true)}
-    ${fold('Copia en archivo', `<p class="note">Un archivo con toda tu colección, por si quieres guardarla aparte o pasarla a otra app.</p>
-      <div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir copia</button><button class="btn" type="button" data-do="import">Importar copia</button></div>
+    ${sec('Tema', `<div class="chips">${chipsHtml([['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], state.settings.theme, 'data-theme')}</div>`)}
+    ${sec('Cuenta y nube', `<div id="cloud-sec">${cloudSecHtml()}</div>`)}
+    ${sec('Copia en archivo', `<div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir</button><button class="btn" type="button" data-do="import">Importar</button></div>
       <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div>`)}
-    ${fold('Estadísticas', statsHtml())}
-    ${fold('Almacenamiento', '<p class="note" id="s-store">Calculando…</p>')}
-    ${fold('Zona delicada', '<button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button>')}`;
+    ${sec('Almacenamiento', '<p class="note" id="s-store">Calculando…</p>')}
+    ${sec('Zona delicada', '<button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button>')}`;
   const sh = openSheet(sheetT('Ajustes', body));
   storageReport().then(r => { const el = $('#s-store', sh); if(el) el.textContent = `Tu colección ocupa ${r.appKB} KB. Espacio que el navegador da a la app: ${r.quotaMB !== null ? r.quotaMB + ' MB (' + r.usedMB + ' MB usados)' : 'desconocido'}.`; });
   sh.addEventListener('click', async e => {

@@ -32,7 +32,8 @@ function legibleOn(col, bg, min = 2.6){
 /* ---------- Temas de mueble ---------- */
 const DECO_NAMES = { vidriera:'Vidriera', linterna:'Farol', buho:'Búho', caldero:'Caldero', lavanda:'Lavanda', libroab:'Libro abierto', vela:'Vela', calavera:'Calavera', pocion:'Poción',
   huevo:'Huevo de dragón', libros:'Libros apilados', planta:'Planta', flores:'Flores', taza:'Taza', marco:'Cuadro', cristal:'Cristales', globo:'Globo terráqueo', planeta:'Planeta',
-  cohete:'Cohete', matraz:'Matraz', mano:'Mano robótica', holoplaneta:'Planeta holográfico', holocubo:'Cubo holográfico', adn:'ADN holográfico', satelite:'Satélite', robot:'Robot' };
+  cohete:'Cohete', matraz:'Matraz', mano:'Mano robótica', holoplaneta:'Planeta holográfico', holocubo:'Cubo holográfico', adn:'ADN holográfico', satelite:'Satélite', robot:'Robot',
+  lupa:'Lupa', expediente:'Expediente' };
 const THEMES = {
   gotico:{ cls:'t-got', name:'Gótico', P:26, mullion:true, overCrown:true, motif:'leaf', crown:n => crownGothic2(n), colors:C => C.fan,
     styles:['nervios','marco','jaspeado','ilustrado','deco','grimorio','escamas','estrellado','acuarela','enredadera'],
@@ -52,7 +53,7 @@ const THEMES = {
     styles:['nervios','marco','jaspeado','grimorio','deco','ilustrado'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
     pal:[['#4a1a1a','#d9b25f','#2a0c0c'],['#1f3a4a','#d9b25f','#7a9ab8'],['#2a3a2f','#e9dcc0','#6a8a5a'],['#3a2a1a','#d9b25f','#7a2a2a'],['#5b1f2b','#e8c877','#2a3a2f']] },
   moderno:{ cls:'t-con', name:'Moderno', P:16, motif:'leaf', crown:n => crownModern(n), colors:C => C.con,
-    styles:['acuarela','enredadera','ilustrado','marco','cristal','deco','nervios'], decor:['planta','taza','marco','libros','flores','linterna','vela'], range:{ s:[0,.6], l:[.35,.9] },
+    styles:['acuarela','enredadera','ilustrado','marco','cristal','deco','nervios'], decor:['planta','taza','lupa','marco','libros','expediente','flores'], range:{ s:[0,.6], l:[.35,.9] },
     pal:[['#d9764a','#22201d','#f1e6d8'],['#6a8a7a','#22201d','#d9764a'],['#e6c46a','#22201d','#6a8a7a'],['#9ab8d8','#22201d','#e08aa0'],['#22201d','#f1e6d8','#d9764a']] },
   romance:{ cls:'t-rmc', name:'Romance', P:20, motif:'rose', crown:n => crownRomance(n), colors:C => C.rmc,
     styles:['acuarela','enredadera','marco','jaspeado','ilustrado','estrellado'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
@@ -140,7 +141,8 @@ function spineArt(b, u, th, ctx = {}){
   if(ser){
     h = 156; const L = ser.leader, lsp = L.spine || {}, lseed = hash(L.id + (L.title || ''));
     const lpi = (lseed >>> 5) % th.pal.length, lpal = autoPal(L, th);
-    const lstyle = SPINE_STYLES[lsp.style] && lsp.style !== 'auto' ? lsp.style : th.styles[lseed % th.styles.length];
+    // Estilo común de la serie: el elegido para la serie (seriesStyle.style); si no, el del primer tomo
+    const lstyle = SPINE_STYLES[ser.style] ? ser.style : SPINE_STYLES[lsp.style] && lsp.style !== 'auto' ? lsp.style : th.styles[lseed % th.styles.length];
     o.num = ser.total <= 3 && ser.n <= 10 ? ROMAN[ser.n - 1] : String(ser.n);
     // Si este tomo tiene colores elegidos a mano, se respetan aunque la serie comparta diseño
     const own = isHex(sp.base);
@@ -190,7 +192,7 @@ function seriesTotal(state, b){
 function seriesKind(state, b){ const t = seriesTotal(state, b); return !t ? 'ind' : t <= 3 ? 'bitri' : 'saga'; }
 function seriesMode(state, key, total){
   const s = (state.seriesStyle || {})[key] || {};
-  return { mode:s.mode && s.mode !== 'auto' ? s.mode : (total >= 4 ? 'paisaje' : 'iguales'), scene:s.scene || '' };
+  return { mode:s.mode && s.mode !== 'auto' ? s.mode : (total >= 4 ? 'paisaje' : 'iguales'), scene:s.scene || '', style:s.style || '' };
 }
 /* Detecta serie en el título: «Título (Serie, #2)», «Serie 2», «Libro 2»… */
 function parseSeries(title){

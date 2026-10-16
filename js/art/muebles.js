@@ -4,33 +4,43 @@
 const sv = (h, inner, defs = '') => `<svg class="crown" viewBox="0 0 358 ${h}" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${inner}</svg>`;
 
 function crownAcademia(name) {
-  const defs = `${G.lin('aw', [[0, '#35604d'], [.5, '#1d3b30'], [1, '#0d1f18']], 0, 1)}${G.lin('ab', [[0, '#f8e3a0'], [.5, '#d9b25f'], [1, '#8a6420']], 0, 1)}`;
-  const path = 'M0 110V54Q0 46 8 46H24A155 56 0 0 1 334 46H350Q358 46 358 54V110Z';
-  const inner = `<path d="${path}" fill="url(#aw)" stroke="#06100c" stroke-width="1.200"/><path d="M6 110V56Q6 52 11 52H30A149 50 0 0 1 328 52H347Q352 52 352 56V110" fill="none" stroke="url(#ab)" stroke-width="1.800"/><path d="M13 110V58H34A142 44 0 0 1 324 58H345V110" fill="none" stroke="url(#ab)" stroke-width=".6" opacity=".7"/>
-  <path d="M168 6h22l5 16h-32z" fill="url(#ab)" stroke="#6a4a14" stroke-width=".6"/><path d="M172 10h14l3 10h-20z" fill="none" stroke="#6a4a14" stroke-width=".5" opacity=".7"/>
-  <g fill="url(#ab)" opacity=".9"><circle cx="30" cy="62" r="3"/><circle cx="328" cy="62" r="3"/></g>
-  <rect x="104" y="68" width="150" height="30" rx="3" fill="#0f2119" stroke="url(#ab)" stroke-width="1.200"/><path d="M104 68h150" stroke="#fff" opacity=".1"/>
-  <g fill="none" stroke="url(#ab)" stroke-width="1"><path d="M40 84c10-10 22-6 28 0-8 4-18 8-28 0zM318 84c-10-10-22-6-28 0 8 4 18 8 28 0z"/><path d="M76 84h22M260 84h-22" opacity=".7"/></g>`;
-  return `<div class="crownw">${sv(110, inner, defs)}<div class="plaq" style="top:77px;color:#f1d68f;font:600 12px 'GFS Baskerville',serif;letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px rgba(255,200,100,.4)">${name}</div></div>`;
+  // Biblioteca clásica: frontón de nogal con reloj, cornisa con dentículos y placa de latón con el nombre
+  const defs = `${G.lin('aw', [[0, '#7a5236'], [.5, '#4a2e1b'], [1, '#26160b']], 0, 1)}${G.lin('ab', [[0, '#f8e3a0'], [.5, '#d9b25f'], [1, '#8a6420']], 0, 1)}${G.lin('ap', [[0, '#f6dc94'], [1, '#b98d3c']], 0, 1)}`;
+  let dent = ''; for (let x = 8; x < 350; x += 10) dent += `<rect x="${x}" y="76" width="6" height="7" fill="#2a180c" opacity=".55"/>`;
+  let ticks = ''; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, r1 = i % 3 ? 12.5 : 11, r2 = 14.5; ticks += `<path d="M${179 + Math.cos(a) * r1} ${46 + Math.sin(a) * r1}L${179 + Math.cos(a) * r2} ${46 + Math.sin(a) * r2}" stroke="#3a2a14" stroke-width="${i % 3 ? .8 : 1.6}"/>`; }
+  const inner = `<path d="M0 72L179 12L358 72Z" fill="url(#aw)" stroke="#140b05" stroke-width="1.200"/><path d="M14 68L179 22L344 68" fill="none" stroke="url(#ab)" stroke-width="1.400"/><path d="M24 66L179 30L334 66" fill="none" stroke="url(#ab)" stroke-width=".6" opacity=".6"/>
+   <g fill="none" stroke="url(#ab)" stroke-width="1.100" opacity=".9"><path d="M118 60c10-8 22-10 36-8M240 60c-10-8-22-10-36-8"/><path d="M124 56l-5-5M132 53l-4-6M140 51l-2-6M234 56l5-5M226 53l4-6M218 51l2-6"/></g>
+   <circle cx="179" cy="46" r="19" fill="url(#ab)" stroke="#5a3e10" stroke-width=".8"/><circle cx="179" cy="46" r="16" fill="#f3ead2" stroke="#8a6420" stroke-width=".8"/>${ticks}
+   <path d="M179 46L179 36M179 46L186 49" stroke="#1c140a" stroke-width="1.500" stroke-linecap="round"/><circle cx="179" cy="46" r="1.600" fill="#1c140a"/>
+   <rect x="0" y="70" width="358" height="40" fill="url(#aw)" stroke="#140b05" stroke-width="1"/><rect x="0" y="70" width="358" height="3" fill="url(#ab)"/>${dent}<rect x="0" y="84" width="358" height="1.500" fill="url(#ab)" opacity=".8"/>
+   <rect x="102" y="88" width="154" height="18" rx="2" fill="url(#ap)" stroke="#6a4a14" stroke-width=".8"/><rect x="105" y="91" width="148" height="12" rx="1" fill="none" stroke="#6a4a14" stroke-width=".5" opacity=".7"/>
+   <circle cx="179" cy="9" r="4.500" fill="url(#ab)" stroke="#5a3e10" stroke-width=".6"/><circle cx="8" cy="66" r="4" fill="url(#ab)"/><circle cx="350" cy="66" r="4" fill="url(#ab)"/>`;
+  return `<div class="crownw">${sv(110, inner, defs)}<div class="plaq" style="top:92px;color:#2b1d08;font:700 10.500px 'GFS Baskerville',serif;letter-spacing:.2em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,240,200,.5)">${name}</div></div>`;
 }
 
 function crownModern(name) {
-  // Rótulo blanco a la altura común (110): placa limpia con el nombre y una línea de luz debajo
+  // Rótulo blanco a la altura común (110) con un toque de thriller: cinta policial en la esquina y una lupa roja
+  const clip = `<clipPath id="mclip"><path d="M0 110V12Q0 0 12 0H346Q358 0 358 12V110Z"/></clipPath>`;
+  const tape = `<g clip-path="url(#mclip)"><g transform="rotate(32 330 18)"><rect x="262" y="10" width="150" height="14" fill="#f2c230" stroke="#1d1b18" stroke-width=".6"/>
+    <text x="337" y="20.200" text-anchor="middle" font-family="Poppins,sans-serif" font-size="7.200" font-weight="700" letter-spacing="1.200" fill="#1d1b18">NO PASAR · NO PASAR</text></g></g>`;
   const inner = `<path d="M0 110V12Q0 0 12 0H346Q358 0 358 12V110Z" fill="#fff" stroke="#d4d0c8" stroke-width="1"/><rect x="0" y="100" width="358" height="10" fill="#ece9e3"/><rect x="0" y="99" width="358" height="1" fill="#22201d" opacity=".08"/>
-   <rect x="24" y="26" width="310" height="1" fill="#22201d" opacity=".14"/><rect x="24" y="76" width="310" height="1" fill="#22201d" opacity=".14"/><circle cx="179" cy="26.5" r="3" fill="#d9764a"/>`;
-  return `<div class="crownw">${sv(110, inner)}<div class="plaq" style="top:45px;color:#22201d;font:600 12.500px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
+   <rect x="24" y="30" width="310" height="1" fill="#22201d" opacity=".14"/><rect x="24" y="78" width="310" height="1" fill="#c0392b" opacity=".55"/>
+   <g transform="translate(179 22)"><circle r="5" fill="#fff" stroke="#c0392b" stroke-width="1.800"/><path d="M3.600 3.600L8 8" stroke="#c0392b" stroke-width="2.200" stroke-linecap="round"/></g>${tape}`;
+  return `<div class="crownw">${sv(110, inner, clip)}<div class="plaq" style="top:47px;color:#22201d;font:600 12.500px 'Poppins',sans-serif;letter-spacing:.34em;text-transform:uppercase">${name}</div></div>`;
 }
 
 function crownRomance(name) {
-  // Toldo de festones sobre un friso rosa con el nombre (todo a la altura común, 110)
-  const n = 13, ww = 358 / n; let d = 'M0 10H358V46'; for (let i = 0; i < n; i++) d += `a${ww / 2} ${ww / 2} 0 0 1 ${-ww} 0`; d += 'Z';
-  const defs = `${G.lin('rp', [[0, '#fbc9d6'], [1, '#e08aa4']], 0, 1)}${G.lin('rg', [[0, '#fff3d6'], [1, '#d9b25f']], 0, 1)}${G.lin('rf', [[0, '#fde3ea'], [1, '#f6c4d2']], 0, 1)}`;
-  let dots = ''; for (let i = 0; i < n; i++) dots += `<circle cx="${358 - ww / 2 - i * ww}" cy="${46 + ww / 2 - 5}" r="2" fill="url(#rg)"/>`;
+  // Friso rosa con el nombre centrado; abajo, el toldo de festones con corazoncitos
+  const n = 13, ww = 358 / n, top = 82, band = 96; let d = `M0 ${top}H358V${band}`; for (let i = 0; i < n; i++) d += `a${ww / 2} ${ww / 2} 0 0 1 ${-ww} 0`; d += 'Z';
+  const defs = `${G.lin('rp', [[0, '#fbc9d6'], [1, '#e08aa4']], 0, 1)}${G.lin('rg', [[0, '#fff3d6'], [1, '#d9b25f']], 0, 1)}${G.lin('rf', [[0, '#fff1f5'], [1, '#f8d3de']], 0, 1)}`;
   const heart = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 8C-14 -4 -9 -14 0 -6 9 -14 14 -4 0 8z" fill="url(#rg)" stroke="#a8782a" stroke-width=".8"/></g>`;
-  const inner = `<rect x="0" y="8" width="358" height="102" fill="url(#rf)" stroke="#e7a3b8" stroke-width=".8"/><rect x="0" y="104" width="358" height="6" fill="#e9a9bc"/><path d="M0 104H358" stroke="#fff" stroke-width="1" opacity=".7"/>
-   <rect x="-6" y="0" width="370" height="10" rx="4" fill="url(#rp)" stroke="#c9728f" stroke-width=".6"/><path d="${d}" fill="url(#rp)" stroke="#c9728f" stroke-width=".8"/><path d="M0 14H358" stroke="#fff" stroke-width="1.500" opacity=".7"/>${dots}
-   <rect x="94" y="70" width="170" height="26" rx="13" fill="#fff" fill-opacity=".55" stroke="#d98aa2" stroke-width="1"/>${heart(80, 84, .6)}${heart(278, 84, .6)}${heart(92, 30, .5)}${heart(266, 30, .5)}`;
-  return `<div class="crownw">${sv(110, inner, defs)}<div class="plaq" style="top:77px;color:#8a3a52;font:700 11.500px 'GFS Baskerville',serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.7)">${name}</div></div>`;
+  let hearts = ''; for (let i = 0; i < n; i++) hearts += heart(358 - ww / 2 - i * ww, band + 4, .32);
+  let stripes = ''; for (let i = 0; i < n; i++) stripes += `<rect x="${i * ww + ww * .25}" y="${top}" width="${ww / 2}" height="${band - top}" fill="#fff" opacity=".22"/>`;
+  const inner = `<rect x="0" y="96" width="358" height="14" fill="#fbeef1"/><rect x="0" y="8" width="358" height="${top - 6}" fill="url(#rf)" stroke="#e7a3b8" stroke-width=".8"/>
+   <path d="M20 22H338M20 66H338" stroke="#e9a9bc" stroke-width=".8" opacity=".8"/>
+   <rect x="-6" y="0" width="370" height="10" rx="4" fill="url(#rp)" stroke="#c9728f" stroke-width=".6"/>
+   <path d="${d}" fill="url(#rp)" stroke="#c9728f" stroke-width=".8"/>${stripes}<path d="M0 ${top + 3}H358" stroke="#fff" stroke-width="1.200" opacity=".6"/>${hearts}`;
+  return `<div class="crownw">${sv(110, inner, defs)}<div class="plaq" style="top:38px;color:#8a3a52;font:700 12px 'GFS Baskerville',serif;letter-spacing:.28em;text-transform:uppercase;text-shadow:0 1px 0 rgba(255,255,255,.8)">${name}</div></div>`;
 }
 
 function archQ(x0, x1, ys, A, base, inset = 0) { const xm = (x0 + x1) / 2, a = x0 + inset, b = x1 - inset, ap = A - inset * 1.1; return `M${a} ${base}V${ys}C${a} ${ys - ap * .42} ${xm - 8} ${ys - ap * .8} ${xm} ${ys - ap}C${xm + 8} ${ys - ap * .8} ${b} ${ys - ap * .42} ${b} ${ys}V${base}`; }
