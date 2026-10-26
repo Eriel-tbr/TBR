@@ -21,8 +21,10 @@ module.exports = async (req, res) => {
     // Solo papel (ni audio ni ebook): son las que tienen ficha de editorial con sinopsis
     const out = { es:[], en:[] };
     list.filter(e => ![2, 4].includes(+e.reading_format_id)).forEach(e => {
-      const l = langOf(e.language); if(!out[l]) return;
-      out[l].push({ title:e.title || '', isbn:e.isbn_13 || e.isbn_10 || '', publisher:(e.publisher || {}).name || '', pages:e.pages || 0,
+      const isbn = e.isbn_13 || e.isbn_10 || '';
+      // Sin idioma en Hardcover pero con ISBN de España (978-84, 979-13): es española
+      const l = langOf(e.language) || (/^(97884|97913|84)/.test(isbn) ? 'es' : ''); if(!out[l]) return;
+      out[l].push({ title:e.title || '', isbn, publisher:(e.publisher || {}).name || '', pages:e.pages || 0,
         year:((e.release_date || '').match(/\d{4}/) || [''])[0], cover:(e.image || {}).url || '', format:e.edition_format || '', users:e.users_count || 0 });
     });
     const result = { book:{ id:+book.id, title:book.title, slug:book.slug || '', year:book.release_year || null }, es:out.es.slice(0, 12), en:out.en.slice(0, 12) };
