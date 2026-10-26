@@ -251,10 +251,6 @@ textarea.field.one{min-height:44px;height:44px;resize:none}
 .sp-prev::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:linear-gradient(180deg,var(--w1,#8a5e40),var(--w3,#2e1a0e))}
 .sp-prev .it{height:auto}
 .sp-prev button.bk:hover{transform:none}
-.trios{display:flex;flex-wrap:wrap;gap:8px}
-.trio{display:inline-flex;gap:3px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
-.trio[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
-.trio i{width:18px;height:18px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .pickers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .picker{display:flex;flex-direction:column;gap:4px;font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .picker input{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:3px}

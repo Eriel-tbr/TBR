@@ -7,6 +7,7 @@ const { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..');
 const TYPES = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.png':'image/png', '.webmanifest':'application/manifest+json' };
 let versionOverride = null;
+const isHexT = c => /^#[0-9a-f]{6}$/i.test(c || '');
 const server = http.createServer((q, r) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if(p.endsWith('/')) p += 'index.html';
   if(p === '/version.json' && versionOverride){ r.writeHead(200, { 'content-type':'application/json' }); return r.end(JSON.stringify({ version:versionOverride })); }
@@ -142,7 +143,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('una trilogía va junta, en orden y con números I II III', async () => {
     const nums = await ev(() => { const ids = state.books.filter(b => b.series && b.series.name === 'The Folk of the Air').map(b => b.id);
-      return [...document.querySelectorAll('.it[data-id]')].filter(i => ids.includes(i.dataset.id)).map(i => (i.querySelector('.num') || {}).textContent); });
+      return [...document.querySelectorAll('.it[data-id]')].filter(i => ids.includes(i.dataset.id)).map(i => (i.querySelector('.nm') || {}).textContent); });
     assert(nums.join(',') === 'I,II,III', 'números: ' + nums);
   });
   await test('ficha: empezar a leer se guarda tras recargar', async () => {
@@ -187,11 +188,11 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await page.locator('#suggest .sg', { hasText:'El rey malvado' }).first().click(); await draftHas('eds', 6000);
   });
   await test('editar el lomo cambia la vista previa y se guarda', async () => {
-    await tab('lomo'); await page.click('[data-spstyle="grimorio"]'); await unfold(); await page.click('#fsp-pal .trio >> nth=2');
+    await tab('lomo'); assert(!(await page.locator('#fsp-pal, #fsp-adj, .trio').count()), 'siguen las paletas rápidas'); await page.click('[data-spstyle="grimorio"]'); await page.click('#fsp-parts [data-part="base"]'); await page.click('#fsp-editor #ce-shades .sw >> nth=2');
     await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
     // Es un tomo de una saga con «Iguales con número»: el estilo se guarda para toda la serie
     const sp = await ev(() => { const b = state.books[state.books.length - 1]; return { ...b.spine, serie:((state.seriesStyle || {})[serKey(b)] || {}).style }; });
-    assert(sp && (sp.style === 'grimorio' || sp.serie === 'grimorio') && sp.base, 'lomo ' + JSON.stringify(sp));
+    assert(sp && (sp.style === 'grimorio' || sp.serie === 'grimorio') && sp.parts && isHexT(sp.parts.base), 'lomo ' + JSON.stringify(sp));
   });
   await test('añadir a mano un libro', async () => {
     await addSheet(); await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro de prueba'); await page.fill('#f-pages', '250');
@@ -393,11 +394,11 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('sagas: el estilo de lomo elegido se aplica a toda la serie («Iguales con número»)', async () => {
     const id = await ev(() => { const b = state.books.find(x => x.title === 'The Queen of Nothing'); state.seriesStyle = state.seriesStyle || {}; state.seriesStyle[serKey(b)] = { mode:'iguales' }; save(); renderAll(); return b.id; });
-    await ev(id => openBookForm({ book:bookOf(id) }), id); await tab('lomo'); await page.click('[data-spstyle="deco"]'); await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await tab('lomo'); await page.click('[data-spstyle="vitral"]'); await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
     const ss = await ev(() => state.seriesStyle['the folk of the air']);
-    assert(ss.style === 'deco' && ss.mode === 'iguales', JSON.stringify(ss));
-    const styles = await ev(() => { const u = state.units[0], th = themeOf(u); return state.books.filter(b => serKey(b) === 'the folk of the air').map(b => spineArt(b, u, th, { series:{ mode:'iguales', style:'deco', idx:0, n:+b.series.n, total:3, off:0, totalW:60, seed:1, leader:b } }).style); });
-    assert(styles.every(s => s === 'deco'), styles.join());
+    assert(ss.style === 'vitral' && ss.mode === 'iguales', JSON.stringify(ss));
+    const styles = await ev(() => { const u = state.units[0], th = themeOf(u); return state.books.filter(b => serKey(b) === 'the folk of the air').map(b => spineArt(b, u, th, { series:{ mode:'iguales', style:'vitral', idx:0, n:+b.series.n, total:3, off:0, totalW:60, seed:1, leader:b } }).style); });
+    assert(styles.every(s => s === 'vitral'), styles.join());
   });
   await test('serie en el formulario: se ven los tomos que faltan y se pueden añadir al guardar', async () => {
     const id = await ev(() => state.books.find(b => b.title === 'The Cruel Prince').id);
@@ -466,7 +467,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('lomos: con cualquier color se lee el título (contraste ≥ 4 salvo fondos de varios colores, ≥ 3)', async () => {
     const bad = await ev(() => { const P = [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030'], ['#7a7a7a', '#8a8a8a', '#6a6a6a'], ['#c45cff', '#ffd400', '#ff2fb8'], ['#1f4a3c', '#d9b25f', '#8fb36a'], ['#e8a9b3', '#7a1f3a', '#c9566f']], out = [];
-      SPINE_ORDER.forEach(st => P.forEach(pal => { const D = SPINES[st], c = D.colors(pal), r = D.draw({ w:32, h:150, seed:7, title:'Prueba' }, c, 32, 150), ink = bestInk(r.ink, r.tbg);
+      [...SPINE_ORDER, 'luna'].forEach(st => P.forEach(pal => { const D = SPINES[st], c = D.colors(pal), r = D.draw({ w:32, h:150, seed:7, title:'Prueba' }, c, 32, 150), ink = bestInk(r.ink, r.tbg);
         const worst = Math.min(...r.tbg.filter(isHex).map(b => contrast(ink, b))); if(worst < (r.tbg.length > 1 ? 3 : 4)) out.push(st + ' ' + pal[0] + ' ' + worst.toFixed(2)); }));
       return out; });
     assert(!bad.length, bad.join(' | '));
@@ -481,6 +482,53 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
         const off = cols.filter(c => { const [h, s] = hexHsl(c); return s > .05 && Math.abs(h - 300) > 3; }); if(off.length) out.fixed.push(st + ':' + off.join(',')); });
       return out; });
     assert(!r.inert.length, 'partes que no cambian nada: ' + r.inert.join(', ')); assert(!r.fixed.length, 'zonas de color fijo: ' + r.fixed.join(' | '));
+  });
+  await test('lomos: el número de tomo encaja en cada diseño (dentro del lomo, sin pisar el título y legible)', async () => {
+    const bad = await ev(() => { const u = state.units[0], th = themeOf(u), out = [], box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;display:flex;z-index:9999'; document.body.appendChild(box);
+      const L = { id:'L', title:'Uno', series:{ name:'S', n:1 } };
+      [...SPINE_ORDER.map(st => ['iguales', st]), ['luna', ''], ['paisaje', '']].forEach(([mode, st]) => [[3, 3], [12, 12], [1, 2]].forEach(([n, total]) => {
+        const b = { id:'n' + st + n, title:'Una corona de sombras y fuego', pages:200, series:{ name:'S', n, total } };
+        const a = spineArt(b, u, th, { series:{ mode, style:st, idx:n - 1, n, total, off:0, totalW:40, seed:3, leader:L } }); box.innerHTML = a.html;
+        const bk = box.querySelector('.bk').getBoundingClientRect(), nm = box.querySelector('.nm'), tt = box.querySelector('.tt').getBoundingClientRect(), tag = (st || mode) + ' ' + n + '/' + total;
+        if(!nm){ out.push(tag + ': sin número'); return; }
+        const t = document.createRange(); t.selectNodeContents(nm); const r = t.getBoundingClientRect();
+        if(r.left < bk.left + 1 || r.right > bk.right - 1 || r.top < bk.top || r.bottom > bk.bottom) out.push(tag + ': se sale');
+        if(r.top < tt.bottom - 1 && r.bottom > tt.top + 1) out.push(tag + ': pisa el título');
+        if(nm.textContent !== (total <= 3 ? ['I', 'II', 'III'][n - 1] : String(n))) out.push(tag + ': número ' + nm.textContent);
+      }));
+      // contraste del número sobre su soporte con colores muy distintos
+      [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030'], ['#c45cff', '#ffd400', '#ff2fb8']].forEach(pal => [...SPINE_ORDER, 'luna'].forEach(st => { const D = SPINES[st], r = D.draw({ w:32, h:156, seed:7, title:'Prueba', num:'II' }, D.colors(pal), 32, 156);
+        const ink = bestInk(r.num.ink, [r.num.bg]); if(contrast(ink, r.num.bg) < 4) out.push(st + ' contraste del número ' + contrast(ink, r.num.bg).toFixed(2)); }));
+      box.remove(); return out; });
+    assert(!bad.length, bad.join(' | '));
+  });
+  await test('lomos: el título va centrado en su zona (también en varias líneas)', async () => {
+    const bad = await ev(() => { const u = state.units[0], th = themeOf(u), out = [], box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;display:flex;z-index:9999'; document.body.appendChild(box);
+      SPINE_ORDER.forEach(st => ['Nuncanoche', 'La canción de Aquiles', 'Tomorrow, and Tomorrow, and Tomorrow'].forEach(title => {
+        box.innerHTML = spineArt({ id:'c' + st, title, pages:150, spine:{ style:st } }, u, th).html;
+        const tb = box.querySelector('.tbox').getBoundingClientRect(), spans = [...box.querySelectorAll('.tt span')], tt = box.querySelector('.tt'), ls = parseFloat(getComputedStyle(tt).letterSpacing) || 0;
+        const ctr = r => (r.top + r.bottom) / 2, ttr = tt.getBoundingClientRect();
+        if(Math.abs(ctr(ttr) - ctr(tb)) > 1 || Math.abs((ttr.left + ttr.right) / 2 - (tb.left + tb.right) / 2) > 1) out.push(st + ' «' + title + '»: caja descentrada');
+        // cada línea centrada en vertical (el texto, sin el hueco del espaciado de la última letra)
+        spans.forEach(sp => { const rg = document.createRange(); rg.selectNodeContents(sp); const r = rg.getBoundingClientRect(), mid = (r.top + r.bottom - ls) / 2;
+          if(Math.abs(mid - ctr(tb)) > 1.2) out.push(st + ' «' + sp.textContent + '» ' + (mid - ctr(tb)).toFixed(1)); });
+      }));
+      box.remove(); return out; });
+    assert(!bad.length, bad.join(' | '));
+  });
+  await test('lomos de saga (fases de la luna y paisaje): todo sale de sus partes', async () => {
+    const r = await ev(() => { const u = state.units[0], th = themeOf(u), X = '#ff00ff', out = [], L = { id:'L', title:'Uno', series:{ name:'S', n:1 } };
+      [['luna', 'luna'], ...Object.keys(SAGA_SCENES).map(k => ['paisaje', 'saga', k])].forEach(([mode, key, scene]) => {
+        const parts = Object.fromEntries(SPINE_PARTS[key].map(([k]) => [k, X]));
+        const html = spineArt({ id:'q', title:'Prueba', pages:200, series:{ name:'S', n:2, total:5 }, spine:{ parts, ink:X } }, u, th, { series:{ mode, scene, style:'', idx:1, n:2, total:5, off:30, totalW:200, seed:4, leader:L } }).html;
+        const svg = html.slice(html.indexOf('<svg'), html.indexOf('</svg>')), off = [...new Set((svg.match(/#[0-9a-f]{6}\b/gi) || []).map(c => c.toLowerCase()))].filter(c => { const [h, s] = hexHsl(c); return s > .05 && Math.abs(h - 300) > 3; });
+        if(off.length) out.push((scene || mode) + ': ' + off.join(','));
+        SPINE_PARTS[key].forEach(([k]) => { const a = spineArt({ id:'q', title:'Prueba', pages:200, series:{ name:'S', n:2, total:5 }, spine:{ parts:{ [k]:'#00ff00' } } }, u, th, { series:{ mode, scene, style:'', idx:1, n:2, total:5, off:30, totalW:200, seed:4, leader:L } }).html.replace(/(id="|url\(#)([A-Za-z]+)\d+/g, '$1$2');
+          const b0 = spineArt({ id:'q', title:'Prueba', pages:200, series:{ name:'S', n:2, total:5 } }, u, th, { series:{ mode, scene, style:'', idx:1, n:2, total:5, off:30, totalW:200, seed:4, leader:L } }).html.replace(/(id="|url\(#)([A-Za-z]+)\d+/g, '$1$2');
+          if(a === b0) out.push((scene || mode) + '.' + k + ' no cambia nada'); });
+      });
+      return out; });
+    assert(!r.length, r.join(' | '));
   });
   await test('lomos: los estilos y colores guardados antes pasan a los diseños nuevos', async () => {
     const r = await ev(() => { const s = migrate({ v:1, settings:{ migThriller:1, migAdjust:1, migSort:1, migDecor:1, migGaps:1 }, units:[], seriesStyle:{ x:{ style:'enredadera' } }, books:[

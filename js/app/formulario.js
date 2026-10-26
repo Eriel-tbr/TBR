@@ -23,7 +23,7 @@ function openBookForm({ book, item }){
   if(isNew){ const n = newDraft(item); d = n.draft; sugTags = n.sugTags; sugged = n.sugged; serNote = n.serNote; autoSyn = d.synopsis; } else d = JSON.parse(JSON.stringify(book));
   d.series = d.series || null; d.spine = d.spine || null;
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
-  let coverTrios = null, coverTriosSrc = null, lastArt = {}, selPart = ''; // selPart: parte del lomo que se está coloreando
+  let lastArt = {}, selPart = ''; // selPart: parte del lomo que se está coloreando
   const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => [s.id, s.name]);
   // Pestañas: Datos · Serie · Lomo · Dónde va. Lo menos usado, plegado.
   const TABS = [['datos', 'Datos'], ['serie', 'Serie'], ['lomo', 'Lomo'], ['lugar', 'Dónde va']], tab0 = lastTab.libro = 'datos'; // siempre se empieza por Datos
@@ -57,9 +57,7 @@ function openBookForm({ book, item }){
     <div class="lomo-top"><div class="sp-prev" id="fsp-prev"></div><div class="lomo-side"><span class="lbl">Diseño</span><b id="fsp-name"></b><span class="note" id="fsp-sernote"></span>
       <button class="btn sm" type="button" data-do="spauto">Todo automático</button></div></div>
     <div class="sec"><span class="lbl">Elige diseño</span><div class="sp-grid" id="fsp-style" role="radiogroup" aria-label="Diseño del lomo"></div></div>
-    <div class="sec"><span class="lbl">Colores</span><div class="sp-parts" id="fsp-parts"></div><div class="ce" id="fsp-editor"></div></div>
-    ${fold('Paletas rápidas', '<span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div><span class="lbl">De la estantería</span><div class="trios" id="fsp-pal"></div>')}
-    <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>`;
+    <div class="sec"><span class="lbl">Colores</span><div class="sp-parts" id="fsp-parts"></div><div class="ce" id="fsp-editor"></div></div>`;
   const pLugar = `
     <div class="sec"><span class="lbl">Dónde va</span>${sugged ? '<div class="note">Sugerida por las etiquetas.</div>' : ''}
       <div class="two">${pickHtml('f-unit', 'Estantería', state.units.map(u => [u.id, u.name]), d.unitId)}
@@ -151,22 +149,11 @@ function openBookForm({ book, item }){
       colorEditor(q('#fsp-editor'), { label:l, color:c, manual:manual(k), cover:src, groups:[['De este lomo', parts.filter(p => p[0] !== k).map(p => p[2])], ['De la estantería', th.pal.flat()]],
         onPick:(hex, live) => { const s2 = { ...(d.spine || {}) }; if(k === 'ink') s2.ink = hex; else s2.parts = { ...(s2.parts || {}), [k]:hex }; d.spine = s2; drawSpine({ thumbs:!live, editor:false }); },
         onAuto:() => { const s2 = { ...(d.spine || {}) }; if(k === 'ink') delete s2.ink; else { s2.parts = { ...(s2.parts || {}) }; delete s2.parts[k]; } d.spine = s2; drawSpine(); } }); }
-    const trio = (c, sel) => `<button class="trio" type="button" data-trio="${c.join(',')}" aria-pressed="${sel}">${c.map(x => `<i style="background:${x}"></i>`).join('')}</button>`;
-    const isSel = c => !!sp.base && sp.base === c[0] && sp.foil === c[1] && sp.accent === c[2];
-    q('#fsp-pal').innerHTML = th.pal.map(c => trio(c, isSel(c))).join('');
-    q('#fsp-cover').innerHTML = coverTrios === null ? '<span class="note">Analizando la portada…</span>' : coverTrios === false ? `<span class="note">${coverTriosSrc ? 'No se pueden leer los colores de esta portada desde su web. Si subes la portada tú, sí podré sacarlos.' : 'Sin portada todavía.'}</span>` : coverTrios.map(c => trio(c, isSel(c))).join('');
-    q('#fsp-adj').checked = sp.adjust !== false;
-  }
-  function refreshCoverTrios(){
-    const src = d.coverData || d.cover || d.cover2 || '';
-    if(src === coverTriosSrc) return; coverTriosSrc = src;
-    if(!src){ coverTrios = false; drawSpine(); return; }
-    coverTrios = null; drawSpine();
-    coverPalette(src).then(p => { if(src !== coverTriosSrc) return; coverTrios = p && p.length ? p : false; drawSpine(); });
   }
   const setSpine = patch => { d.spine = { ...(d.spine || {}), ...patch }; drawSpine(); };
-  const drawCover0 = drawCover;
-  drawCover = () => { drawCover0(); refreshCoverTrios(); };
+  // Al cambiar la portada, el editor de color vuelve a leer sus colores
+  const drawCover0 = drawCover; let coverSrc = d.coverData || d.cover || d.cover2 || '';
+  drawCover = () => { drawCover0(); const src = d.coverData || d.cover || d.cover2 || ''; if(src !== coverSrc){ coverSrc = src; drawSpine({ thumbs:false }); } };
   /* Título en español: aviso con un toque para usarlo; el original queda guardado (origTitle) para buscar en fuentes en inglés */
   function drawEsTitle(){
     const el = q('#f-estit'); if(!el) return;
@@ -195,7 +182,6 @@ function openBookForm({ book, item }){
   sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()) addTag(e.target.value); });
   sh.addEventListener('change', async e => {
     if(e.target.id === 'f-unit'){ d.unitId = e.target.value; const u = unitOf(d.unitId); d.shelfId = u.shelves[0].id; setPick(q('#f-shelf'), shelfOpts(d.unitId), d.shelfId); drawSpine(); }
-    else if(e.target.id === 'fsp-adj'){ setSpine({ adjust:e.target.checked }); }
     else if(e.target.id === 'f-shelf'){ d.shelfId = e.target.value; }
     else if(e.target.id === 'fupload' && e.target.files[0]){ try{ d.coverData = await resizeImage(e.target.files[0]); drawCover(); }catch(err){ toast('No se pudo leer esa imagen'); } }
   });
@@ -211,8 +197,9 @@ function openBookForm({ book, item }){
     else if(g('[data-do="refill"]')){ refill(g('[data-do="refill"]')); }
     else if(g('[data-do="save"]')){ await doSave(); }
     else if(g('[data-spstyle]')){ const v = g('[data-spstyle]').dataset.spstyle, ctx = previewCtx();
-      if(ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores')){ serStyle.style = v === 'auto' ? '' : v; if(d.spine) delete d.spine.style; drawSpine(); } else setSpine({ style:v === 'auto' ? '' : v }); }
-    else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2], parts:{} }); }
+      // Al cambiar de diseño, sus colores empiezan en automático (los de otro diseño no encajan con sus partes)
+      const fresh = { ...(d.spine || {}) }; delete fresh.parts; delete fresh.ink;
+      if(ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores')){ serStyle.style = v === 'auto' ? '' : v; delete fresh.style; d.spine = fresh; drawSpine(); } else { d.spine = { ...fresh, style:v === 'auto' ? '' : v }; drawSpine(); } }
     else if(g('[data-do="spauto"]')){ d.spine = null; if(previewCtx()) serStyle.style = ''; drawSpine(); }
     else if(g('[data-do="usees"]')){ d.origTitle = d.origTitle || d.title; d.title = d.esTitle; q('#f-title').value = d.title; drawEsTitle(); drawSpine(); drawCover(); }
     else if(g('[data-volall]')){ const k = norm(d.series.name), remote = (seriesCache[k] || {}).data, mine = seriesMembers(state, k);
@@ -319,7 +306,6 @@ function openBookForm({ book, item }){
         const nb = { ...newDraft(null).draft, title:r.title, author:d.author, year:r.year || '', pages:r.pages || '', cover:r.cover || '', series:{ name:d.series.name, n, total:d.series.total || remote.total || '' },
           langs:[...d.langs], tags:[...d.tags], unitId:d.unitId, shelfId:d.shelfId, addedAt:Date.now() + n, useEs:!!d.origTitle };
         state.books.push(nb); newVols.push(nb.id); }); }
-    { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ const t = bookOf(d.id) || d; t.coverPal = coverTrios.slice(0, 3); t.coverPalSrc = src; } }
     ui.lastShelf = d.shelfId; save(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 800);
     const idx = state.units.findIndex(u => u.id === d.unitId); if(idx >= 0) ui.active = idx;
     sh.guard = null; renderAll(); await closeSheet(); if(isNew && ui.view !== 'shelves') showView('shelves'); goTo(ui.active); flash(d.id);

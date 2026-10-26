@@ -36,30 +36,30 @@ const DECO_NAMES = { vidriera:'Vidriera', linterna:'Farol', buho:'Búho', calder
   lupa:'Lupa', expediente:'Expediente' };
 const THEMES = {
   gotico:{ cls:'t-got', name:'Gótico', P:26, mullion:true, overCrown:true, motif:'leaf', crown:n => crownGothic2(n), colors:C => C.fan,
-    styles:['nervios','marco','grimorio','escamas','filigrana','celestial','jaspeado'],
+    styles:['grimorio','vitral','daga','marco','escamas','filigrana','jaspeado','celestial'],
     decor:['vidriera','linterna','buho','caldero','lavanda','libroab','vela','calavera','pocion','huevo','libros'],
     range:{ s:[.15,.65], l:[.1,.4] },
     pal:[['#5b1f2b','#d9b25f','#2a0c12'],['#1f4a3c','#d9b25f','#8fb36a'],['#2d3a5e','#c9d4ea','#7a9ab8'],['#3a2418','#d9b25f','#2a8a6a'],['#2b1b35','#d6b8ff','#9a6aea'],
       ['#14404a','#f0d28a','#5fb8b0'],['#6b4a1f','#f0d28a','#c86a3a'],['#3b0f16','#e8c877','#a8452f'],['#1b2a5e','#fbeed0','#c25a7a'],['#4a3a2a','#e8c877','#7a2a3a']] },
   rococo:{ cls:'t-roc', name:'Rococó', P:24, corners:true, motif:'rose', crown:n => crownRococo2(n), colors:C => C.rom,
-    styles:['marco','filigrana','botanico','degradado','celestial','escamas','holo'],
+    styles:['lazo','filigrana','botanico','marco','sello','degradado','holo','escamas'],
     decor:['flores','taza','marco','cristal','vela','libros','planta'], range:{ s:[.2,.8], l:[.2,.85] },
     pal:[['#7a2342','#f0d28a','#e08aa8'],['#f0c4ca','#8a2a48','#d9647f'],['#5a2a6e','#f0d28a','#b89ac8'],['#e8a9b3','#7a1f3a','#c9566f'],['#1f4a4a','#f0d28a','#8ac8b8'],
       ['#a8325b','#fbe8c0','#f0a0b8'],['#3a2a5e','#d9c6f0','#c9a2e6'],['#b8606f','#f3d9a4','#fff0f4'],['#2e3a72','#f6e7c4','#d9647f']] },
   chip:{ cls:'t-chip c-b', name:'Chip holográfico', P:22, motif:'star', crown:n => crownChip(n, { c1:'#c45cff', c2:'#ff2fb8', c3:'#ffd400' }), colors:C => C.cyb,
-    styles:['holo','bloque','celestial','deco','degradado','rayas'], decor:['mano','holoplaneta','holocubo','adn','planeta','cohete','matraz','robot','satelite'], range:{ s:[.6,1], l:[.35,.75] },
+    styles:['holo','neon','celestial','degradado','escamas','marco'], decor:['mano','holoplaneta','holocubo','adn','planeta','cohete','matraz','robot','satelite'], range:{ s:[.6,1], l:[.35,.75] },
     pal:[['#c45cff','#ffd400','#ff2fb8'],['#7a3cff','#ffe066','#ff5fa8'],['#ff2fb8','#ffd400','#c45cff'],['#5a2aa0','#7ae0ff','#ff2fb8'],['#c45cff','#7ae0ff','#ffd400']] },
   academia:{ cls:'t-aca', name:'Dark academia', P:24, motif:'key', crown:n => crownAcademia(n), colors:C => C.aca,
-    styles:['nervios','tela','jaspeado','grimorio','marco','deco'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
+    styles:['jaspeado','tela','grimorio','sello','marco','filigrana','botanico'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
     pal:[['#4a1a1a','#d9b25f','#2a0c0c'],['#1f3a4a','#d9b25f','#7a9ab8'],['#2a3a2f','#e9dcc0','#6a8a5a'],['#3a2a1a','#d9b25f','#7a2a2a'],['#5b1f2b','#e8c877','#2a3a2f']] },
   moderno:{ cls:'t-con', name:'Moderno', P:16, motif:'leaf', crown:n => crownModern(n), colors:C => C.con,
-    styles:['bloque','tela','rayas','acuarela','degradado','botanico'], decor:['planta','taza','lupa','marco','libros','expediente','flores'], range:{ s:[0,.6], l:[.35,.9] },
+    styles:['tela','degradado','holo','botanico','sello','marco','neon'], decor:['planta','taza','lupa','marco','libros','expediente','flores'], range:{ s:[0,.6], l:[.35,.9] },
     pal:[['#d9764a','#22201d','#f1e6d8'],['#6a8a7a','#22201d','#d9764a'],['#e6c46a','#22201d','#6a8a7a'],['#9ab8d8','#22201d','#e08aa0'],['#22201d','#f1e6d8','#d9764a']] },
   romance:{ cls:'t-rmc', name:'Romance', P:20, motif:'rose', crown:n => crownRomance(n), colors:C => C.rmc,
-    styles:['acuarela','botanico','degradado','rayas','holo','marco'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
+    styles:['lazo','botanico','holo','degradado','sello','marco'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
     pal:[['#e07a95','#fff2dc','#a83a5a'],['#f4c6d0','#7a2a3a','#e0526f'],['#b84a6a','#ffe0a8','#fff0e6'],['#f0b48a','#7a2a3a','#e0526f'],['#9ab8d8','#4a2a5a','#e0a0c0']] },
   generico:{ cls:'t-gen', name:'Clásico', P:22, motif:'diamond', crown:null, colors:null,
-    styles:['nervios','marco','tela','jaspeado','deco','bloque'], decor:['libros','planta','vela','taza','globo','marco'], range:{ s:[.1,.7], l:[.1,.5] }, pal:null }
+    styles:['marco','tela','jaspeado','grimorio','sello','filigrana'], decor:['libros','planta','vela','taza','globo','marco'], range:{ s:[.1,.7], l:[.1,.5] }, pal:null }
 };
 const PRESET_THEME = { fantasia:'gotico', romantasy:'rococo', cienciaficcion:'chip', darkacademia:'academia', contemporanea:'moderno', romance:'romance' };
 const DECO_C = {
@@ -89,7 +89,7 @@ function themeDecor(u, th){
 
 /* ---------- Estilos de lomo (los diseños están en disenos.js) ---------- */
 const SPINE_STYLES = Object.fromEntries(SPINE_ORDER.map(k => [k, SPINES[k].name]));
-const SAGA_SCENES = { castle:'Castillo', sea:'Mar', dragon:'Dragón' };
+const SAGA_SCENES = { castle:'Castillo', sea:'Mar', dragon:'Dragón', forest:'Bosque' };
 function adjustToTheme(hex, th){
   if(!isHex(hex) || !th.range) return hex; const [h, s, l] = hexHsl(hex);
   return hslToHex(h, clamp(s, th.range.s[0], th.range.s[1]), clamp(l, th.range.l[0], th.range.l[1]));
@@ -102,7 +102,7 @@ function spineDims(b, seed){
 }
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
 /* Partes de cada diseño: [campo, nombre]. Cada una se pinta de un color (sp.parts[campo]); las letras van aparte (sp.ink) */
-const SPINE_PARTS = { ...Object.fromEntries(SPINE_ORDER.map(k => [k, SPINES[k].parts])),
+const SPINE_PARTS = { ...Object.fromEntries(Object.keys(SPINES).map(k => [k, SPINES[k].parts])),
   saga:[['base', 'Cielo arriba'], ['accent', 'Cielo medio'], ['sky2', 'Horizonte'], ['moon', 'Luna'], ['sil', 'Silueta'], ['sil2', 'Silueta lejana']] };
 const applyParts = (spec, style, parts) => { (SPINE_PARTS[style] || []).forEach(([f]) => { if(parts && isHex(parts[f])) spec[f] = parts[f]; }); return spec; };
 const partsOf = (spec, style) => (SPINE_PARTS[style] || []).map(([f, l]) => [f, l, isHex(spec[f]) ? spec[f] : '']);
@@ -130,7 +130,8 @@ function spineArt(b, u, th, ctx = {}){
     const own = isHex(sp.base); // colores elegidos a mano en este tomo: se respetan aunque la serie comparta diseño
     if(ser.mode === 'iguales'){ style = lstyle; if(!own) pal = lpal; }
     else if(ser.mode === 'colores'){ style = lstyle; if(!own) pal = th.pal[(lpi + ser.idx) % th.pal.length]; }
-    else if(ser.mode === 'luna'){ style = 'marco'; if(!own) pal = lpal; phase = ser.total > 1 ? (ser.n - 1) / (ser.total - 1) : 1; }
+    // Fases de la luna: de creciente fina a llena, repartidas entre los tomos
+    else if(ser.mode === 'luna'){ style = 'luna'; if(!own) pal = lpal; phase = ser.total > 1 ? .2 + .8 * (ser.n - 1) / (ser.total - 1) : 1; }
     else if(ser.mode === 'paisaje') style = 'saga';
     if(style === 'saga'){ if(!own) pal = lpal; return sagaArt(b, sp, ser, pal, w, h, num); }
   }
@@ -141,10 +142,10 @@ function spineArt(b, u, th, ctx = {}){
 }
 /* Modo de serie «Paisaje continuo»: castillo, mar o dragón repartidos entre los tomos */
 function sagaArt(b, sp, ser, [B, F, A], w, h, num){
-  const sc = ser.scene || ['castle', 'sea', 'dragon'][ser.seed % 3];
-  const spec = applyParts({ saga:sc, base:darken(B, lum(B) > .45 ? .62 : .35), accent:mix(B, A, .5), sky2:lighten(A, .3), moon:'#ffe8a8', sil:darken(B, .75), sil2:mix(darken(B, .45), A, .2), foil:lum(F) > .6 ? F : lighten(F, .7),
+  const sc = ser.scene || ['castle', 'sea', 'dragon', 'forest'][ser.seed % 4];
+  const spec = applyParts({ saga:sc, base:darken(B, lum(B) > .45 ? .62 : .35), accent:vivid(mix(B, A, .6), .42), sky2:vivid(mix(A, F, .35), .72), moon:mix(lighten(F, .6), '#fff3c8', .5), sil:darken(B, .82), sil2:darken(vivid(mix(B, A, .5), .4), .3), foil:lum(F) > .6 ? F : lighten(F, .7),
     font:'pag', max:12, cont:{ off:ser.off, total:ser.totalW, seed:ser.seed } }, 'saga', sp.parts);
-  spec.titleInk = isHex(sp.ink) ? sp.ink : bestInk(spec.foil, [spec.base, spec.accent]);
+  spec.titleInk = isHex(sp.ink) ? sp.ink : bestInk(spec.foil, [spec.base]); spec.numInk = bestInk(spec.moon, [spec.sil]);
   return { w, h, style:'saga', pal:[B, F, A], parts:SPINE_PARTS.saga.map(([k, l]) => [k, l, spec[k]]), ink:spec.titleInk, html:sagaSpine({ w, h, title:b.title || 'Sin título', num, ...spec }) };
 }
 
