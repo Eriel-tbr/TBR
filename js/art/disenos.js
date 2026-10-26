@@ -10,7 +10,7 @@
    saga: true = solo para un modo de serie (no sale en la lista de diseños). */
 
 FONT.cinzel = "'Cinzel','Cormorant Garamond',Georgia,serif";
-FONT.dancing = "'Dancing Script','Parisienne',cursive";
+FONT.romantica = "'Courgette','Lora',cursive";
 let svid = 0; const sid = () => 'sv' + (++svid); // id únicos (en la página puede haber el mismo lomo con colores distintos)
 const svgW = (w, h, s) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="position:absolute;inset:0;display:block" aria-hidden="true">${s}</svg>`;
 const r1 = v => Math.round(v * 10) / 10;
@@ -103,7 +103,7 @@ const SPINES = {
   /* 5. Grimorio: cantoneras de metal, correa de piel cosida y un cristal tallado */
   grimorio:{ name:'Grimorio', parts:[['base', 'Piel'], ['foil', 'Metal'], ['accent', 'Cristal']], font:{ font:'cinzel', wt:700, up:1, ls:.04, max:14 },
     colors:([B, F, A]) => ({ base:darken(B, .2), foil:F, accent:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, cy = Math.round(h * .76), m = sid(), gm = sid(), k = r1(Math.min(1.35, (w - 8) / 14.4)), gy = cy + 5.5, ny = Math.min(h - 13, cy + 31);
+    draw:(o, c, w, h) => { const cx = w / 2, cy = Math.round(h * (o.num ? .7 : .76)), m = sid(), gm = sid(), k = r1(Math.min(1.35, (w - 8) / 14.4)), gy = cy + 5.5, ny = Math.min(h - 13, cy + 31);
       const cn = (x, y, sx, sy) => `<path d="M${x} ${y}h${sx * 9}l${-sx * 9} ${sy * 9}z" fill="url(#${m})" stroke="${darken(c.foil, .5)}" stroke-width=".5"/>`;
       const gem = `<ellipse cx="${cx}" cy="${gy}" rx="7.2" ry="8.6" fill="url(#${m})" stroke="${darken(c.foil, .55)}" stroke-width=".5"/>
         <path d="M${cx} ${gy - 7}L${cx + 5} ${gy - 3}L${cx + 5} ${gy + 3}L${cx} ${gy + 7}L${cx - 5} ${gy + 3}L${cx - 5} ${gy - 3}Z" fill="url(#${gm})" stroke="${darken(c.accent, .6)}" stroke-width=".4"/>
@@ -172,7 +172,7 @@ const SPINES = {
   /* 10. Celestial: cielo estrellado con una luna creciente */
   celestial:{ name:'Celestial', parts:[['base', 'Cielo'], ['alt', 'Cielo abajo'], ['foil', 'Luna y estrellas']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F, A]) => ({ base:darken(B, .45), alt:mix(darken(B, .2), A, .35), foil:F }),
-    draw:(o, c, w, h) => { const cx = w / 2, g = sid(), mr = clamp(w * .3, 7, 10), my = mr + 6, rr = rng(o.seed || 3), cy = h - 14;
+    draw:(o, c, w, h) => { const cx = w / 2, g = sid(), mr = clamp(w * .16, 4, 5.5), my = mr + 7, rr = rng(o.seed || 3), cy = h - 14;
       const tt = Math.round(my + mr + 7), tb = Math.round(h - (o.num ? 26 : 12)), at = y => mix(c.base, c.alt, clamp(y / h, 0, 1));
       let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset="1" stop-color="${c.alt}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
       // estrellas por todo el cielo menos detrás del título (en sus márgenes, sí)
@@ -223,7 +223,7 @@ const SPINES = {
       return { svg:s, box:{ l:r1(cx - hw + 2), t:tt, w:r1(bw - 4), h:tb - tt }, tbg:[lighten(c.foil, .35), c.foil, darken(c.foil, .15)], ink, num:{ cy, bg:c.foil, ink } }; } },
 
   /* 13. Romántico: título grande en letra caligráfica sobre una cinta de raso, con corazoncitos en el fondo */
-  romantico:{ name:'Romántico', parts:[['base', 'Fondo'], ['alt', 'Cinta'], ['foil', 'Pespuntes'], ['accent', 'Corazones']], font:{ font:'dancing', wt:700, ls:0, max:24 },
+  romantico:{ name:'Romántico', parts:[['base', 'Fondo'], ['alt', 'Cinta'], ['foil', 'Pespuntes'], ['accent', 'Corazones']], font:{ font:'romantica', wt:400, ls:0, max:21 },
     colors:([B, F, A]) => ({ base:B, alt:darken(B, .28), foil:F, accent:A }),
     draw:(o, c, w, h) => { const pt = sid(), sg = sid(), hc = mix(c.base, c.accent, .4), x0 = 4.5, x1 = w - 4.5, cy = h - 13;
       let s = `<defs><pattern id="${pt}" width="10" height="12" patternUnits="userSpaceOnUse"><path d="${heartP(2.5, 3, 3.2)}" fill="${hc}"/><path d="${heartP(7.5, 9, 3.2)}" fill="${hc}"/></pattern>
@@ -259,23 +259,14 @@ const SPINES = {
       const tt = zt + 4, tb = Math.round(ay - R - 7);
       return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:c.alt, num:{ cy:ay, bg:c.base, ink:c.alt } }; } },
 
-  /* 15. Bosque: cielo de noche con luna, pinos abajo y luciérnagas */
-  bosque:{ name:'Bosque', parts:[['base', 'Cielo'], ['alt', 'Bruma'], ['leaf', 'Pinos'], ['accent', 'Luna y luciérnagas']], font:{ font:'pag', wt:700, max:16 },
-    colors:([B, F, A]) => ({ base:darken(B, .5), alt:mix(lighten(B, .3), A, .45), leaf:darken(B, .75), accent:mix(lighten(F, .5), '#fff3c8', .4) }),
-    draw:(o, c, w, h) => { const g = sid(), mg = sid(), rr = rng(o.seed || 11), mx = w * .62, my = 13, gt = h * .7, cy = h - 12;
-      let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset=".55" stop-color="${c.base}"/><stop offset=".86" stop-color="${c.alt}"/></linearGradient>
-        <radialGradient id="${mg}"><stop offset="0" stop-color="${c.accent}" stop-opacity=".45"/><stop offset="1" stop-color="${c.accent}" stop-opacity="0"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
-      s += `<circle cx="${r1(mx)}" cy="${my}" r="12" fill="url(#${mg})"/><circle cx="${r1(mx)}" cy="${my}" r="${r1(Math.min(5.5, w * .16))}" fill="${c.accent}"/>`;
-      for(let i = 0; i < 8; i++){ const x = 2 + rr() * (w - 4), y = 3 + rr() * 20; if(Math.hypot(x - mx, y - my) > 8) s += `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(.3 + rr() * .4)}" fill="${c.accent}" opacity="${r1(.5 + rr() * .4)}"/>`; }
-      // dos filas de pinos: la de atrás con bruma, la de delante del color de los pinos
-      for(let x = -2; x < w + 4; x += 4 + rr() * 3) s += `<path d="${pineP(x, gt + 12, 12 + rr() * 8)}" fill="${mix(c.leaf, c.alt, .45)}"/>`;
-      s += `<rect y="${r1(gt + 9)}" width="${w}" height="${r1(h - gt)}" fill="${mix(c.leaf, c.alt, .45)}"/>`;
-      for(let x = 0; x < w + 4; x += 5 + rr() * 4) s += `<path d="${pineP(x, h - 4, 22 + rr() * 16)}" fill="${c.leaf}"/>`;
-      s += `<rect y="${h - 5}" width="${w}" height="5" fill="${c.leaf}"/>`;
-      for(let i = 0; i < 6; i++) s += `<circle cx="${r1(2 + rr() * (w - 4))}" cy="${r1(gt - 6 + rr() * 26)}" r=".75" fill="${c.accent}" opacity="${r1(.6 + rr() * .4)}"/>`;
-      const tt = 30, tb = Math.round(gt - 10);
-      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, mix(c.base, c.alt, .35)], ink:lighten(c.accent, .4), num:{ cy, bg:c.leaf, ink:c.accent } }; } },
-
+  /* 15. Noir: fondo oscuro, título grande en mayúsculas y una franja en diagonal abajo (contemporánea y thriller) */
+  noir:{ name:'Noir', parts:[['base', 'Fondo'], ['accent', 'Franja'], ['alt', 'Filetes']], font:{ font:'pop', wt:700, up:1, ls:.06, max:20 },
+    colors:([B, F, A]) => ({ base:darken(B, .55), accent:vivid(A, .5), alt:F }),
+    draw:(o, c, w, h) => { const d = Math.min(9, w * .28), y1 = h - 36, bh = 12;
+      let s = `<path d="M0 ${r1(y1 + d)}L${w} ${y1}L${w} ${y1 + bh}L0 ${r1(y1 + d + bh)}Z" fill="${c.accent}"/><path d="M0 ${r1(y1 + d + bh + 4)}L${w} ${y1 + bh + 4}" stroke="${c.alt}" stroke-width=".8"/>
+        <rect x="4" y="6" width="${r1(w * .42)}" height="1.6" fill="${c.accent}"/><rect x="4" y="9" width="${r1(w * .22)}" height=".7" fill="${c.alt}"/>`;
+      const tb = y1 - 5, cy = r1(y1 + d / 2 + bh / 2);
+      return { svg:s, box:{ l:3, t:14, w:w - 6, h:tb - 14 }, tbg:[c.base], ink:lighten(c.alt, .55), num:{ cy, bg:c.accent, ink:lighten(c.accent, .85) } }; } },
   /* Modo de serie «Fases de la luna»: la luna crece de un tomo a otro (no sale en la lista de diseños) */
   luna:{ name:'Fases de la luna', saga:true, parts:[['base', 'Cielo'], ['foil', 'Luna y estrellas'], ['alt', 'Sombra de la luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F]) => ({ base:darken(B, .45), foil:lighten(F, .2), alt:darken(B, .6) }),
@@ -288,7 +279,7 @@ const SPINES = {
       if(o.num) s += `<circle cx="${r1(cx - 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/><circle cx="${r1(cx + 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/>`;
       return { svg:s, box:{ l:4, t:10, w:w - 8, h:tb - 10 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 13, bg:c.base, ink:c.foil } }; } }
 };
-const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'bosque'];
+const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'noir'];
 /* Estilos antiguos → los nuevos (para colecciones guardadas antes) */
 const STYLE_ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'floral', botanico:'floral', synth:'holo', cristal:'holo',
   nervios:'marco', bloque:'tela', deco:'filigrana', rayas:'degradado', acuarela:'holo' };
