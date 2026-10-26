@@ -92,6 +92,7 @@ function openUnitForm(unitId){
         Object.assign(u, data); u.shelves = (names.length ? names : ['General']).map(mkShelf); state.units.push(u); ui.active = state.units.length - 1;
       } else {
         if(sortSel === 'manual' && unitSort(orig).sort !== 'manual') orig.shelves.forEach(s => { s.order = sortedBooks(s).map(b => b.id); }); // pasa a manual tal como estaba
+        if(sortSel !== 'manual' && unitSort(orig).sort === 'manual') delete orig.place; // con un orden automático, sin espacios colocados a mano
         Object.assign(orig, data);
         const rows = $$('.shelf-edit', sh), keep = [];
         rows.forEach(r => { const id = r.dataset.sid, name = r.querySelector('.field').value.trim() || 'Balda'; let s = orig.shelves.find(x => x.id === id); if(!s){ s = mkShelf(name); s.id = id; } s.name = name; keep.push(s); });

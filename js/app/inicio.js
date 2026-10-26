@@ -4,7 +4,7 @@
 document.addEventListener('click', e => {
   const g = s => e.target.closest(s);
   if(g('#carousel .bk')){ if(Date.now() < noClickUntil) return; openDetail(g('.bk').dataset.id); return; }
-  if(g('#carousel .dcm')){ if(Date.now() < noClickUntil) return; const dec = g('.dcm').dataset.dec; if(dec.startsWith('gap:')) openGap(dec.slice(4)); else openDecor(dec); return; }
+  if(g('#carousel .dcm')){ if(Date.now() < noClickUntil) return; openDecor(g('.dcm').dataset.dec); return; }
   if(g('[data-open]')){ openDetail(g('[data-open]').dataset.open); return; }
   const act = g('[data-act]'); if(act && !g('.sheet')){
     const a = act.dataset.act;

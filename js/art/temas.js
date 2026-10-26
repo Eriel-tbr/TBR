@@ -203,18 +203,20 @@ function parseSeries(title){
 }
 
 /* ---------- Disposición en filas (con parteluz opcional) ---------- */
+/* Reparte los elementos de una balda en filas. Cada uno puede llevar una posición propia (colocada a mano al arrastrar):
+   at = dónde empieza, en fracción del ancho de la fila (deja espacio libre delante); nl = empieza en una fila nueva.
+   Si lo de antes ya pasa de ese punto, va detrás; si no cabe en la fila, baja a la siguiente (en el mismo punto). */
 function packRows(items, W, mullion){
   const rows = []; let cur = [], x = 0; const mid = W / 2, gap = 18;
   const push = () => { rows.push(cur); cur = []; x = 0; };
+  const room = to => { if(to > x + .5){ cur.push({ spacer:Math.round(to - x), room:true }); x = to; } };
   for(let it of items){
-    if(it.fill){ // hueco que se estira: hasta la otra mitad o hasta el final de la balda
-      const toMid = mid + (mullion ? gap / 2 : 0) - x, w = it.fill === 'half' && toMid > 20 ? toMid : Math.max(26, W - x);
-      cur.push({ ...it, w, html:it.html(Math.max(20, w - 4)) }); x += w;
-      if(it.fill === 'row' || toMid <= 20) push(); continue;
-    }
-    if(x + it.w > W && cur.length) push();
+    if(it.nl && cur.length) push();
+    const tx = it.at !== undefined && it.at !== null ? Math.min(clamp(+it.at, 0, 1) * W, Math.max(0, W - it.w)) : null;
+    if(tx !== null) room(tx);
+    if(x + it.w > W && cur.length){ push(); if(tx !== null) room(tx); }
     if(mullion && x < mid + gap / 2 && x + it.w > mid - gap / 2){
-      const sp = mid + gap / 2 - x; if(x + sp + it.w > W && cur.length){ push(); }
+      const sp = mid + gap / 2 - x; if(x + sp + it.w > W && cur.length){ push(); if(tx !== null) room(tx); }
       else { cur.push({ spacer:sp }); x += sp; }
     }
     cur.push(it); x += it.w;

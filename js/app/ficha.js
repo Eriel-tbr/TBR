@@ -62,7 +62,7 @@ function confirmTap(btn, label){
 function deleteBook(id){
   const b = bookOf(id); if(!b) return; const copy = JSON.parse(JSON.stringify(b)), s = shelfOf(b.shelfId);
   state.books = state.books.filter(x => x.id !== id); if(s) s.s.order = s.s.order.filter(x => x !== id);
-  state.units.forEach(u => (u.gaps || []).forEach(g => { if(g.after === id) g.after = null; }));
+  state.units.forEach(u => { if(u.place) delete u.place[id]; });
   save(); renderAll();
   toast(`«${b.title}» borrado`, () => { copy.upd = Date.now(); state.books.push(copy); if(state.deleted) delete state.deleted[id]; save(); renderAll(); });
 }
@@ -70,19 +70,17 @@ function openMove(id, after){
   const b = bookOf(id);
   // La estantería actual primero y abierta; las demás plegadas. En cada una se puede crear una balda, y al final una estantería.
   const units = [...state.units].sort((x, y) => (y.id === b.unitId) - (x.id === b.unitId));
-  const gapsHtml = `<div class="sec"><span class="lbl">Dejar espacio libre en la balda</span><div class="actions"><button class="btn" type="button" data-gap="before">Hueco antes</button><button class="btn" type="button" data-gap="after">Hueco después</button></div>
-    <p class="note">Luego eliges su tamaño.</p></div>`;
+  const u0 = unitOf(b.unitId), spaced = !!(u0 && u0.place && u0.place[id]);
+  const spaceHtml = spaced ? '<button class="btn" type="button" data-do="nospace">Quitar el espacio libre de delante</button>' : '';
   const body = units.map(u => fold(esc(u.name) + (u.id === b.unitId ? ' <small>ahora aquí</small>' : ''), `<div class="row-opts">${u.shelves.map(s => `<button class="opt" type="button" role="radio" data-m="${s.id}" aria-checked="${s.id === b.shelfId}"><span class="dot"></span>${esc(s.name)}</button>`).join('')}</div>
       <button class="chip" type="button" data-newshelf="${u.id}" style="align-self:flex-start">+ Nueva balda en ${esc(u.name)}</button>`, u.id === b.unitId)).join('')
-    + '<button class="btn" type="button" data-do="newunitmove">+ Nueva estantería</button>' + gapsHtml;
+    + '<button class="btn" type="button" data-do="newunitmove">+ Nueva estantería</button>' + spaceHtml;
   const sh = openSheet(sheetT('Mover a…', body));
   const moveTo = async shelfId => { const to = shelfOf(shelfId), from = shelfOf(b.shelfId);
     if(to.s.id !== b.shelfId){ from && (from.s.order = from.s.order.filter(x => x !== id)); b.unitId = to.u.id; b.shelfId = to.s.id; ui.lastShelf = to.s.id; save(); renderAll(); toast(`Movido a ${to.u.name} › ${to.s.name}`); }
     await closeSheet(); after && after(); };
   sh.addEventListener('click', async e => {
-    const gb = e.target.closest('[data-gap]'); if(gb){ const u = unitOf(b.unitId); if(!u) return; const seq = unitSeq(u).map(x => x.id), i = seq.indexOf(id);
-      const g = { id:uid(), size:'sm', after:gb.dataset.gap === 'after' ? id : i > 0 ? seq[i - 1] : null }; (u.gaps = u.gaps || []).push(g); save(); renderAll();
-      await closeSheet(); after && after(); openGap(g.id); return; }
+    if(e.target.closest('[data-do="nospace"]')){ delete u0.place[id]; save(); renderAll(); await closeSheet(); after && after(); toast('Espacio quitado'); return; }
     const ns = e.target.closest('[data-newshelf]'); if(ns){ const s = await newShelfIn(ns.dataset.newshelf); if(s) await moveTo(s.id); return; }
     if(e.target.closest('[data-do="newunitmove"]')){ const u = await newUnitQuick(); if(u) await moveTo(u.shelves[0].id); return; }
     const o = e.target.closest('[data-m]'); if(o) await moveTo(o.dataset.m);
@@ -118,22 +116,6 @@ function openAddDecor(unitId){
     u.decorItems = u.decorItems || []; const seq = unitSeq(u);
     u.decorItems.push({ id:uid(), k:b.dataset.addk, after:seq.length ? seq[seq.length - 1].id : null, size:1 }); save(); renderAll(); await closeSheet(); toast('Mantén pulsado el objeto para moverlo'); });
 }
-/* Hueco: tamaño, posición y quitar */
-function openGap(gapId){
-  const f = gapOfUnit(gapId); if(!f) return; const { u, g } = f;
-  const draw = () => `<p class="note">Mantenlo pulsado en la estantería para moverlo.</p>
-    <div class="sec"><span class="lbl">Tamaño</span><div class="row-opts">${Object.entries(GAP_SIZES).map(([k, [l]]) => `<button class="opt" type="button" role="radio" data-gsize="${k}" aria-checked="${(g.size || 'sm') === k}"><span class="dot"></span>${l}</button>`).join('')}</div></div>
-    <div class="sec"><span class="lbl">Posición</span><div class="actions"><button class="btn" type="button" data-gmove="-1">‹ Antes</button><button class="btn" type="button" data-gmove="1">Después ›</button></div></div>
-    <button class="btn danger" type="button" data-do="grm">Quitar el hueco</button>`;
-  const sh = openSheet(sheetT('Hueco', '<div id="gapbody" style="display:flex;flex-direction:column;gap:16px"></div>'));
-  const paint = () => { $('#gapbody', sh).innerHTML = draw(); }; paint();
-  sh.addEventListener('click', async e => { const q = s => e.target.closest(s);
-    if(q('[data-gsize]')) g.size = q('[data-gsize]').dataset.gsize;
-    else if(q('[data-gmove]')){ const seq = unitSeq(u).map(b => b.id), i = g.after ? seq.indexOf(g.after) : -1, j = clamp(i + +q('[data-gmove]').dataset.gmove, -1, seq.length - 1);
-      if(j === i){ toast(j < 0 ? 'Ya está al principio' : 'Ya está al final'); return; } g.after = j < 0 ? null : seq[j]; }
-    else if(q('[data-do="grm"]')){ u.gaps = u.gaps.filter(x => x !== g); save(); renderAll(); await closeSheet(); toast('Hueco quitado'); return; } else return;
-    save(); renderAll(); paint(); });
-}
 function openDecor(decId){
   if(String(decId).startsWith('auto:')){ decId = materializeDecor(decId); save(); renderAll(); }
   const f = decorOfUnit(decId); if(!f) return; const { u, d } = f, th = themeOf(u);
@@ -146,7 +128,7 @@ function openDecor(decId){
   sh.addEventListener('click', async e => { const g = s => e.target.closest(s);
     if(g('[data-dsize]')) d.size = +g('[data-dsize]').dataset.dsize; else if(g('[data-dk]')) d.k = g('[data-dk]').dataset.dk;
     else if(g('[data-dmove]')){ const seq = unitSeq(u).map(b => b.id), i = d.after ? seq.indexOf(d.after) : -1, j = clamp(i + +g('[data-dmove]').dataset.dmove, -1, seq.length - 1);
-      if(j === i){ toast(j < 0 ? 'Ya está al principio' : 'Ya está al final'); return; } d.after = j < 0 ? null : seq[j]; }
+      if(j === i){ toast(j < 0 ? 'Ya está al principio' : 'Ya está al final'); return; } d.after = j < 0 ? null : seq[j]; delete d.at; delete d.nl; delete d.shelf; }
     else if(g('[data-do="drm"]')){ u.decorItems = u.decorItems.filter(x => x.id !== d.id); save(); renderAll(); await closeSheet(); toast('Objeto quitado'); return; } else return;
     save(); renderAll(); paint(); });
 }

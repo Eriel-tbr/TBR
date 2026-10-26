@@ -70,6 +70,9 @@ function migrate(s){
     if(s.settings.decor === false) s.units.forEach(u => { u.decorMode = 'none'; });
     delete s.settings.decor; delete s.settings.spineFromCover; s.settings.migDecor = 1;
   }
+  if(!s.settings.migGaps){ // los huecos («Hueco antes / después») dejan paso a colocar libros y objetos donde se sueltan
+    s.units.forEach(u => { delete u.gaps; }); s.settings.migGaps = 1;
+  }
   return s;
 }
 let state = migrate(load());

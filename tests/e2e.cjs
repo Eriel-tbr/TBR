@@ -249,21 +249,54 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const r = await ev(() => ({ p:document.querySelector('#f-pages').value, s:document.querySelector('#f-syn').value })); assert(r.p === '336' && r.s === 'Mi sinopsis', JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
-  await test('huecos: «Hasta la otra mitad» lleva el libro siguiente a la derecha; se mueven y se quitan', async () => {
-    const r0 = await ev(() => { const u = state.units[0], seq = unitSeq(u); u.gaps = []; save(); renderAll(); return { u:u.id, a:seq[0].id, b:seq[1].id }; });
-    await ev(id => openMove(id), r0.a); await page.click('[data-gap="after"]'); await page.waitForSelector('[data-gsize="half"]');
-    await page.click('[data-gsize="half"]'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    const r = await ev(r0 => { const u = unitOf(r0.u), g = u.gaps[0], el = document.querySelector(`.slide[data-unit="${u.id}"] .gap`), row = el.closest('.row').getBoundingClientRect(),
-      b = document.querySelector(`.slide[data-unit="${u.id}"] .it[data-id="${r0.b}"]`).getBoundingClientRect();
-      return { after:g.after, size:g.size, n:u.gaps.length, right:b.left - row.left > row.width * .45 }; }, r0);
-    assert(r.after === r0.a && r.size === 'half' && r.n === 1 && r.right, JSON.stringify(r));
-    await ev(r0 => openGap(unitOf(r0.u).gaps[0].id), r0); await page.click('[data-gmove="-1"]');
-    assert(await ev(r0 => unitOf(r0.u).gaps[0].after, r0) === null, 'no se movió al principio');
-    await page.click('[data-do="grm"]'); await page.waitForSelector('.sheet', { state:'detached' });
-    assert(await ev(r0 => unitOf(r0.u).gaps.length + document.querySelectorAll('.gap').length, r0) === 0, 'no se quitó');
-    await ev(() => { state.settings.decor = false; state.units[0].gaps = [{ id:'g1', after:null, size:'md' }]; save(); renderAll(); });
-    assert(await page.locator('.slide[data-i="0"] .gap').count() === 1, 'el hueco se oculta con la decoración');
-    await ev(() => { state.settings.decor = true; state.units[0].gaps = []; save(); renderAll(); });
+  /* Arrastrar con el ratón: se agarra el elemento, se mueve un poco (aparecen las «Fila nueva») y luego al punto que calcule `to` en la página */
+  const dragTo = async (sel, to, arg) => {
+    await ev(sel => document.querySelector(sel).scrollIntoView({ block:'center' }), sel); await page.waitForTimeout(150);
+    const a = await page.locator(sel).boundingBox(), y0 = a.y + a.height - 30;
+    await page.mouse.move(a.x + a.width / 2, y0); await page.mouse.down(); await page.mouse.move(a.x + a.width / 2 + 9, y0, { steps:3 }); await page.waitForTimeout(150);
+    const p = await page.evaluate(to, arg); await page.mouse.move(p.x, p.y, { steps:12 }); await page.waitForTimeout(200);
+    const t = await ev(() => drag && drag.target); await page.mouse.up(); await page.waitForTimeout(450); return t;
+  };
+  await test('colocar a mano: un libro se queda en el espacio libre donde se suelta, y se le quita el espacio pegándolo', async () => {
+    const r0 = await ev(() => { const u = state.units[0]; u.decorMode = 'none'; delete u.place; const [ep, go] = u.shelves; state.books.filter(b => b.shelfId === go.id).forEach(b => { b.shelfId = ep.id; });
+      const l = sortedBooks(ep); save(); renderAll(); goTo(0, false); return { u:u.id, ep:ep.id, a:l[l.length - 1].id, prev:l[l.length - 2].id }; });
+    await ev(r0 => { const u = unitOf(r0.u); u.shelves[0].order = []; save(); renderAll(); }, r0); await page.waitForTimeout(200);
+    // El último libro de la balda, a tres cuartos de la fila (espacio libre)
+    // Punto libre: entre el último elemento de la fila (sin el arrastrado) y el final, pasado de los tres cuartos
+    const t = await dragTo(`.slide[data-i="0"] .it[data-id="${r0.a}"] button.bk`, r0 => { const rowEl = document.querySelector(`.it[data-id="${r0.a}"]`).closest('.row'), row = rowEl.getBoundingClientRect();
+      const last = Math.max(row.left, ...[...rowEl.querySelectorAll('.it[data-id], .dc')].filter(e => e.dataset.id !== r0.a && !e.classList.contains('dragging')).map(e => e.getBoundingClientRect().right));
+      return { x:Math.max(last + 40, row.left + row.width * .82), y:row.bottom - 60 }; }, r0);
+    const r = await ev(r0 => { const u = unitOf(r0.u), it = document.querySelector(`.it[data-id="${r0.a}"]`), row = it.closest('.row').getBoundingClientRect(), b = it.getBoundingClientRect();
+      return { at:(u.place || {})[r0.a] && u.place[r0.a].at, x:(b.left - row.left) / row.width, room:document.querySelectorAll(`.row[data-shelf="${r0.ep}"] .sp.room`).length, sort:u.sort }; }, r0);
+    assert(r.at > .6 && r.x > .6 && r.room === 1 && r.sort === 'manual', JSON.stringify({ r, t }));
+    // Pegado al de su izquierda: sin espacio
+    await dragTo(`.slide[data-i="0"] .it[data-id="${r0.a}"] button.bk`, r0 => { const p = document.querySelector(`.it[data-id="${r0.prev}"]`).getBoundingClientRect(); return { x:p.right + 3, y:p.bottom - 40 }; }, r0);
+    const r2 = await ev(r0 => ({ pl:(unitOf(r0.u).place || {})[r0.a] || null, room:document.querySelectorAll(`.row[data-shelf="${r0.ep}"] .sp.room`).length }), r0);
+    assert(!r2.pl && !r2.room, JSON.stringify(r2));
+  });
+  await test('colocar a mano: «Fila nueva» empieza una fila nueva en la misma balda', async () => {
+    const r0 = await ev(() => { const u = state.units[0], ep = u.shelves[0], l = sortedBooks(ep); return { u:u.id, ep:ep.id, a:l[0].id }; });
+    const t = await dragTo(`.slide[data-i="0"] .it[data-id="${r0.a}"] button.bk`, r0 => { const n = document.querySelector(`.slide[data-unit="${r0.u}"] .newrow[data-shelf="${r0.ep}"]`); n.scrollIntoView({ block:'center' }); const b = n.getBoundingClientRect(); return { x:b.left + 40, y:b.top + b.height / 2 }; }, r0);
+    const r = await ev(r0 => { const rows = [...document.querySelectorAll(`.row[data-shelf="${r0.ep}"]`)], i = rows.findIndex(x => x.querySelector(`.it[data-id="${r0.a}"]`)), first = rows[i] && rows[i].querySelector('.it[data-id]');
+      return { pl:(unitOf(r0.u).place || {})[r0.a], rows:rows.length, i, first:first && first.dataset.id, newrows:document.querySelectorAll('.newrow').length }; }, r0);
+    assert(r.pl && r.pl.nl && r.i === r.rows - 1 && r.i > 0 && r.first === r0.a && !r.newrows, JSON.stringify({ r, t }));
+    await ev(r0 => { delete unitOf(r0.u).place; save(); renderAll(); }, r0);
+  });
+  await test('colocar a mano: un objeto se puede dejar en una balda vacía, en el punto donde se suelta', async () => {
+    const r0 = await ev(() => { const u = state.units[0], empty = u.shelves.find(sh => !state.books.some(b => b.shelfId === sh.id));
+      u.decorMode = 'manual'; u.decorItems = [{ id:'d1', k:'vela', after:null, size:1 }]; save(); renderAll(); goTo(0, false); return { u:u.id, sh:empty.id }; });
+    await dragTo(`.slide[data-i="0"] .dcm[data-dec="d1"]`, r0 => { const row = document.querySelector(`.slide[data-unit="${r0.u}"] .row[data-shelf="${r0.sh}"]:not(.newrow)`); row.scrollIntoView({ block:'center' }); const b = row.getBoundingClientRect(); return { x:b.left + b.width * .7, y:b.bottom - 50 }; }, r0);
+    const r = await ev(r0 => { const d = unitOf(r0.u).decorItems[0], el = document.querySelector('.dcm[data-dec="d1"]'), row = el.closest('.row'), rb = row.getBoundingClientRect();
+      return { shelf:d.shelf, after:d.after, at:d.at, inShelf:row.dataset.shelf === r0.sh, x:(el.getBoundingClientRect().left - rb.left) / rb.width }; }, r0);
+    assert(r.shelf === r0.sh && r.after === null && r.at > .4 && r.inShelf && r.x > .5, JSON.stringify(r));
+    assert(!(await ev(() => document.querySelectorAll('.gap').length)), 'quedan huecos');
+    await ev(r0 => { const u = unitOf(r0.u); u.decorItems = []; u.decorMode = 'none'; save(); renderAll(); }, r0);
+  });
+  await test('«Mover a…» ya no tiene huecos; quita el espacio libre de un libro colocado a mano', async () => {
+    const id = await ev(() => { const u = state.units[0], b = state.books.find(x => x.unitId === u.id); u.place = { [b.id]:{ at:.7 } }; save(); renderAll(); return b.id; });
+    await ev(id => openMove(id), id); assert(!(await page.locator('[data-gap]').count()), 'siguen los botones de hueco');
+    await page.click('[data-do="nospace"]'); await page.waitForSelector('.sheet', { state:'detached' });
+    assert(await ev(id => !(state.units[0].place || {})[id], id), 'no se quitó el espacio');
   });
   await test('Mover a…: crear balda y estantería nuevas y mover el libro allí', async () => {
     const id = await ev(() => unitSeq(state.units[0])[0].id); const n0 = await ev(() => state.units.length);
