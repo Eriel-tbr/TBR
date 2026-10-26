@@ -54,6 +54,10 @@ function openUnitForm(unitId){
     else q('#u-dplaced').innerHTML = '';
   }
   drawStyle(); drawSort();
+  // ¿Cambios sin guardar? Nombre, baldas (nombres, orden, borradas), orden, diseño y decoración frente a cómo estaba al abrir
+  const snapU = () => JSON.stringify([q('#u-name').value, $$('.shelf-edit', sh).map(r => r.dataset.sid + ':' + r.querySelector('.field').value), (q('#u-newshelves') || {}).value || '',
+    sortSel, dirSel, presetSel, u.wood, u.decor, u.decorMode, u.decorItems, [...del]]);
+  const baseU = snapU(); sh.guard = () => snapU() !== baseU;
   sh.addEventListener('input', e => { if(e.target.id === 'u-name') drawStyle(); });
   sh.addEventListener('click', async e => {
     const t = e.target, g = s => t.closest(s);
@@ -82,7 +86,7 @@ function openUnitForm(unitId){
       const b = g('#u-del'); if(!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'Toca otra vez para eliminar'; return; }
       const to = unitOf((q('#u-moveto') || {}).value) || state.units.find(x => x.id !== u.id);
       state.books.filter(x => x.unitId === u.id).forEach(x => { x.unitId = to.id; x.shelfId = to.shelves[0].id; }); // el orden manual de la balda que los recibe se conserva; llegan al final
-      state.units = state.units.filter(x => x.id !== u.id); ui.active = 0; save(); renderAll(); await closeSheet(); toast('Estantería eliminada');
+      state.units = state.units.filter(x => x.id !== u.id); ui.active = 0; save(); renderAll(); sh.guard = null; await closeSheet(); toast('Estantería eliminada');
     }
     else if(g('#u-save')){
       const name = q('#u-name').value.trim(); if(!name){ toast('Ponle un nombre a la estantería'); return; }
@@ -100,7 +104,7 @@ function openUnitForm(unitId){
         orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; })); // se conserva el orden manual de la primera balda; los que llegan van al final
         orig.shelves = keep;
       }
-      save(); renderAll(); await closeSheet(); if(isNew) setTimeout(() => goTo(ui.active), 50);
+      save(); renderAll(); sh.guard = null; await closeSheet(); if(isNew) setTimeout(() => goTo(ui.active), 50);
     }
   });
 }
@@ -123,7 +127,7 @@ function openFilters(){
     if(g('[data-st]')) f.status = g('[data-st]').dataset.st; else if(g('[data-lg]')) f.lang = g('[data-lg]').dataset.lg; else if(g('[data-ln]')) f.len = g('[data-ln]').dataset.ln;
     else if(g('[data-tg]')){ const t = g('[data-tg]').dataset.tg; f.tags = f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t]; }
     else if(g('#q-clear')){ ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); await closeSheet(); return; }
-    else if(g('#q-apply')){ ui.filters = f; renderAll(); await closeSheet(); return; }
+    else if(g('#q-apply')){ ui.filters = f; renderAll(); await closeSheet(); goToFirstHit(); return; }
     else return;
     paint();
   });

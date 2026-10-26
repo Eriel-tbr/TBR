@@ -66,6 +66,9 @@ function openBookForm({ book, item }){
   const body = tabPanel('libro', 'datos', tab0, pDatos) + tabPanel('libro', 'serie', tab0, pSerie) + tabPanel('libro', 'lomo', tab0, pLomo) + tabPanel('libro', 'lugar', tab0, pLugar);
   const sh = openSheet(sheetT(isNew ? 'Nuevo libro' : 'Editar libro', body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="save">Guardar</button>', tabsBar('libro', TABS, tab0)));
   sh.draft = d; // para las pruebas: datos del libro mientras se edita
+  // ¿Hay cambios sin guardar? Se compara con cómo estaba al abrir (y tras completarse solo con internet)
+  const snap = () => JSON.stringify([d, serStyle]); let base = null;
+  sh.guard = () => base !== null && (snap() !== base || addVols.size > 0 || (isNew && !!item && !!d.title.trim()));
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
@@ -160,7 +163,7 @@ function openBookForm({ book, item }){
     el.innerHTML = es ? `<div class="chips" style="margin-top:6px"><button class="chip sug" type="button" data-do="usees">Usar el título en español: «${esc(es)}»</button></div>`
       : d.origTitle && norm(d.origTitle) !== norm(d.title) ? `<div class="note" style="margin-top:4px">Título original: ${esc(d.origTitle)}</div>` : '';
   }
-  drawCover(); drawLangs(); drawFmt(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle();
+  drawCover(); drawLangs(); drawFmt(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle(); base = snap();
   sh.addEventListener('change', e => { const v = e.target.dataset && e.target.dataset.vol; if(v){ if(e.target.checked) addVols.add(+v); else addVols.delete(+v); drawVols(); } });
   sh.addEventListener('input', e => {
     const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine(); }
@@ -206,7 +209,7 @@ function openBookForm({ book, item }){
     else if(g('[data-volall]')){ const k = norm(d.series.name), remote = (seriesCache[k] || {}).data, mine = seriesMembers(state, k);
       const miss = remote ? remote.books.filter(x => x.main && !mine.some(b => b.id !== d.id && +b.series.n === x.n) && x.n !== +d.series.n).map(x => x.n) : [];
       if(miss.every(n => addVols.has(n))) miss.forEach(n => addVols.delete(n)); else miss.forEach(n => addVols.add(n)); drawVols(); }
-    else if(g('[data-do="delbook"]')){ if(confirmTap(g('[data-do="delbook"]'), 'Borrar libro')){ await closeSheet(); deleteBook(d.id); } }
+    else if(g('[data-do="delbook"]')){ if(confirmTap(g('[data-do="delbook"]'), 'Borrar libro')){ sh.guard = null; await closeSheet(); deleteBook(d.id); } }
     else if(g('[data-do="newshelf"]')){ const s = await newShelfIn(d.unitId); if(s){ d.shelfId = s.id; setPick(q('#f-shelf'), shelfOpts(d.unitId), s.id); } }
     else if(g('[data-do="newunit"]')){ const u = await newUnitQuick(); if(u){ d.unitId = u.id; d.shelfId = u.shelves[0].id; setPick(q('#f-unit'), state.units.map(x => [x.id, x.name]), u.id); setPick(q('#f-shelf'), shelfOpts(u.id), d.shelfId); drawSpine(); } }
     else if(g('[data-part]')){ const b = g('[data-part]'), f = b.dataset.part, th = themeOf(unitNow());
@@ -315,13 +318,14 @@ function openBookForm({ book, item }){
     { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ const t = bookOf(d.id) || d; t.coverPal = coverTrios.slice(0, 3); t.coverPalSrc = src; } }
     ui.lastShelf = d.shelfId; save(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 800);
     const idx = state.units.findIndex(u => u.id === d.unitId); if(idx >= 0) ui.active = idx;
-    renderAll(); await closeSheet(); if(isNew && ui.view !== 'shelves') showView('shelves'); goTo(ui.active); flash(d.id);
+    sh.guard = null; renderAll(); await closeSheet(); if(isNew && ui.view !== 'shelves') showView('shelves'); goTo(ui.active); flash(d.id);
     toast((isNew ? `Añadido a ${locName(d)}` : 'Cambios guardados') + (newVols.length ? ` · ${newVols.length} ${newVols.length === 1 ? 'tomo más' : 'tomos más'}` : ''));
     if(newVols.length) completeNewBooks(newVols);
   }
   if(isNew && item){
     const ac = new AbortController(); sheets[sheets.length - 1].onClose = () => ac.abort();
-    enrichBook(item, ac.signal).then(it => { if(ac.signal.aborted) return; applyItem(it); const l = q('#fload'); l && (l.textContent = ''); })
+    // Lo que se completa solo con internet no cuenta como cambio tuyo (si no has tocado nada aún)
+    enrichBook(item, ac.signal).then(it => { if(ac.signal.aborted) return; const clean = snap() === base; applyItem(it); if(clean) base = snap(); const l = q('#fload'); l && (l.textContent = ''); })
       .catch(() => { const l = q('#fload'); l && (l.textContent = ' No pude completar todo: rellena lo que falte a mano.'); });
   }
 }

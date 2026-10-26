@@ -24,7 +24,7 @@ document.addEventListener('keydown', e => { const b = e.target.closest && e.targ
 const fold = (title, body, open = false, extra = '') => `<details class="fold"${open ? ' open' : ''} ${extra}><summary><span>${title}</span></summary><div class="fold-b">${body}</div></details>`;
 function openSheet(html, onClose){
   const back = document.createElement('div'); back.className = 'backdrop';
-  const sh = document.createElement('div'); sh.className = 'sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true'); sh.innerHTML = html;
+  const sh = document.createElement('div'); sh.className = 'sheet' + (html.includes('class="tabbar"') ? ' tabbed' : ''); sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true'); sh.innerHTML = html;
   // Cada hoja nueva va por encima de la anterior con su fondo: así la de abajo queda oscurecida y no recibe toques
   const z = 90 + sheets.length * 20; back.style.zIndex = z; sh.style.zIndex = z + 10;
   back.addEventListener('click', () => closeSheet());
@@ -34,12 +34,32 @@ function openSheet(html, onClose){
   return sh;
 }
 function popNow(){ const r = sheets.pop(); if(r){ r.back.remove(); r.sh.remove(); r.onClose && r.onClose(); } const f = popRes; popRes = null; f && f(); }
+/* Formularios con cambios sin guardar: sh.guard() dice si los hay. Al cerrar (X, fondo, Cancelar o el gesto atrás) se pregunta antes.
+   Al guardar, el formulario pone sh.guard = null para cerrarse sin preguntar. */
+let asking = null;
+function askDiscard(){
+  if(asking) return asking;
+  return asking = new Promise(res => { let out = false;
+    const sh = openSheet(sheetT('¿Descartar los cambios?', '<p class="note">Hay cambios sin guardar.</p>',
+      '<button class="btn" type="button" data-close>Seguir editando</button><button class="btn danger" type="button" data-do="discard">Descartar</button>'), () => { asking = null; res(out); });
+    sh.classList.add('ask-sheet');
+    sh.addEventListener('click', e => { if(e.target.closest('[data-do="discard"]')){ out = true; closeSheet(); } });
+  });
+}
+const dirtyTop = () => { const t = sheets[sheets.length - 1]; return !!(t && t.sh.guard && t.sh.guard()); };
 let closing = null;
 function closeSheet(){ // dos cierres seguidos de la misma hoja no deben retroceder dos veces (se saldría de la app)
   if(closing) return closing;
+  if(dirtyTop()){ const top = sheets[sheets.length - 1]; return askDiscard().then(ok => { if(!ok || sheets[sheets.length - 1] !== top) return; top.sh.guard = null; return closeSheet(); }); }
   return closing = new Promise(res => { if(!sheets.length){ closing = null; return res(); } popRes = () => { closing = null; res(); }; const mine = popRes; history.back(); setTimeout(() => { if(popRes === mine) popNow(); }, 350); });
 }
-addEventListener('popstate', () => { if(sheets.length) popNow(); });
+addEventListener('popstate', () => {
+  if(!sheets.length) return;
+  // Gesto atrás del móvil sobre un formulario con cambios: se vuelve a poner la entrada del historial y se pregunta
+  if(!closing && dirtyTop()){ history.pushState({ sheet:sheets.length }, ''); const top = sheets[sheets.length - 1];
+    askDiscard().then(ok => { if(ok && sheets[sheets.length - 1] === top){ top.sh.guard = null; closeSheet(); } }); return; }
+  popNow();
+});
 addEventListener('keydown', e => { if(e.key === 'Escape'){ if(sheets.length) closeSheet(); else hideSuggest(); } });
 let toastT = null;
 function toast(msg, undo){

@@ -29,12 +29,12 @@ button{cursor:pointer}
 h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 
 /* ---------- Cabecera ---------- */
-.top{position:sticky;top:0;z-index:30;background:var(--bg);padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;
+/* Compacta (26/10/2026): título y cifras en una sola línea, sin el «Siguiente» (está en Lectura) */
+.top{position:sticky;top:0;z-index:30;background:var(--bg);padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;
   border-bottom:1px solid var(--line)}
-.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.brand{min-width:0}
-.brand h1{font-size:1.75rem;line-height:1;font-weight:700;letter-spacing:.01em}
-.stats{font-size:.82rem;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.top h1{font-size:1.4rem;line-height:1;font-weight:700;letter-spacing:.01em;flex:none}
+.stats{font-size:.8rem;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stats b{color:var(--fg);font-variant-numeric:tabular-nums}
 .tools{display:flex;gap:6px;flex:none}
 .iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
@@ -96,6 +96,9 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
 .dot-b{width:22px;height:20px;border:0;background:none;padding:0;display:grid;place-items:center}
 .dot-b i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:transform .15s,background .15s}
 .dot-b[aria-current="true"] i{background:var(--acc);transform:scale(1.35)}
+/* Con un filtro: las estanterías con resultados llevan el punto marcado y las demás, apagado */
+.dots.filtering .dot-b i{opacity:.35}
+.dots.filtering .dot-b.hit i{opacity:1;background:var(--acc);box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 30%,transparent)}
 .shelftools .btn{display:inline-flex;align-items:center;gap:6px;flex:none;font-weight:600}
 .shelftools svg,.btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .shelftools .btn[aria-pressed="true"]{border-color:var(--acc);color:var(--acc)}
@@ -147,6 +150,8 @@ body{padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom,0px))}
   border-radius:20px 20px 0 0;box-shadow:var(--shadow);display:flex;flex-direction:column;animation:rise .22s ease;
   padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (min-width:700px){.sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(600px,94vw);max-height:88dvh;border-radius:20px;transform:translate(-50%,-50%);animation:pop .2s ease}}
+/* Con pestañas, altura fija: no salta al cambiar de pestaña */
+.sheet.tabbed{height:88dvh}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 8px;flex:none}
 .sheet-head h2{font-size:1.45rem}
 .sheet-body{flex:1 1 auto;overflow-y:auto;padding:4px 16px 18px;display:flex;flex-direction:column;gap:16px;overscroll-behavior:contain}

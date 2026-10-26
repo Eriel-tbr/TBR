@@ -57,6 +57,10 @@ function fakeApis(route){
   return route.abort();
 }
 
+/* Las pruebas cierran formularios con cambios a propósito: el aviso «¿Descartar los cambios?» se acepta solo,
+   salvo en la prueba que lo comprueba (window.__keepAsk = true) */
+const AUTO_DISCARD = () => { new MutationObserver(() => { if(window.__keepAsk) return; const b = document.querySelector('.ask-sheet [data-do="discard"]'); if(b && !b.dataset.auto){ b.dataset.auto = '1'; setTimeout(() => b.click(), 0); } })
+  .observe(document, { childList:true, subtree:true }); };
 /* ---- nube simulada ---- */
 const MOCK_SB = fs.readFileSync(path.join(__dirname, 'mock-supabase.js'), 'utf8');
 const db = { row:null, files:[], backups:[] };
@@ -74,7 +78,7 @@ async function newDevice(browser, { cdn = true } = {}){
   await c.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
   await c.route(u => u.hostname === 'cdn.jsdelivr.net', r => cdn ? r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }) : r.abort());
   await c.route(u => u.pathname.startsWith('/api/'), fakeOwnApi);
-  await c.exposeBinding('mockDb', mockDb);
+  await c.exposeBinding('mockDb', mockDb); await c.addInitScript(AUTO_DISCARD);
   const p = await c.newPage(); p.on('pageerror', e => errors.push(e.message)); return { c, p };
 }
 const dbTitles = () => db.row ? db.row.data.books.map(b => b.title) : [];
@@ -103,7 +107,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   await ctx.route(u => /googleapis|openlibrary|wikidata|gstatic/.test(u.href), fakeApis);
   await ctx.route(u => u.pathname.startsWith('/api/'), fakeOwnApi);
   await ctx.route(u => u.hostname === 'cdn.jsdelivr.net', r => r.fulfill({ status:200, contentType:'text/javascript', headers:{ 'access-control-allow-origin':'*' }, body:MOCK_SB }));
-  await ctx.exposeBinding('mockDb', mockDb);
+  await ctx.exposeBinding('mockDb', mockDb); await ctx.addInitScript(AUTO_DISCARD);
   page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message));
   console.log('Mi TBR — pruebas');
 
@@ -586,6 +590,36 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await page.waitForSelector('#d-audio .aud', { timeout:5000 }); audioDelay = 0;
     assert(await page.locator('#d-audio .aud').count() === 2, 'sin resultados');
     await ev(id => { bookOf(id).status = 'pendiente'; save(); }, id); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('formulario con cambios: pregunta antes de descartarlos (X, fondo y gesto atrás); sin cambios o al guardar, no', async () => {
+    await ev(() => { window.__keepAsk = true; }); const id = await ev(() => state.books[0].id);
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await page.fill('#f-pages', '123');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.ask-sheet'); await page.click('.ask-sheet [data-close]'); await page.waitForSelector('.ask-sheet', { state:'detached' });
+    assert(await ev(() => !!document.querySelector('#f-pages')) && await page.inputValue('#f-pages') === '123', 'se perdió el formulario al seguir editando');
+    await page.evaluate(() => history.back()); await page.waitForSelector('.ask-sheet'); assert(await ev(() => !!document.querySelector('#f-pages')), 'el gesto atrás cerró el formulario');
+    await page.click('.ask-sheet [data-do="discard"]'); await page.waitForFunction(() => !sheets.length);
+    assert(await ev(id => bookOf(id).pages !== 123, id), 'se guardó al descartar');
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await page.fill('#f-pages', '124'); await page.click('[data-do="save"]'); await page.waitForFunction(() => !sheets.length);
+    assert(await ev(id => bookOf(id).pages === 124 && !document.querySelector('.ask-sheet'), id), 'guardar preguntó o no guardó');
+    const uid = await ev(() => state.units[0].id); await ev(uid => openUnitForm(uid), uid); await page.fill('#u-name', 'Cambiada');
+    await ev(() => document.querySelectorAll('.backdrop')[0].click()); await page.waitForSelector('.ask-sheet'); await page.click('.ask-sheet [data-do="discard"]'); await page.waitForFunction(() => !sheets.length);
+    assert(await ev(uid => unitOf(uid).name !== 'Cambiada', uid), 'la estantería cambió al descartar');
+    await ev(() => { window.__keepAsk = false; });
+  });
+  await test('hojas con pestañas: misma altura en todas las pestañas', async () => {
+    await ev(() => openDetail(state.books[0].id)); const h = [];
+    for(const k of ['resumen', 'detalles', 'comprar']){ await tab(k); h.push(await ev(() => Math.round(document.querySelector('.sheet').getBoundingClientRect().height))); }
+    assert(h.every(x => x === h[0]), h.join()); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('cabecera compacta: título y cifras en una línea, sin «Siguiente»; al buscar salta a la estantería con resultados', async () => {
+    const r = await ev(() => ({ h:document.querySelector('.top').getBoundingClientRect().height, next:!!document.querySelector('.next-chip') }));
+    assert(r.h < 56 && !r.next, JSON.stringify(r));
+    await ev(() => goTo(0, false)); const want = await ev(() => { const b = state.books.find(x => x.unitId !== state.units[0].id); return { t:b.title, i:state.units.findIndex(u => u.id === b.unitId) }; });
+    await page.click('#btnFilter'); await page.fill('#q-text', want.t); await page.click('#q-apply'); await page.waitForSelector('.sheet', { state:'detached' }); await page.waitForTimeout(300);
+    const d = await ev(() => ({ active:ui.active, hits:[...document.querySelectorAll('#tabs .dot-b.hit')].map(x => +x.dataset.i) }));
+    assert(d.active === want.i && d.hits.includes(want.i), JSON.stringify({ d, want }));
+    await ev(() => { ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); goTo(0, false); });
   });
   await test('guardar copia descarga un JSON válido', async () => {
     await page.click('#btnSettings'); await unfold(); const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-do="export"]')]);

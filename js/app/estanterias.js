@@ -94,8 +94,6 @@ function renderHeader(){
   const yr = new Date().getFullYear(), pend = state.books.filter(b => (b.status || 'pendiente') === 'pendiente').length; // igual que en Estadísticas
   const read = state.books.filter(b => b.status === 'leido' && b.readAt && new Date(b.readAt).getFullYear() === yr).length;
   $('#stats').innerHTML = `<b>${pend}</b> pendientes · <b>${read}</b> leídos en ${yr}`;
-  const nb = state.books.find(b => b.next);
-  $('#nextchip').innerHTML = nb ? `<button class="next-chip" type="button" data-open="${nb.id}"><i></i><span>Siguiente: ${esc(nb.title)}</span></button>` : '';
   $('#btnFilter').setAttribute('aria-pressed', filtersActive() ? 'true' : 'false');
   const fb = $('#filterbar');
   if(filtersActive()){
@@ -113,7 +111,9 @@ function renderHeader(){
 }
 /* Puntos de posición (una estantería por punto); al tocarlos se va a esa estantería */
 function renderTabs(){
-  $('#tabs').innerHTML = state.units.map((u, i) => `<button class="dot-b" type="button" data-i="${i}" aria-label="${esc(u.name)}" title="${esc(u.name)}" aria-current="${i === ui.active}"><i></i></button>`).join('');
+  const f = filtersActive(), hits = f ? new Set(state.books.filter(b => matches(b)).map(b => b.unitId)) : null;
+  $('#tabs').classList.toggle('filtering', f);
+  $('#tabs').innerHTML = state.units.map((u, i) => `<button class="dot-b${f && hits.has(u.id) ? ' hit' : ''}" type="button" data-i="${i}" aria-label="${esc(u.name)}${f ? (hits.has(u.id) ? ': con resultados' : ': sin resultados') : ''}" title="${esc(u.name)}" aria-current="${i === ui.active}"><i></i></button>`).join('');
 }
 function renderCarousel(){
   const c = $('#carousel'), sl = c.scrollLeft; ui.width = c.clientWidth;
@@ -125,6 +125,11 @@ function setAccent(){
   const th = themeOf(u), a = th.key === 'generico' ? th.acc : th.pal[0][th.key === 'moderno' ? 0 : 0], dark = document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   const acc = dark && lum(a) < .35 ? a.replace(/^#(..)(..)(..)$/, (m, r, g, b) => '#' + [r, g, b].map(x => Math.min(255, parseInt(x, 16) + 70).toString(16).padStart(2, '0')).join('')) : a;
   document.documentElement.style.setProperty('--acc', acc); document.documentElement.style.setProperty('--acc-fg', textOn(acc));
+}
+/* Con un filtro, si en la estantería que se ve no hay resultados, se salta a la primera que sí tiene */
+function goToFirstHit(){
+  if(!filtersActive()) return; const cur = state.units[ui.active], has = u => state.books.some(b => b.unitId === u.id && matches(b));
+  if(cur && has(cur)) return; const i = state.units.findIndex(has); if(i >= 0) goTo(i, false);
 }
 function renderAll(){
   ui.active = clamp(ui.active, 0, state.units.length - 1);
