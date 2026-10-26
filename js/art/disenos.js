@@ -12,9 +12,7 @@
 FONT.cinzel = "'Cinzel','Cormorant Garamond',Georgia,serif";
 let svid = 0; const sid = () => 'sv' + (++svid); // id únicos (en la página puede haber el mismo lomo con colores distintos)
 const svgW = (w, h, s) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="position:absolute;inset:0;display:block" aria-hidden="true">${s}</svg>`;
-const motifAt = (k, cx, cy, s, col) => `<path d="${MOTIF[k] || MOTIF.diamond}" transform="translate(${r1(cx - s / 2)} ${r1(cy - s / 2)}) scale(${r1(s / 16 * 100) / 100})" fill="${col}"/>`;
 const r1 = v => Math.round(v * 10) / 10;
-const pastel = (x, l) => { const [H, S] = hexHsl(x); return hslToHex(H, clamp(S, .3, .8), l); };
 const vivid = (x, l = .6) => { const [H, S] = hexHsl(x); return hslToHex(H, Math.max(S, .85), l); };
 
 /* Letras que se leen sobre todos los fondos que pisan: la preferida si llega a 4:1; si no, una versión más clara u oscura; si no, casi blanco o casi negro */
@@ -44,24 +42,19 @@ function starP(cx, cy, R, ri, n = 8, rot = -90){
 }
 /* Hoja (punta en (L, 0), base en el origen) con su nervio */
 const leafG = (x, y, ang, L, col, vein) => `<g transform="translate(${r1(x)} ${r1(y)}) rotate(${Math.round(ang)})"><path d="M0 0C${r1(L * .3)} ${r1(-L * .34)} ${r1(L * .72)} ${r1(-L * .3)} ${r1(L)} 0C${r1(L * .72)} ${r1(L * .3)} ${r1(L * .3)} ${r1(L * .34)} 0 0Z" fill="${col}"/><path d="M.6 0H${r1(L * .82)}" stroke="${vein}" stroke-width=".35"/></g>`;
-/* Flor de cinco pétalos vista de frente */
-function flowerF(cx, cy, r, col, edge, heart){
-  let s = ''; for(let i = 0; i < 5; i++){ const a = -90 + i * 72; s += `<ellipse cx="${r1(cx)}" cy="${r1(cy - r * .55)}" rx="${r1(r * .42)}" ry="${r1(r * .55)}" transform="rotate(${a + 90} ${r1(cx)} ${r1(cy)})" fill="${col}" stroke="${edge}" stroke-width=".4"/>`; }
-  return s + `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * .3)}" fill="${heart}"/>`;
-}
-/* Cola de cinta con el final en V: de (sx, sy) a (ex, ey), media anchura hw */
-function tailG(sx, sy, ex, ey, hw, col, edge){
-  const dx = ex - sx, dy = ey - sy, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, px = -uy * hw, py = ux * hw, nx = ex - ux * hw * 1.3, ny = ey - uy * hw * 1.3;
-  const P = [[sx + px, sy + py], [ex + px, ey + py], [nx, ny], [ex - px, ey - py], [sx - px, sy - py]].map(p => p.map(r1).join(' ')).join('L');
-  return `<path d="M${P}Z" fill="${col}" stroke="${edge}" stroke-width=".4" stroke-linejoin="round"/>`;
-}
 const heartP = (cx, cy, s) => `M${r1(cx)} ${r1(cy + s * .42)}C${r1(cx - s * .9)} ${r1(cy - s * .1)} ${r1(cx - s * .55)} ${r1(cy - s * .62)} ${r1(cx)} ${r1(cy - s * .25)}C${r1(cx + s * .55)} ${r1(cy - s * .62)} ${r1(cx + s * .9)} ${r1(cy - s * .1)} ${r1(cx)} ${r1(cy + s * .42)}Z`;
+/* Rosa vista desde arriba: cinco pétalos de fuera, el centro y una espiral */
+function roseG(cx, cy, r, col){
+  const e = darken(col, .3); let s = '';
+  for(let i = 0; i < 5; i++){ const a = (i * 72 - 90) * Math.PI / 180; s += `<circle cx="${r1(cx + Math.cos(a) * r * .42)}" cy="${r1(cy + Math.sin(a) * r * .42)}" r="${r1(r * .58)}" fill="${col}" stroke="${e}" stroke-width=".35"/>`; }
+  return s + `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * .55)}" fill="${lighten(col, .15)}" stroke="${e}" stroke-width=".35"/><path d="M${r1(cx + r * .3)} ${r1(cy)}A${r1(r * .3)} ${r1(r * .3)} 0 1 0 ${r1(cx)} ${r1(cy - r * .3)}A${r1(r * .17)} ${r1(r * .17)} 0 1 0 ${r1(cx - r * .1)} ${r1(cy + r * .06)}" stroke="${e}" stroke-width=".45" fill="none"/>`;
+}
 const ring = (cx, cy, r, fill, stroke, sw) => `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
 
 const SPINES = {
   /* 1. Lámina holo: varios colores difuminados y letras grandes y claras */
   holo:{ name:'Lámina holo', parts:[['c1', 'Color 1'], ['c2', 'Color 2'], ['c3', 'Color 3']], font:{ font:'pop', wt:700, up:1, ls:.05, max:19 },
-    colors:([B, F, A]) => ({ c1:pastel(B, .72), c2:pastel(A, .8), c3:pastel(F, .86) }),
+    colors:([B, F, A]) => ({ c1:B, c2:A, c3:F }),
     draw:(o, c, w, h) => { const g = sid(), b = sid(), sh = sid(), nb = o.num ? 20 : 0, cy = h - 15, pill = lighten(c.c2, .55);
       const svg = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c.c1}"/><stop offset=".4" stop-color="${c.c2}"/><stop offset=".75" stop-color="${c.c3}"/><stop offset="1" stop-color="${c.c1}"/></linearGradient>
         <filter id="${b}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${r1(w * .32)}"/></filter>
@@ -93,7 +86,7 @@ const SPINES = {
   /* 4. Escamas: escamas en el fondo y el título en una etiqueta lisa */
   escamas:{ name:'Escamas', parts:[['base', 'Fondo'], ['accent', 'Escamas'], ['alt', 'Etiqueta'], ['foil', 'Borde']], font:{ font:'pag', wt:700, max:15 },
     colors:([B, F, A]) => ({ base:B, accent:lighten(A, .2), alt:darken(B, .35), foil:F }),
-    draw:(o, c, w, h) => { const p = sid(), lt = Math.round(h * .14), lh = Math.round(h * .64), cy = Math.round(lt + lh + (h - 6 - lt - lh) / 2);
+    draw:(o, c, w, h) => { const p = sid(), lh = Math.round(h * .64), lt = Math.round((h - lh) / 2), cy = Math.round(lt + lh + (h - 6 - lt - lh) / 2);
       const svg = `<defs><pattern id="${p}" width="10" height="7" patternUnits="userSpaceOnUse"><path d="M0 7A5 5 0 0 1 10 7M-5 3.5A5 5 0 0 1 5 3.5M5 3.5A5 5 0 0 1 15 3.5" fill="${mix(c.base, c.accent, .18)}" stroke="${c.accent}" stroke-width=".7"/></pattern></defs>
         <rect width="${w}" height="${h}" fill="url(#${p})"/><rect x="4" y="${lt}" width="${w - 8}" height="${lh}" rx="1.5" fill="${c.alt}" stroke="${c.foil}" stroke-width="1"/>
         <rect x="6" y="${lt + 2}" width="${w - 12}" height="${lh - 4}" rx="1" fill="none" stroke="${c.foil}" stroke-width=".4" opacity=".7"/><rect y="5" width="${w}" height="1.2" fill="${c.foil}"/><rect y="${h - 6}" width="${w}" height="1.2" fill="${c.foil}"/>`
@@ -103,7 +96,7 @@ const SPINES = {
   /* 5. Grimorio: cantoneras de metal, correa de piel cosida y un cristal tallado */
   grimorio:{ name:'Grimorio', parts:[['base', 'Piel'], ['foil', 'Metal'], ['accent', 'Cristal']], font:{ font:'cinzel', wt:700, up:1, ls:.04, max:14 },
     colors:([B, F, A]) => ({ base:darken(B, .2), foil:F, accent:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, cy = Math.round(h * .7), m = sid(), gm = sid(), k = r1(Math.min(1.35, (w - 8) / 14.4)), gy = cy + 5.5, ny = Math.min(h - 13, cy + 31);
+    draw:(o, c, w, h) => { const cx = w / 2, cy = Math.round(h * .76), m = sid(), gm = sid(), k = r1(Math.min(1.35, (w - 8) / 14.4)), gy = cy + 5.5, ny = Math.min(h - 13, cy + 31);
       const cn = (x, y, sx, sy) => `<path d="M${x} ${y}h${sx * 9}l${-sx * 9} ${sy * 9}z" fill="url(#${m})" stroke="${darken(c.foil, .5)}" stroke-width=".5"/>`;
       const gem = `<ellipse cx="${cx}" cy="${gy}" rx="7.2" ry="8.6" fill="url(#${m})" stroke="${darken(c.foil, .55)}" stroke-width=".5"/>
         <path d="M${cx} ${gy - 7}L${cx + 5} ${gy - 3}L${cx + 5} ${gy + 3}L${cx} ${gy + 7}L${cx - 5} ${gy + 3}L${cx - 5} ${gy - 3}Z" fill="url(#${gm})" stroke="${darken(c.accent, .6)}" stroke-width=".4"/>
@@ -132,138 +125,158 @@ const SPINES = {
 
   /* 7. Degradado: de un color a otro, con filetes finos arriba y abajo */
   degradado:{ name:'Degradado', parts:[['base', 'Arriba'], ['alt', 'Abajo'], ['foil', 'Filetes']], font:{ font:'deco', wt:700, up:1, ls:.12, max:15 },
-    colors:([B, F, A]) => ({ base:B, alt:A, foil:F }),
+    colors:([B, F, A]) => ({ base:B, alt:mix(B, A, .65), foil:F }),
     draw:(o, c, w, h) => { const g = sid(), cy = h - 22;
       const svg = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset=".42" stop-color="${c.base}"/><stop offset="1" stop-color="${c.alt}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>
         <path d="M4 7H${w - 4}M4 9.5H${w - 4}M4 ${h - 7}H${w - 4}M4 ${h - 9.5}H${w - 4}" stroke="${c.foil}" stroke-width=".6"/>`
         + (o.num ? ring(w / 2, cy, 6.8, c.alt, c.foil, .8) : '');
-      const tb = Math.round(h * .74) - (o.num ? 18 : 0); // el título acaba donde el degradado va por la mitad
-      return { svg, box:{ l:4, t:15, w:w - 8, h:tb - 15 }, tbg:[c.base, mix(c.base, c.alt, (tb / h - .42) / .58)], ink:c.foil, num:{ cy, bg:c.alt, ink:c.foil } }; } },
+      const tb = h - 15 - (o.num ? 18 : 0); // título centrado en el lomo
+      return { svg, box:{ l:4, t:15, w:w - 8, h:tb - 15 }, tbg:[c.base, mix(c.base, c.alt, (tb / h - .42) / .58), mix(c.base, c.alt, (tb / h - .42) / .9)], ink:c.foil, num:{ cy, bg:c.alt, ink:c.foil } }; } },
 
   /* 8. Tela: tapa de tela con estampado arriba y abajo y etiqueta de papel */
   tela:{ name:'Tela', parts:[['base', 'Tela'], ['alt', 'Etiqueta'], ['foil', 'Estampado']], font:{ font:'pag', wt:700, max:15 },
     colors:([B, F, A]) => ({ base:B, alt:mix(F, '#fbf6ec', .7), foil:F }),
-    draw:(o, c, w, h) => { const lt = Math.round(h * .18), lh = Math.round(h * .56), cy = Math.round(lt + lh + (h - 10 - lt - lh) / 2), ink = darken(c.base, .2);
-      const svg = `<path d="M3 7H${w - 3}M3 10H${w - 3}M3 ${h - 7}H${w - 3}M3 ${h - 10}H${w - 3}" stroke="${c.foil}" stroke-width=".8"/>${motifAt('diamond', w / 2, lt - 9, 6, c.foil)}
+    draw:(o, c, w, h) => { const lh = Math.round(h * .56), lt = Math.round((h - lh) / 2), cy = Math.round(lt + lh + (h - 10 - lt - lh) / 2), ink = darken(c.base, .2);
+      const svg = `<path d="M3 7H${w - 3}M3 10H${w - 3}M3 ${h - 7}H${w - 3}M3 ${h - 10}H${w - 3}" stroke="${c.foil}" stroke-width=".8"/>
         <rect x="4" y="${lt}" width="${w - 8}" height="${lh}" rx="1" fill="${c.alt}" stroke="${darken(c.alt, .25)}" stroke-width=".6"/><rect x="5.5" y="${lt + 1.5}" width="${w - 11}" height="${lh - 3}" fill="none" stroke="${c.foil}" stroke-width=".4"/>`
         + (o.num ? `<rect x="${r1(w / 2 - 7.5)}" y="${cy - 6}" width="15" height="12" rx="1" fill="${c.alt}" stroke="${darken(c.alt, .25)}" stroke-width=".6"/>` : '');
       return { svg, box:{ l:6, t:lt + 3, w:w - 12, h:lh - 6 }, tbg:[c.alt], tex:'tex-cloth', ink, num:{ cy, bg:c.alt, ink } }; } },
 
-  /* 9. Botánico: lámina de herbario, con una planta en flor abajo y una guirnalda de hojas arriba */
-  botanico:{ name:'Botánico', parts:[['base', 'Fondo'], ['leaf', 'Hojas y tallos'], ['accent', 'Flores']], font:{ font:'pag', wt:700, max:16 },
-    colors:([B, F, A]) => ({ base:mix(lighten(F, .3), '#fbf6ec', .7), leaf:darken(B, .05), accent:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, s = clamp(w / 34, .82, 1.2), stem = darken(c.leaf, .25), vein = darken(c.leaf, .3), L = Math.min(8.5 * s, w / 2 - 2.5);
-      const fr = 6 * s, fy = Math.round(h * .73 + fr), y0 = h - 3; let pl = '';
-      // tallo con tres pares de hojas y dos capullos a los lados
-      pl += `<path d="M${cx} ${y0}C${r1(cx - 1.2)} ${r1(y0 - 10)} ${r1(cx + 1.2)} ${r1(fy + 12)} ${cx} ${r1(fy + fr * .3)}" stroke="${stem}" stroke-width="1" fill="none"/>`;
-      const bud = (sx) => { const ex = cx + sx * Math.min(w / 2 - 4.5, 9 * s), ey = fy + 6 * s; return `<path d="M${cx} ${r1(y0 - 15 * s)}Q${r1(cx + sx * 3)} ${r1(ey + 6)} ${r1(ex)} ${r1(ey)}" stroke="${stem}" stroke-width=".7" fill="none"/><ellipse cx="${r1(ex)}" cy="${r1(ey - 1.6)}" rx="${r1(1.5 * s)}" ry="${r1(2.3 * s)}" fill="${c.accent}" stroke="${darken(c.accent, .25)}" stroke-width=".4"/>${leafG(ex, ey + .4, sx > 0 ? 125 : 55, 3.2 * s, c.leaf, vein)}`; };
-      pl += bud(-1) + bud(1);
-      [y0 - 4 * s, y0 - 11 * s, y0 - 18 * s].forEach((y, i) => { const l = L * (1 - i * .12); pl += leafG(cx, y, -152 + i * 6, l, i % 2 ? lighten(c.leaf, .12) : c.leaf, vein) + leafG(cx, y - 1.5, -28 - i * 6, l, i % 2 ? c.leaf : lighten(c.leaf, .12), vein); });
-      pl += flowerF(cx, fy, fr, c.accent, darken(c.accent, .25), lighten(c.accent, .55));
-      // arriba, una ramita que cuelga con dos pares de hojas y un capullo
-      let top = `<path d="M${cx} 1.5V${r1(14 * s)}" stroke="${stem}" stroke-width=".8"/>`;
-      [4 * s, 9 * s].forEach((y, i) => { const l = Math.min(6.5 * s, w / 2 - 3) * (1 - i * .15); top += leafG(cx, y, 148 - i * 8, l, i ? lighten(c.leaf, .12) : c.leaf, vein) + leafG(cx, y + .8, 32 + i * 8, l, i ? c.leaf : lighten(c.leaf, .12), vein); });
-      top += `<ellipse cx="${cx}" cy="${r1(15.5 * s)}" rx="${r1(1.6 * s)}" ry="${r1(2.4 * s)}" fill="${c.accent}" stroke="${darken(c.accent, .25)}" stroke-width=".4"/>`;
-      const cy = Math.round(fy - fr - 10);
-      const svg = top + pl + (o.num ? ring(cx, cy, 6.5, c.base, c.leaf, .7) : '');
-      const tt = Math.round(22 * s), tb = (o.num ? cy - 9 : fy - fr - 5);
-      return { svg, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:darken(c.leaf, .45), num:{ cy, bg:c.base, ink:darken(c.leaf, .45) } }; } },
+  /* 9. Floral: un rosal que sube por los cantos y racimos de rosas arriba y abajo */
+  floral:{ name:'Floral', parts:[['base', 'Fondo'], ['accent', 'Rosas'], ['leaf', 'Hojas y tallos']], font:{ font:'pag', wt:700, max:16 },
+    colors:([B, F, A]) => ({ base:B, accent:A, leaf:mix('#5f8a58', F, .2) }),
+    draw:(o, c, w, h) => { const cx = w / 2, R = clamp(w * .26, 6.5, 10), stem = darken(c.leaf, .2), vein = darken(c.leaf, .35), lf = (x, y, a, L, i) => leafG(x, y, a, L, i % 2 ? lighten(c.leaf, .12) : c.leaf, vein);
+      const top = R * 1.6 + 4, bot = h - R * 2.9, cyN = Math.round(bot - 10); let s = '';
+      // tallos por los dos cantos, con hojas hacia dentro y algún capullo
+      [-1, 1].forEach(sd => { const x0 = sd < 0 ? 3.2 : w - 3.2; let p = `M${x0} ${r1(top)}`, i = 0;
+        for(let y = top; y <= bot; y += 3) p += `L${r1(x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1)} ${r1(y)}`;
+        s += `<path d="${p}" stroke="${stem}" stroke-width=".7" fill="none"/>`;
+        for(let y = top + 6; y < bot - 4; y += 12, i++){ const x = x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1, a = (i % 2 ? -38 : 38) * (sd < 0 ? 1 : -1) + (sd < 0 ? 0 : 180);
+          s += lf(x, y, a, Math.min(4.6, w * .14), i); if(i % 3 === 1) s += `<circle cx="${r1(x)}" cy="${r1(y + 5)}" r="1.1" fill="${c.accent}"/>`; } });
+      // racimo de abajo
+      const by = h - R - 4;
+      s += lf(cx - R * .9, by - R * .9, -150, R * 1.15, 0) + lf(cx + R * .7, h - 4, 15, R, 1) + lf(cx - R * .2, by - R * 1.05, -96, R * .95, 1) + lf(cx + R * 1.1, by - R * .4, -30, R * .85, 0);
+      s += roseG(cx + R * 1.05, by - R * .95, R * .58, c.accent) + roseG(cx - R * 1.05, by + R * .3, R * .62, c.accent) + roseG(cx, by, R, c.accent);
+      // racimo de arriba
+      s += lf(cx - R * .25, R * 1.1 + 3, 165, R * .95, 1) + lf(cx + R * .55, R * .3 + 3, -10, R * .9, 0);
+      s += `<ellipse cx="${r1(cx - R * .95)}" cy="${r1(R * .55 + 2)}" rx="${r1(R * .3)}" ry="${r1(R * .42)}" fill="${c.accent}" stroke="${darken(c.accent, .3)}" stroke-width=".4"/>` + roseG(cx + R * .2, R * .72 + 2.5, R * .7, c.accent);
+      if(o.num) s += ring(cx, cyN, 6.5, c.base, c.leaf, .7);
+      const tt = Math.round(top + 4), tb = Math.round(o.num ? cyN - 9 : bot - 4);
+      return { svg:s, box:{ l:6.5, t:tt, w:w - 13, h:tb - tt }, tbg:[c.base], ink:lum(c.base) > .5 ? darken(c.leaf, .5) : lighten(c.accent, .7), num:{ cy:cyN, bg:c.base, ink:c.leaf } }; } },
 
-  /* 10. Celestial: como una carta de tarot, luna creciente en un aro arriba y estrella de ocho puntas abajo */
-  celestial:{ name:'Celestial', parts:[['base', 'Cielo'], ['foil', 'Oro'], ['accent', 'Luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
-    colors:([B, F, A]) => ({ base:darken(B, .35), foil:F, accent:lighten(mix(F, A, .25), .3) }),
-    draw:(o, c, w, h) => { const cx = w / 2, R = clamp(w * .3, 7, 10), c1 = 5 + R, gl = sid(), sr = clamp(w * .22, 5.5, 8), c2 = h - 7 - (o.num ? 7 : sr), glow = lighten(c.base, .12);
-      let s = `<defs><radialGradient id="${gl}" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="${glow}"/><stop offset="1" stop-color="${c.base}"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#${gl})"/>`;
-      s += ring(cx, c1, R, 'none', c.foil, .7);
-      for(let i = 0; i < 12; i++){ const a = i * 30 * Math.PI / 180, x = cx + Math.cos(a) * (R + 2.2), y = c1 + Math.sin(a) * (R + 2.2); if(x > 1.5 && x < w - 1.5) s += `<circle cx="${r1(x)}" cy="${r1(y)}" r=".45" fill="${c.foil}"/>`; }
-      s += moonG(cx, c1, R - 2.4, .3, c.accent, darken(c.base, .12));
-      s += spark(Math.max(3.5, cx - R - 4), c1 + R + 3, 1.8, c.foil) + spark(Math.min(w - 3.5, cx + R + 3.5), c1 + R + 6, 1.3, c.foil);
-      if(o.num){ s += ring(cx, c2, 7, darken(c.base, .15), c.foil, .8); for(let i = 0; i < 8; i++){ const a = (i * 45 + 22.5) * Math.PI / 180; s += `<path d="M${r1(cx + Math.cos(a) * 8)} ${r1(c2 + Math.sin(a) * 8)}L${r1(cx + Math.cos(a) * 9.6)} ${r1(c2 + Math.sin(a) * 9.6)}" stroke="${c.foil}" stroke-width=".55"/>`; } }
-      else s += `<path d="${starP(cx, c2, sr, sr * .42, 8)}" fill="${c.foil}"/><circle cx="${cx}" cy="${r1(c2)}" r="${r1(sr * .2)}" fill="${c.base}"/><circle cx="${r1(cx - sr - 3)}" cy="${r1(c2)}" r=".7" fill="${c.foil}"/><circle cx="${r1(cx + sr + 3)}" cy="${r1(c2)}" r=".7" fill="${c.foil}"/>`;
-      const tt = Math.round(c1 + R + 9), tb = Math.round(c2 - (o.num ? 10 : sr) - 6);
-      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, glow, mix(c.base, glow, .5)], ink:c.foil, num:{ cy:c2, bg:darken(c.base, .15), ink:c.foil } }; } },
+  /* 10. Celestial: cielo de noche con estrellas, luna creciente arriba y un astrolabio abajo */
+  celestial:{ name:'Celestial', parts:[['base', 'Cielo'], ['alt', 'Cielo abajo'], ['foil', 'Oro']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
+    colors:([B, F, A]) => ({ base:darken(B, .45), alt:mix(darken(B, .2), A, .35), foil:F }),
+    draw:(o, c, w, h) => { const cx = w / 2, g = sid(), R = Math.min(w / 2 - 3, 13), ay = h - R - 6, mr = clamp(w * .3, 7, 10), my = mr + 5, rr = rng(o.seed || 3);
+      const tt = Math.round(my + mr + 7), tb = Math.round(ay - R - 6), at = y => mix(c.base, c.alt, clamp(y / h, 0, 1));
+      let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset="1" stop-color="${c.alt}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
+      // estrellas fuera de la zona del título (o en sus márgenes)
+      for(let i = 0; i < 46; i++){ const x = 1.5 + rr() * (w - 3), y = 2 + rr() * (h - 4), m = x < 4.5 || x > w - 4.5;
+        if((y > tt - 2 && y < tb + 2 && !m) || Math.hypot(x - cx, y - ay) < R + 1.5 || Math.hypot(x - cx, y - my) < mr + 1.5) continue;
+        s += rr() > .86 ? spark(x, y, 1.1 + rr() * .8, c.foil) : `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(.3 + rr() * .45)}" fill="${c.foil}" opacity="${r1(.55 + rr() * .45)}"/>`; }
+      // luna creciente con una estrella colgando en su hueco
+      s += `<path d="M${r1(cx)} ${r1(my - mr)}A${mr} ${mr} 0 0 0 ${r1(cx)} ${r1(my + mr)}A${r1(mr * 1.25)} ${r1(mr * 1.25)} 0 0 1 ${r1(cx)} ${r1(my - mr)}Z" fill="${c.foil}" transform="rotate(-24 ${r1(cx)} ${r1(my)}) translate(${r1(mr * .25)} 0)"/>`;
+      s += `<path d="M${r1(cx + mr * .3)} 0V${r1(my - 2)}" stroke="${c.foil}" stroke-width=".4" stroke-dasharray=".8 .8"/>` + spark(cx + mr * .3, my, 2.1, c.foil);
+      // astrolabio
+      const disc = mix(c.alt, c.base, .5); s += ring(cx, ay, R, disc, c.foil, 1) + ring(cx, ay, r1(R - 2.6), 'none', c.foil, .5);
+      for(let i = 0; i < 24; i++){ const a = i * 15 * Math.PI / 180, r0 = i % 3 ? R - 2.6 : R - 3.8; s += `<path d="M${r1(cx + Math.cos(a) * r0)} ${r1(ay + Math.sin(a) * r0)}L${r1(cx + Math.cos(a) * R)} ${r1(ay + Math.sin(a) * R)}" stroke="${c.foil}" stroke-width=".4"/>`; }
+      s += ring(cx, ay, r1(R * .52), 'none', c.foil, .45) + `<path d="M${r1(cx - R * .8)} ${r1(ay + R * .46)}L${r1(cx + R * .8)} ${r1(ay - R * .46)}" stroke="${c.foil}" stroke-width=".6"/>`;
+      if(o.num) s += ring(cx, ay, 6.2, darken(c.base, .15), c.foil, .6);
+      else s += `<path d="${starP(cx, ay, R * .78, R * .16, 4, -90)}" fill="${c.foil}"/>` + `<circle cx="${r1(cx)}" cy="${r1(ay)}" r="1.1" fill="${disc}"/>`;
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[at(tt), at(tb), at((tt + tb) / 2)], ink:c.foil, num:{ cy:ay, bg:darken(c.base, .15), ink:c.foil } }; } },
 
-  /* 11. Vitral: rosetón de vidrios de colores arriba, ventana ojival con el título y vidrieras en rombo abajo */
-  vitral:{ name:'Vitral', parts:[['lead', 'Plomo'], ['base', 'Cristal central'], ['accent', 'Vidrio 1'], ['alt', 'Vidrio 2']], font:{ font:'cinzel', wt:700, up:1, ls:.04, max:14 },
-    colors:([B, F, A]) => ({ lead:darken(B, .62), base:B, accent:A, alt:mix(F, A, .15) }),
-    draw:(o, c, w, h) => { const cx = w / 2, R = Math.min(w / 2 - 2.5, 12), c1 = 3 + R, ri = R * .42, gr = sid(), pt = sid(), cl = sid();
-      const P = (rr, a) => r1(cx + Math.cos(a) * rr) + ' ' + r1(c1 + Math.sin(a) * rr); let s = `<rect width="${w}" height="${h}" fill="${c.lead}"/>`;
-      for(let i = 0; i < 8; i++){ const a0 = (-112.5 + i * 45) * Math.PI / 180, a1 = a0 + Math.PI / 4;
-        s += `<path d="M${P(ri, a0)}L${P(R, a0)}A${r1(R)} ${r1(R)} 0 0 1 ${P(R, a1)}L${P(ri, a1)}A${r1(ri)} ${r1(ri)} 0 0 0 ${P(ri, a0)}Z" fill="${i % 2 ? c.accent : c.alt}" stroke="${c.lead}" stroke-width=".9"/>`; }
-      s += ring(cx, c1, r1(ri), lighten(c.accent, .25), c.lead, .9);
-      const x0 = 3.2, x1 = w - 3.2, y0 = c1 + R + 3.5, ah = (x1 - x0) * .55, y1 = h - 30, ar = r1((x1 - x0) * .8);
-      s += `<defs><linearGradient id="${gr}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(c.base, .18)}"/><stop offset=".5" stop-color="${c.base}"/><stop offset="1" stop-color="${darken(c.base, .12)}"/></linearGradient>
-        <pattern id="${pt}" width="8" height="10" patternUnits="userSpaceOnUse" x="${r1(cx - 4)}" y="${y1 + 2.5}"><rect width="8" height="10" fill="${c.alt}"/><path d="M4 0L8 5 4 10 0 5Z" fill="${c.accent}" stroke="${c.lead}" stroke-width=".8"/></pattern>
-        <clipPath id="${cl}"><rect x="${x0}" y="${y1 + 2.5}" width="${r1(x1 - x0)}" height="${r1(h - 3.5 - y1 - 2.5)}" rx="1"/></clipPath></defs>
-        <path d="M${x0} ${y1}V${r1(y0 + ah)}A${ar} ${ar} 0 0 1 ${r1(cx)} ${r1(y0)}A${ar} ${ar} 0 0 1 ${x1} ${r1(y0 + ah)}V${y1}Z" fill="url(#${gr})" stroke="${lighten(c.lead, .2)}" stroke-width=".6"/>
-        <rect x="${x0}" y="${y1 + 2.5}" width="${r1(x1 - x0)}" height="${r1(h - 3.5 - y1 - 2.5)}" fill="url(#${pt})" clip-path="url(#${cl})"/>`;
-      const cy = Math.round((y1 + 2.5 + h - 3.5) / 2);
-      if(o.num) s += ring(cx, cy, 7, c.base, c.lead, 1.4);
-      const tt = Math.round(y0 + ah * .75);
-      return { svg:s, box:{ l:x0 + 2, t:tt, w:r1(x1 - x0 - 4), h:y1 - 4 - tt }, tbg:[lighten(c.base, .18), c.base, darken(c.base, .12)], ink:lighten(c.alt, .45), num:{ cy, bg:c.base, ink:lighten(c.alt, .45) } }; } },
+  /* 11. Vidriera: todo el lomo es un mosaico de vidrios y el título va en una ventana ojival de cristal claro */
+  vidriera:{ name:'Vidriera', parts:[['lead', 'Plomo'], ['base', 'Cristal del título'], ['accent', 'Vidrio 1'], ['alt', 'Vidrio 2'], ['c3', 'Vidrio 3']], font:{ font:'cinzel', wt:700, up:1, ls:.04, max:14 },
+    colors:([B, F, A]) => ({ lead:darken(B, .72), base:lighten(mix(F, A, .2), .45), accent:A, alt:lighten(B, .12), c3:F }),
+    draw:(o, c, w, h) => { const rr = rng(o.seed || 5), C = w > 38 ? 3 : 2, rows = Math.ceil(h / 8.5), gr = sid(), glass = [c.accent, c.alt, c.c3];
+      const P = []; for(let r = 0; r <= rows; r++){ P.push([]); for(let k = 0; k <= C; k++){ const x = k / C * w, y = r / rows * h; P[r].push([k && k < C ? x + (rr() - .5) * 3.6 : x, r && r < rows ? y + (rr() - .5) * 4 : y]); } }
+      let s = `<rect width="${w}" height="${h}" fill="${c.lead}"/>`;
+      for(let r = 0; r < rows; r++) for(let k = 0; k < C; k++){ const q = [P[r][k], P[r][k + 1], P[r + 1][k + 1], P[r + 1][k]], col = glass[Math.floor(rr() * 3)], t = rr();
+        s += `<path d="M${q.map(p => p.map(r1).join(' ')).join('L')}Z" fill="${t < .33 ? lighten(col, .16) : t < .66 ? col : darken(col, .14)}" stroke="${c.lead}" stroke-width="1.1" stroke-linejoin="round"/>`; }
+      const x0 = 5, x1 = w - 5, y0 = 12, ah = (x1 - x0) * .55, y1 = h - (o.num ? 25 : 15), ar = r1((x1 - x0) * .8), cy = h - 12;
+      const lancet = (i) => `M${x0 + i} ${y1 - i}V${r1(y0 + ah)}A${ar - i} ${ar - i} 0 0 1 ${r1(w / 2)} ${r1(y0 + i * 1.6)}A${ar - i} ${ar - i} 0 0 1 ${x1 - i} ${r1(y0 + ah)}V${y1 - i}Z`;
+      s += `<defs><linearGradient id="${gr}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(c.base, .12)}"/><stop offset=".5" stop-color="${c.base}"/><stop offset="1" stop-color="${darken(c.base, .08)}"/></linearGradient></defs>
+        <path d="${lancet(0)}" fill="url(#${gr})" stroke="${c.lead}" stroke-width="2"/><path d="${lancet(1.8)}" fill="none" stroke="${mix(c.lead, c.base, .55)}" stroke-width=".5"/>`;
+      if(o.num) s += ring(w / 2, cy, 7, c.base, c.lead, 1.6);
+      const tt = Math.round(y0 + ah * .72), ink = darken(c.accent, .55);
+      return { svg:s, box:{ l:x0 + 2, t:tt, w:x1 - x0 - 4, h:y1 - 3 - tt }, tbg:[lighten(c.base, .12), c.base, darken(c.base, .08)], ink, num:{ cy, bg:c.base, ink } }; } },
 
-  /* 12. Daga: una daga colgando bajo el título, con la gema del pomo */
-  daga:{ name:'Daga', parts:[['base', 'Fondo'], ['foil', 'Hoja y guarda'], ['accent', 'Puño y gema']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:15 },
+  /* 12. Daga: el lomo entero es una daga y el título va grabado en la hoja */
+  daga:{ name:'Daga', parts:[['base', 'Fondo'], ['foil', 'Hoja'], ['accent', 'Empuñadura'], ['alt', 'Gemas']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:15 },
+    colors:([B, F, A]) => ({ base:B, foil:mix(F, '#e4e8ed', .6), accent:darken(A, .2), alt:A }),
+    draw:(o, c, w, h) => { const cx = w / 2, gh = Math.min(3.6, w * .11), pr = Math.min(4.2, w * .14), py = pr + 3, g0 = py + pr + 1, gy = g0 + 13, bw = clamp(w - 10, 14, 30), hw = bw / 2, by = gy + 4.5, tip = h - 3, sh = tip - hw * 1.6;
+      const m = sid(), bl = sid(), gm = sid();
+      let s = `<defs><linearGradient id="${m}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(c.foil, .45)}"/><stop offset="1" stop-color="${darken(c.foil, .3)}"/></linearGradient>
+        <linearGradient id="${bl}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${lighten(c.foil, .35)}"/><stop offset=".5" stop-color="${c.foil}"/><stop offset="1" stop-color="${darken(c.foil, .15)}"/></linearGradient>
+        <radialGradient id="${gm}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${lighten(c.alt, .6)}"/><stop offset=".5" stop-color="${c.alt}"/><stop offset="1" stop-color="${darken(c.alt, .5)}"/></radialGradient></defs>`;
+      // hoja
+      s += `<path d="M${r1(cx - hw)} ${r1(by)}H${r1(cx + hw)}V${r1(sh)}L${r1(cx)} ${tip}L${r1(cx - hw)} ${r1(sh)}Z" fill="url(#${bl})" stroke="${darken(c.foil, .4)}" stroke-width=".5"/>
+        <path d="M${r1(cx - hw + 1.3)} ${r1(by + 1)}V${r1(sh - .4)}L${r1(cx)} ${r1(tip - 2.2)}" stroke="${lighten(c.foil, .55)}" stroke-width=".45" fill="none"/><path d="M${r1(cx + hw - 1.3)} ${r1(by + 1)}V${r1(sh - .4)}L${r1(cx)} ${r1(tip - 2.2)}" stroke="${darken(c.foil, .35)}" stroke-width=".45" fill="none"/>`;
+      // puño con cuero enrollado, guarda curva y pomo con gema
+      s += `<rect x="${r1(cx - gh)}" y="${r1(g0)}" width="${r1(gh * 2)}" height="${gy - g0 + 1}" fill="${c.accent}"/>`;
+      for(let y = g0 + 1.2; y < gy; y += 2.2) s += `<path d="M${r1(cx - gh)} ${r1(y + 1.2)}L${r1(cx + gh)} ${r1(y)}" stroke="${darken(c.accent, .35)}" stroke-width=".6"/>`;
+      s += `<path d="M2.5 ${r1(gy + 3.6)}Q${r1(cx)} ${r1(gy - 2.2)} ${r1(w - 2.5)} ${r1(gy + 3.6)}L${r1(w - 3)} ${r1(gy + 5.4)}Q${r1(cx)} ${r1(gy + 1.6)} 3 ${r1(gy + 5.4)}Z" fill="url(#${m})" stroke="${darken(c.foil, .45)}" stroke-width=".4"/>
+        <circle cx="2.8" cy="${r1(gy + 5)}" r="1.6" fill="url(#${m})"/><circle cx="${r1(w - 2.8)}" cy="${r1(gy + 5)}" r="1.6" fill="url(#${m})"/>
+        <path d="M${r1(cx)} ${r1(gy - .6)}L${r1(cx + 2.4)} ${r1(gy + 1.8)}L${r1(cx)} ${r1(gy + 4.2)}L${r1(cx - 2.4)} ${r1(gy + 1.8)}Z" fill="url(#${gm})" stroke="${darken(c.foil, .45)}" stroke-width=".35"/>`;
+      s += ring(cx, py, r1(pr + .8), 'none', c.foil, 1) + `<circle cx="${r1(cx)}" cy="${r1(py)}" r="${r1(pr)}" fill="url(#${gm})"/><circle cx="${r1(cx - pr * .35)}" cy="${r1(py - pr * .35)}" r="${r1(pr * .22)}" fill="${lighten(c.alt, .8)}"/>`;
+      const ink = darken(c.foil, .72), cy = Math.round(sh - 9);
+      if(o.num) s += ring(cx, cy, 6, 'none', darken(c.foil, .35), .5);
+      const tt = Math.round(by + 3), tb = Math.round(o.num ? cy - 9 : sh - 3);
+      return { svg:s, box:{ l:r1(cx - hw + 2), t:tt, w:r1(bw - 4), h:tb - tt }, tbg:[lighten(c.foil, .35), c.foil, darken(c.foil, .15)], ink, num:{ cy, bg:c.foil, ink } }; } },
+
+  /* 13. Romántico: título en letra caligráfica, rúbricas arriba y abajo y corazones */
+  romantico:{ name:'Romántico', parts:[['base', 'Fondo'], ['foil', 'Rúbricas'], ['accent', 'Corazones']], font:{ font:'script', wt:400, ls:0, max:24 },
     colors:([B, F, A]) => ({ base:B, foil:F, accent:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, gw = Math.min(w / 2 - 3.5, 11), pr = o.num ? 7 : 3.6, tip = h - 5, bl = Math.round(h * .22), gy = tip - bl, gl = 9, py = gy - 2 - gl - pr, m = sid();
-      let s = `<defs><linearGradient id="${m}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${lighten(c.foil, .35)}"/><stop offset=".5" stop-color="${c.foil}"/><stop offset="1" stop-color="${darken(c.foil, .35)}"/></linearGradient></defs>`;
-      s += `<path d="M${r1(cx - 3.4)} ${gy + 1.6}L${cx} ${gy + 1.6}L${cx} ${tip}Z" fill="${lighten(c.foil, .2)}"/><path d="M${cx} ${gy + 1.6}L${r1(cx + 3.4)} ${gy + 1.6}L${cx} ${tip}Z" fill="${darken(c.foil, .18)}"/><path d="M${cx} ${gy + 2}V${tip - 3}" stroke="${darken(c.foil, .35)}" stroke-width=".35"/>`;
-      s += `<rect x="${r1(cx - 1.7)}" y="${r1(py + pr - .5)}" width="3.4" height="${r1(gl + 2.5)}" fill="${darken(c.accent, .3)}"/>`;
-      for(let y = py + pr + 1; y < gy - 1.5; y += 2) s += `<path d="M${r1(cx - 1.7)} ${r1(y + 1)}L${r1(cx + 1.7)} ${r1(y)}" stroke="${lighten(c.accent, .15)}" stroke-width=".5"/>`;
-      s += `<rect x="${r1(cx - gw)}" y="${r1(gy - 1.5)}" width="${r1(gw * 2)}" height="3" rx="1.5" fill="url(#${m})" stroke="${darken(c.foil, .45)}" stroke-width=".4"/><circle cx="${r1(cx - gw)}" cy="${gy}" r="2" fill="${c.foil}"/><circle cx="${r1(cx + gw)}" cy="${gy}" r="2" fill="${c.foil}"/><path d="M${cx} ${gy - 2.2}L${cx + 2.2} ${gy}L${cx} ${gy + 2.2}L${cx - 2.2} ${gy}Z" fill="${c.accent}" stroke="${darken(c.foil, .45)}" stroke-width=".3"/>`;
-      s += ring(cx, r1(py), pr, c.accent, c.foil, o.num ? 1 : .8) + (o.num ? '' : `<circle cx="${r1(cx - 1)}" cy="${r1(py - 1)}" r=".8" fill="${lighten(c.accent, .55)}"/>`);
-      const tb = Math.round(py - pr - 6);
-      return { svg:s, box:{ l:4, t:8, w:w - 8, h:tb - 8 }, tbg:[c.base], ink:c.foil, num:{ cy:py, bg:c.accent, ink:c.foil } }; } },
+    draw:(o, c, w, h) => { const cx = w / 2, sw = Math.min(w / 2 - 2.5, 14);
+      const half = `<path d="M${cx} 14C${r1(cx - 2)} 9 ${r1(cx - sw * .5)} 5.5 ${r1(cx - sw * .8)} 8.5C${r1(cx - sw)} 10.5 ${r1(cx - sw * .88)} 14.5 ${r1(cx - sw * .62)} 14C${r1(cx - sw * .42)} 13.6 ${r1(cx - sw * .45)} 11.4 ${r1(cx - sw * .62)} 11.7" fill="none" stroke="${c.foil}" stroke-width=".8" stroke-linecap="round"/>
+        <path d="M${cx} 15C${r1(cx - sw * .35)} 18 ${r1(cx - sw * .9)} 17.5 ${r1(cx - sw)} 22.5" fill="none" stroke="${c.foil}" stroke-width=".6" stroke-linecap="round"/><circle cx="${r1(cx - sw)}" cy="23" r=".8" fill="${c.foil}"/><circle cx="${r1(cx - sw * .62)}" cy="5.5" r=".6" fill="${c.accent}"/>`;
+      const mir = x => `<g transform="translate(${w} 0) scale(-1 1)">${x}</g>`, both = half + mir(half);
+      let s = both + `<path d="${heartP(cx, 14.6, 6)}" fill="${c.accent}"/>` + `<g transform="translate(0 ${h}) scale(1 -1)">${both}</g>`;
+      s += o.num ? `<path d="${heartP(cx, h - 13.4, 15)}" fill="${c.accent}"/>` : `<path d="${heartP(cx, h - 13.4, 6)}" fill="${c.accent}"/>`;
+      const tb = h - 27 - (o.num ? 8 : 0);
+      return { svg:s, box:{ l:3, t:27, w:w - 6, h:tb - 27 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 14.5, bg:c.accent, ink:lighten(c.accent, .85) } }; } },
 
-  /* 13. Sello de lacre: sello con su cinta abajo y filetes finos arriba */
-  sello:{ name:'Sello de lacre', parts:[['base', 'Fondo'], ['accent', 'Lacre'], ['alt', 'Cinta'], ['foil', 'Filetes']], font:{ font:'pag', wt:700, max:16 },
-    colors:([B, F, A]) => ({ base:B, accent:A, alt:mix(F, B, .3), foil:F }),
-    draw:(o, c, w, h) => { const cx = w / 2, R = Math.min(w / 2 - 3, 9.5), cy = Math.round(h - R - 17), wax = darken(c.accent, .28);
-      let s = `<path d="M4 6H${w - 4}" stroke="${c.foil}" stroke-width=".7"/><path d="M4 8.3H${w - 4}" stroke="${c.foil}" stroke-width=".4"/>`;
-      s += tailG(cx - 1, cy, cx - R * .75, h + 1, 2.6, c.alt, darken(c.alt, .25)) + tailG(cx + 1, cy, cx + R * .8, h - 1, 2.6, darken(c.alt, .08), darken(c.alt, .3));
-      let p = ''; for(let i = 0; i < 36; i++){ const a = i * 10 * Math.PI / 180, rr = R * (i % 2 ? .93 : 1) + Math.sin(i * 1.7) * .25; p += (i ? 'L' : 'M') + r1(cx + Math.cos(a) * rr) + ' ' + r1(cy + Math.sin(a) * rr); }
-      s += `<path d="${p}Z" fill="${c.accent}" stroke="${darken(c.accent, .18)}" stroke-width=".4"/>` + ring(cx, cy, r1(R * .72), 'none', wax, .8);
-      s += `<path d="M${r1(cx - R * .62)} ${r1(cy - R * .3)}A${r1(R * .72)} ${r1(R * .72)} 0 0 1 ${r1(cx - R * .1)} ${r1(cy - R * .7)}" stroke="${lighten(c.accent, .28)}" stroke-width=".9" fill="none" stroke-linecap="round"/>`;
-      if(!o.num) s += motifAt(o.motif || 'rose', cx, cy, R * .9, wax);
-      const tb = Math.round(cy - R - 6);
-      return { svg:s, box:{ l:4, t:13, w:w - 8, h:tb - 13 }, tbg:[c.base], ink:c.foil, num:{ cy, bg:c.accent, ink:darken(c.accent, .55) } }; } },
+  /* 14. Mapa: pergamino con montañas y costa arriba, la ruta marcada y una rosa de los vientos abajo */
+  mapa:{ name:'Mapa', parts:[['base', 'Pergamino'], ['alt', 'Tinta'], ['accent', 'Ruta']], font:{ font:'serif', wt:700, max:17 },
+    colors:([B, F, A]) => ({ base:mix(lighten(F, .45), '#eadbb8', .6), alt:mix(darken(B, .35), '#3a2a1a', .5), accent:A }),
+    draw:(o, c, w, h) => { const cx = w / 2, vg = sid(), rr = rng(o.seed || 9), zt = Math.round(h * .2), R = Math.min(w / 2 - 3, 11), ay = h - R - 5;
+      let s = `<defs><radialGradient id="${vg}" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="${c.base}"/><stop offset="1" stop-color="${darken(c.base, .2)}"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#${vg})"/>`;
+      // costa con olas, montañas y árboles
+      let p = `M-1 ${r1(zt * .78)}`; for(let x = 0; x <= w + 2; x += 2) p += `L${x} ${r1(zt * .78 + Math.sin(x / 3.2) * 1.6 + Math.sin(x / 7) * 1.4)}`;
+      s += `<path d="${p}" stroke="${c.alt}" stroke-width=".7" fill="none"/>`;
+      for(let i = 0; i < 4; i++) s += `<path d="M${r1(3 + rr() * (w - 9))} ${r1(zt * .88 + i % 2 * 2.5)}h${r1(2.5 + rr() * 2)}" stroke="${c.alt}" stroke-width=".4"/>`;
+      for(let i = 0, x = 3.5; x < w - 4; i++, x += 5 + rr() * 3){ const y = zt * (.42 + (i % 2) * .16), m = 2.2 + rr() * 1.4;
+        s += `<path d="M${r1(x - m)} ${r1(y + m)}L${r1(x)} ${r1(y - m * .6)}L${r1(x + m)} ${r1(y + m)}" stroke="${c.alt}" stroke-width=".6" fill="none" stroke-linejoin="round"/><path d="M${r1(x)} ${r1(y - m * .6)}L${r1(x + m * .45)} ${r1(y + m)}" stroke="${c.alt}" stroke-width=".35"/>`; }
+      for(let i = 0; i < 3; i++){ const x = 4 + rr() * (w - 8), y = zt * (.12 + rr() * .14); s += `<circle cx="${r1(x)}" cy="${r1(y)}" r="1.2" fill="none" stroke="${c.alt}" stroke-width=".45"/><path d="M${r1(x)} ${r1(y + 1.2)}v1.4" stroke="${c.alt}" stroke-width=".45"/>`; }
+      // ruta con la X
+      const xx = w * .72, xy = zt * .62; s += `<path d="M${r1(w * .18)} ${r1(zt * .95)}Q${r1(w * .3)} ${r1(zt * .55)} ${r1(w * .5)} ${r1(zt * .7)}T${r1(xx)} ${r1(xy)}" stroke="${c.accent}" stroke-width=".7" fill="none" stroke-dasharray="1.4 1.1"/>
+        <path d="M${r1(xx - 1.8)} ${r1(xy - 1.8)}l3.6 3.6M${r1(xx + 1.8)} ${r1(xy - 1.8)}l-3.6 3.6" stroke="${c.accent}" stroke-width=".9" stroke-linecap="round"/>`;
+      // rosa de los vientos
+      s += ring(cx, ay, R, 'none', c.alt, .6) + ring(cx, ay, r1(R * .8), 'none', c.alt, .35);
+      const pt = (a, L, wd, i) => { const A = a * Math.PI / 180, B1 = (a + 90) * Math.PI / 180, tx = cx + Math.cos(A) * L, ty = ay + Math.sin(A) * L, bx = Math.cos(B1) * wd, by2 = Math.sin(B1) * wd;
+        return `<path d="M${r1(cx)} ${r1(ay)}L${r1(tx)} ${r1(ty)}L${r1(cx + bx)} ${r1(ay + by2)}Z" fill="${c.alt}"/><path d="M${r1(cx)} ${r1(ay)}L${r1(tx)} ${r1(ty)}L${r1(cx - bx)} ${r1(ay - by2)}Z" fill="${c.base}" stroke="${c.alt}" stroke-width=".35"/>`; };
+      [45, 135, 225, 315].forEach(a => s += pt(a, R * .6, R * .16)); [-90, 0, 90, 180].forEach(a => s += pt(a, R * .98, R * .2));
+      s += `<path d="M${r1(cx)} ${r1(ay - R - 3)}l1.6 2.6h-3.2z" fill="${c.accent}"/>`;
+      if(o.num) s += ring(cx, ay, 5.6, c.base, c.alt, .6);
+      const tt = zt + 4, tb = Math.round(ay - R - 7);
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:c.alt, num:{ cy:ay, bg:c.base, ink:c.alt } }; } },
 
-  /* 14. Neón: marco de neón alrededor del título y horizonte con sol y rejilla (ciencia ficción) */
-  neon:{ name:'Neón', parts:[['base', 'Fondo'], ['accent', 'Neón'], ['alt', 'Sol y rejilla']], font:{ font:'pop', wt:700, up:1, ls:.06, max:17 },
-    colors:([B, F, A]) => ({ base:darken(B, .72), accent:vivid(A), alt:vivid(F, .62) }),
-    draw:(o, c, w, h) => { const cx = w / 2, hz = h - 27, fy = 7, fh = hz - 7 - fy, rx = r1(Math.min(5, w * .16)), gl = sid(), sg = sid(), cl = sid(), sr = r1(Math.min(9, w * .3)), cy = fy + fh - 11, core = lighten(c.accent, .6);
-      let s = `<defs><filter id="${gl}" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.3"/></filter>
-        <linearGradient id="${sg}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(c.alt, .25)}"/><stop offset="1" stop-color="${c.accent}"/></linearGradient><clipPath id="${cl}"><rect y="${hz}" width="${w}" height="${h - hz}"/></clipPath></defs>`;
-      s += `<rect x="4" y="${fy}" width="${w - 8}" height="${fh}" rx="${rx}" fill="none" stroke="${c.accent}" stroke-width="2.2" filter="url(#${gl})"/><rect x="4" y="${fy}" width="${w - 8}" height="${fh}" rx="${rx}" fill="none" stroke="${core}" stroke-width=".7"/>`;
-      s += `<path d="M${r1(cx - sr)} ${hz}A${sr} ${sr} 0 0 1 ${r1(cx + sr)} ${hz}Z" fill="url(#${sg})"/>` + [2, 4.6, 6.8].map((d, i) => `<rect x="${r1(cx - sr)}" y="${r1(hz - d)}" width="${r1(sr * 2)}" height="${r1(1 - i * .2)}" fill="${c.base}"/>`).join('');
-      let gr = `<path d="M0 ${hz}H${w}" stroke="${c.alt}" stroke-width="1"/>`;
-      for(let k = 1; k <= 5; k++){ const y = r1(hz + (h - hz) * (k / 5) ** 1.6); gr += `<path d="M0 ${y}H${w}" stroke="${mix(c.base, c.alt, .75)}" stroke-width=".5"/>`; }
-      for(let k = -4; k <= 4; k++) gr += `<path d="M${r1(cx + k * 1.5)} ${hz}L${r1(cx + k * w * .32)} ${h}" stroke="${mix(c.base, c.alt, .75)}" stroke-width=".5"/>`;
-      s += `<g clip-path="url(#${cl})">${gr}</g>`;
-      if(o.num) s += `<circle cx="${cx}" cy="${cy}" r="6.5" fill="none" stroke="${c.accent}" stroke-width="1.8" filter="url(#${gl})"/><circle cx="${cx}" cy="${cy}" r="6.5" fill="${c.base}" stroke="${core}" stroke-width=".6"/>`;
-      const ink = lighten(c.accent, .75);
-      return { svg:s, box:{ l:6, t:fy + 4, w:w - 12, h:fh - 8 - (o.num ? 19 : 0) }, tbg:[c.base], ink, glow:c.accent, num:{ cy, bg:c.base, ink } }; } },
-
-  /* 15. Lazo: cinta con lazo arriba y encaje abajo (romance) */
-  lazo:{ name:'Lazo', parts:[['base', 'Fondo'], ['alt', 'Lazo'], ['foil', 'Encaje']], font:{ font:'pag', wt:700, max:16 },
-    colors:([B, F, A]) => ({ base:pastel(B, .74), alt:darken(B, .05), foil:pastel(F, .95) }),
-    draw:(o, c, w, h) => { const cx = w / 2, by = 13, L = Math.min(w / 2 - 2, 12), edge = darken(c.alt, .28), yl = h - 13, cy = yl - 13;
-      let s = `<rect y="${by - 2.2}" width="${w}" height="4.4" fill="${c.alt}"/><path d="M0 ${by - 1.8}H${w}" stroke="${lighten(c.alt, .25)}" stroke-width=".5"/><path d="M0 ${by + 2}H${w}" stroke="${darken(c.alt, .18)}" stroke-width=".5"/>`;
-      s += tailG(cx - .8, by + 1, cx - 5.5, by + 23, 2.1, c.alt, edge) + tailG(cx + .8, by + 1, cx + 5.8, by + 25, 2.1, darken(c.alt, .07), edge);
-      const loop = sx => `<path d="M${cx} ${by}C${r1(cx + sx * L * .3)} ${by - 8.5} ${r1(cx + sx * (L + 1))} ${by - 8} ${r1(cx + sx * L)} ${r1(by - .5)}C${r1(cx + sx * (L - .5))} ${by + 4.5} ${r1(cx + sx * L * .35)} ${by + 2.5} ${cx} ${by}Z" fill="${c.alt}" stroke="${edge}" stroke-width=".5"/><path d="M${r1(cx + sx * 2)} ${by - .8}Q${r1(cx + sx * L * .55)} ${by - 4} ${r1(cx + sx * (L - 1.5))} ${by - 1.5}" stroke="${lighten(c.alt, .28)}" stroke-width=".5" fill="none"/>`;
-      s += loop(-1) + loop(1) + `<rect x="${cx - 2.3}" y="${by - 3}" width="4.6" height="6" rx="1.6" fill="${darken(c.alt, .1)}" stroke="${edge}" stroke-width=".4"/>`;
-      // encaje: banda con puntitos y festones calados
-      s += `<path d="M0 ${yl - 2}H${w}" stroke="${darken(c.foil, .15)}" stroke-width=".4"/><rect y="${yl - 1.2}" width="${w}" height="5" fill="${c.foil}"/>`;
-      for(let x = 0; x < w + 7; x += 7) s += `<circle cx="${x}" cy="${yl + 4}" r="3.6" fill="${c.foil}"/>`;
-      for(let x = 0; x < w + 7; x += 7) s += `<circle cx="${x}" cy="${yl + 4.6}" r="1.2" fill="${c.base}"/><circle cx="${x + 3.5}" cy="${yl + 1.2}" r=".6" fill="${c.base}"/>`;
-      if(o.num) s += `<path d="${heartP(cx, cy, 15)}" fill="${c.alt}" stroke="${edge}" stroke-width=".4"/>`;
-      const tt = by + 27, tb = o.num ? cy - 10 : yl - 6;
-      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:darken(c.alt, .4), num:{ cy:cy - 1, bg:c.alt, ink:darken(c.alt, .6) } }; } },
+  /* 15. Damasco: papel pintado de damasco en el fondo y el título en una cartela con las esquinas recortadas */
+  damasco:{ name:'Damasco', parts:[['base', 'Fondo'], ['foil', 'Damasco y bordes'], ['alt', 'Cartela']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
+    colors:([B, F, A]) => ({ base:B, foil:F, alt:darken(B, .35) }),
+    draw:(o, c, w, h) => { const pt = sid(), dm = mix(c.base, c.foil, .32), lh = Math.round(h * .56), lt = Math.round((h - lh) / 2), n = 3.2, x0 = 4, x1 = w - 4, cy = Math.round(lt + lh + (h - 7 - lt - lh) / 2);
+      const motif = (x, y) => `<path d="M${x} ${y - 7}C${x + 3} ${y - 4} ${x + 4.2} ${y - 1} ${x} ${y + 3}C${x - 4.2} ${y - 1} ${x - 3} ${y - 4} ${x} ${y - 7}Z M${x} ${y + 3}C${x + 1.6} ${y + 4.6} ${x + 4.6} ${y + 4.6} ${x + 5.4} ${y + 2.4} M${x} ${y + 3}C${x - 1.6} ${y + 4.6} ${x - 4.6} ${y + 4.6} ${x - 5.4} ${y + 2.4} M${x} ${y + 3}V${y + 6.5}" fill="${dm}" stroke="${dm}" stroke-width=".7" stroke-linecap="round"/><circle cx="${x}" cy="${y - 2}" r=".9" fill="${c.base}"/>`;
+      let s = `<defs><pattern id="${pt}" width="14" height="20" patternUnits="userSpaceOnUse" x="${r1(w / 2 - 7)}">${motif(7, 8)}${motif(0, 18)}${motif(14, 18)}</pattern></defs><rect width="${w}" height="${h}" fill="url(#${pt})"/>`;
+      s += `<rect y="4" width="${w}" height="1.2" fill="${c.foil}"/><rect y="${h - 5.2}" width="${w}" height="1.2" fill="${c.foil}"/>`;
+      const cart = i => `M${x0 + n + i} ${lt + i}H${x1 - n - i}A${n} ${n} 0 0 0 ${x1 - i} ${lt + n + i}V${lt + lh - n - i}A${n} ${n} 0 0 0 ${x1 - n - i} ${lt + lh - i}H${x0 + n + i}A${n} ${n} 0 0 0 ${x0 + i} ${lt + lh - n - i}V${lt + n + i}A${n} ${n} 0 0 0 ${x0 + n + i} ${lt + i}Z`;
+      s += `<path d="${cart(0)}" fill="${c.alt}" stroke="${c.foil}" stroke-width="1"/><path d="${cart(1.8)}" fill="none" stroke="${c.foil}" stroke-width=".4"/>`;
+      if(o.num) s += ring(w / 2, cy, 6.6, c.alt, c.foil, .8);
+      return { svg:s, box:{ l:x0 + 3, t:lt + 4, w:x1 - x0 - 6, h:lh - 8 }, tbg:[c.alt], ink:c.foil, num:{ cy, bg:c.alt, ink:c.foil } }; } },
 
   /* Modo de serie «Fases de la luna»: la luna crece de un tomo a otro (no sale en la lista de diseños) */
   luna:{ name:'Fases de la luna', saga:true, parts:[['base', 'Cielo'], ['foil', 'Luna y estrellas'], ['alt', 'Sombra de la luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F]) => ({ base:darken(B, .45), foil:lighten(F, .2), alt:darken(B, .6) }),
-    draw:(o, c, w, h) => { const cx = w / 2, R = Math.min(w / 2 - 4.5, 10.5), my = h - (o.num ? 25 : 14) - R, gl = sid(), r = rng(o.seed || 1), glow = lighten(c.base, .12);
+    draw:(o, c, w, h) => { const cx = w / 2, R = Math.min(w / 2 - 6, 8), my = h - (o.num ? 25 : 15) - R, gl = sid(), r = rng(o.seed || 1), glow = lighten(c.base, .12);
       let s = `<defs><radialGradient id="${gl}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${glow}"/><stop offset="1" stop-color="${c.base}"/></radialGradient></defs><circle cx="${cx}" cy="${r1(my)}" r="${r1(R * 2.4)}" fill="url(#${gl})"/>`;
       s += ring(cx, my, r1(R + 2.8), 'none', mix(c.base, c.foil, .35), .5) + moonG(cx, my, R, o.phase == null ? 1 : o.phase, c.foil, c.alt);
       const tb = Math.round(my - R - 12);
@@ -272,10 +285,10 @@ const SPINES = {
       if(o.num) s += `<circle cx="${r1(cx - 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/><circle cx="${r1(cx + 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/>`;
       return { svg:s, box:{ l:4, t:10, w:w - 8, h:tb - 10 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 13, bg:c.base, ink:c.foil } }; } }
 };
-const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'botanico', 'celestial', 'vitral', 'daga', 'sello', 'neon', 'lazo'];
+const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'damasco'];
 /* Estilos antiguos → los nuevos (para colecciones guardadas antes) */
-const STYLE_ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'botanico', synth:'neon', cristal:'holo',
-  nervios:'marco', bloque:'tela', deco:'filigrana', rayas:'degradado', acuarela:'holo' };
+const STYLE_ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'floral', botanico:'floral', synth:'holo', cristal:'holo',
+  nervios:'marco', bloque:'tela', deco:'damasco', rayas:'degradado', acuarela:'holo' };
 const styleKey = s => SPINES[s] && !SPINES[s].saga ? s : STYLE_ALIAS[s] || '';
 
 /* Número de tomo: el tamaño depende de cuántas cifras tenga */

@@ -41,6 +41,16 @@ const MOTIF = {
    El cielo es liso en la zona del título (arriba) para que se lea. */
 const pineP = (x, b, ht) => { const wd = ht * .42; return `M${r1(x)} ${r1(b - ht)}L${r1(x + wd * .55)} ${r1(b - ht * .55)}L${r1(x + wd * .3)} ${r1(b - ht * .55)}L${r1(x + wd)} ${r1(b)}L${r1(x - wd)} ${r1(b)}L${r1(x - wd * .3)} ${r1(b - ht * .55)}L${r1(x - wd * .55)} ${r1(b - ht * .55)}Z`; };
 function ridgeP(T, h, top, bot, r, step){ let x = -4, p = `M-4 ${h}L-4 ${r1(bot)}`; while(x < T + 4){ x += step * (.6 + r() * .8); p += `L${r1(x)} ${r1(top + r() * (bot - top))}`; x += step * (.4 + r() * .5); p += `L${r1(x)} ${r1(bot - r() * (bot - top) * .25)}`; } return p + `L${T + 4} ${h}Z`; }
+/* Colinas suaves (curvas en vez de picos) */
+function hillsP(T, h, top, bot, r, step){
+  const pts = []; for(let x = -6; x < T + step; x += step * (.8 + r() * .6)) pts.push([x, top + r() * (bot - top)]);
+  let p = `M-6 ${h}L${r1(pts[0][0])} ${r1(pts[0][1])}`;
+  for(let i = 1; i < pts.length; i++){ const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; p += `Q${r1(x0)} ${r1(y0)} ${r1((x0 + x1) / 2)} ${r1((y0 + y1) / 2)}`; }
+  const L = pts[pts.length - 1]; return p + `L${r1(L[0])} ${r1(L[1])}L${r1(L[0])} ${h}Z`;
+}
+/* Dragón volando hacia la derecha (caja de 0 a 114 × 0 a 61): cuerpo, cuello, cabeza con cuerno, cola con punta, dos alas de murciélago y patas.
+   Cada pieza va en su propio <path> (si van juntas, donde se solapan con sentido contrario queda un hueco) */
+const DRAGON_P = 'M40 46C42 38 70 36 78 41C80 46 72 53 58 53C48 53 40 51 40 46ZM74 42C80 40 84 34 88 29C90 26 92 24 95 24L96 28C93 28 91 30 89 33C85 39 82 44 77 47ZM92 25C95 20 100 19 104 21L113 24L112 26.5L104 27.5C100 29 96 29 93 28ZM97 21L91 14L99 20ZM48 43C36 44 24 44 15 41C10 39 7 36 8 32C9 37 12 40 16 43C24 47 34 49 48 50ZM8 32L3 30L7 26L11 31ZM64 40C62 30 60 22 58 15L40 3Q42 9 38 13Q43 16 40 22Q46 24 45 30Q50 32 50 38ZM66 39C68 31 71 24 74 18L90 7Q87 12 89 16Q83 17 84 22Q78 23 78 28Q73 29 72 38ZM70 49C70 54 72 57 76 58L77 60L71 59C68 56 67 52 66 50ZM50 51C49 55 50 58 53 60L48 61C45 58 45 54 46 51Z';
 function sagaScene(o, T, h){
   const r = rng(o.cont.seed), sk = sid(), mg = sid(), mx = T * .68, my = h * .56;
   let s = `<defs><linearGradient id="${sk}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.base}"/><stop offset=".45" stop-color="${o.base}"/><stop offset=".76" stop-color="${o.accent}"/><stop offset="1" stop-color="${o.sky2}"/></linearGradient>
@@ -66,8 +76,8 @@ function sagaScene(o, T, h){
     const wave = (y0, a, f, col, ph) => { let p = `M-2 ${h}L-2 ${r1(y0)}`; for(let x = 0; x <= T + 4; x += 3) p += `L${x} ${r1(y0 + Math.sin(x / f + ph) * a)}`; return `<path d="${p}L${T + 4} ${h}Z" fill="${col}"/>`; };
     s += wave(h * .84, 1.8, 7, o.sil, 1.2) + wave(h * .92, 2.4, 10, darken(o.sil, .3), 2.5);
   } else if(o.saga === 'dragon'){
-    s += `<path d="${ridgeP(T, h, h * .6, h * .78, r, 18)}" fill="${o.sil2}"/><path d="${ridgeP(T, h, h * .76, h * .9, r, 11)}" fill="${o.sil}"/>`;
-    const k = Math.min(T * .0048, 1.1); s += `<path d="${DRAGON_SIL}" fill="${o.sil}" transform="translate(${r1(T * .1)} ${r1(h * .47 - 4 * k)}) scale(${r1(k * 100) / 100})"/>`;
+    s += `<path d="${hillsP(T, h, h * .62, h * .76, r, 26)}" fill="${o.sil2}"/><path d="${hillsP(T, h, h * .79, h * .9, r, 18)}" fill="${o.sil}"/>`;
+    const k = Math.min(T * .0042, .8); s += `<g fill="${o.sil}" transform="translate(${r1(T * .08)} ${r1(h * .45)}) scale(${r1(k * 100) / 100})">${DRAGON_P.split('Z').filter(Boolean).map(d => `<path d="${d}Z"/>`).join('')}</g>`;
   } else { // bosque
     s += `<path d="${ridgeP(T, h, h * .64, h * .74, r, 22)}" fill="${mix(o.sil2, o.sky2, .35)}"/>`;
     for(let x = -2; x < T + 4; x += 3 + r() * 4) s += `<path d="${pineP(x, h * .82, h * (.1 + r() * .08))}" fill="${o.sil2}"/>`;

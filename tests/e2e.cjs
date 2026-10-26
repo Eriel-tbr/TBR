@@ -394,11 +394,11 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('sagas: el estilo de lomo elegido se aplica a toda la serie («Iguales con número»)', async () => {
     const id = await ev(() => { const b = state.books.find(x => x.title === 'The Queen of Nothing'); state.seriesStyle = state.seriesStyle || {}; state.seriesStyle[serKey(b)] = { mode:'iguales' }; save(); renderAll(); return b.id; });
-    await ev(id => openBookForm({ book:bookOf(id) }), id); await tab('lomo'); await page.click('[data-spstyle="vitral"]'); await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await tab('lomo'); await page.click('[data-spstyle="vidriera"]'); await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
     const ss = await ev(() => state.seriesStyle['the folk of the air']);
-    assert(ss.style === 'vitral' && ss.mode === 'iguales', JSON.stringify(ss));
-    const styles = await ev(() => { const u = state.units[0], th = themeOf(u); return state.books.filter(b => serKey(b) === 'the folk of the air').map(b => spineArt(b, u, th, { series:{ mode:'iguales', style:'vitral', idx:0, n:+b.series.n, total:3, off:0, totalW:60, seed:1, leader:b } }).style); });
-    assert(styles.every(s => s === 'vitral'), styles.join());
+    assert(ss.style === 'vidriera' && ss.mode === 'iguales', JSON.stringify(ss));
+    const styles = await ev(() => { const u = state.units[0], th = themeOf(u); return state.books.filter(b => serKey(b) === 'the folk of the air').map(b => spineArt(b, u, th, { series:{ mode:'iguales', style:'vidriera', idx:0, n:+b.series.n, total:3, off:0, totalW:60, seed:1, leader:b } }).style); });
+    assert(styles.every(s => s === 'vidriera'), styles.join());
   });
   await test('serie en el formulario: se ven los tomos que faltan y se pueden añadir al guardar', async () => {
     const id = await ev(() => state.books.find(b => b.title === 'The Cruel Prince').id);
@@ -467,7 +467,8 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('lomos: con cualquier color se lee el título (contraste ≥ 4 salvo fondos de varios colores, ≥ 3)', async () => {
     const bad = await ev(() => { const P = [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030'], ['#7a7a7a', '#8a8a8a', '#6a6a6a'], ['#c45cff', '#ffd400', '#ff2fb8'], ['#1f4a3c', '#d9b25f', '#8fb36a'], ['#e8a9b3', '#7a1f3a', '#c9566f']], out = [];
-      [...SPINE_ORDER, 'luna'].forEach(st => P.forEach(pal => { const D = SPINES[st], c = D.colors(pal), r = D.draw({ w:32, h:150, seed:7, title:'Prueba' }, c, 32, 150), ink = bestInk(r.ink, r.tbg);
+      // Lámina holo queda fuera: sus colores los elige Leyre a mano y ella cuida que se lea (decidido el 26/10/2026)
+      [...SPINE_ORDER, 'luna'].filter(st => st !== 'holo').forEach(st => P.forEach(pal => { const D = SPINES[st], c = D.colors(pal), r = D.draw({ w:32, h:150, seed:7, title:'Prueba' }, c, 32, 150), ink = bestInk(r.ink, r.tbg);
         const worst = Math.min(...r.tbg.filter(isHex).map(b => contrast(ink, b))); if(worst < (r.tbg.length > 1 ? 3 : 4)) out.push(st + ' ' + pal[0] + ' ' + worst.toFixed(2)); }));
       return out; });
     assert(!bad.length, bad.join(' | '));
