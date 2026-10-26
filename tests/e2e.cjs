@@ -239,7 +239,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('sin campos <input> de texto (la barra de autorrellenar de Chrome) y Enter no salta de línea', async () => {
     await addSheet(); await page.click('#btnAddManual');
-    const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file])').length); assert(n === 0, n + ' campos input');
+    const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file]):not([type=date])').length); assert(n === 0, n + ' campos input');
     await page.fill('#f-title', 'Prueba'); await page.focus('#f-pages'); await page.keyboard.type('12a3'); await page.keyboard.press('Enter');
     const r = await ev(() => ({ t:document.querySelector('#f-title').value, p:document.querySelector('#f-pages').value })); assert(r.t === 'Prueba' && r.p === '123', JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
@@ -527,12 +527,19 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const c = await ev(() => cleanSynopsis('NO TE PIERDAS LA EDICIÓN COLECCIONISTA, ENRIQUECIDA Y LIMITADA, DE LA SAGA MÁS LEÍDA.\n\nViolet Sorrengail tenía previsto entrar en el Cuadrante de los Escribas y vivir tranquila entre libros.'));
     assert(c.startsWith('Violet'), 'reclamo de la editorial: ' + c.slice(0, 40));
   });
+  await test('si localStorage se llena, la colección se guarda en IndexedDB y se recupera al abrir', async () => {
+    await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'solo en IndexedDB'; save(); });
+    await page.waitForTimeout(1200); assert(!(await page.locator('[data-do="retrysave"]').count()), 'avisó aunque IndexedDB lo guardó');
+    assert(await ev(() => JSON.parse(localStorage.getItem('tbr.v1')).books[0].notes !== 'solo en IndexedDB'), 'la prueba no simula bien el fallo');
+    await page.reload(); await page.waitForSelector('.slide .bk'); await page.waitForFunction(() => state.books[0].notes === 'solo en IndexedDB', null, { timeout:4000 });
+  });
   await test('si el móvil no deja guardar, se explica con datos y se puede reintentar', async () => {
-    await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'prueba guardado'; save(); });
+    await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); };
+      window.__idb = idbSet; idbSet = () => Promise.reject(new Error('sin IndexedDB')); state.books[0].notes = 'prueba guardado'; save(); });
     await page.waitForSelector('[data-do="retrysave"]', { timeout:4000 });
     const t = await page.locator('.sheet').last().innerText(); assert(/QuotaExceededError/.test(t) && /KB/.test(t), t);
     assert(await ev(() => !!localStorage.getItem('tbr.v1')), 'al fallar se borró la copia guardada');
-    await ev(() => { Storage.prototype.setItem = window.__set; }); await page.click('[data-do="retrysave"]'); await page.waitForSelector('[data-do="retrysave"]', { state:'detached' });
+    await ev(() => { Storage.prototype.setItem = window.__set; idbSet = window.__idb; }); await page.click('[data-do="retrysave"]'); await page.waitForSelector('[data-do="retrysave"]', { state:'detached' });
     assert(await ev(() => JSON.parse(localStorage.getItem('tbr.v1')).books[0].notes === 'prueba guardado'), 'no se guardó al reintentar');
   });
   await test('arrastrar un libro lo mueve', async () => {
@@ -619,6 +626,49 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await page.click('#btnFilter'); await page.fill('#q-text', want.t); await page.click('#q-apply'); await page.waitForSelector('.sheet', { state:'detached' }); await page.waitForTimeout(300);
     const d = await ev(() => ({ active:ui.active, hits:[...document.querySelectorAll('#tabs .dot-b.hit')].map(x => +x.dataset.i) }));
     assert(d.active === want.i && d.hits.includes(want.i), JSON.stringify({ d, want }));
+    await ev(() => { ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); goTo(0, false); });
+  });
+  await test('al cambiar un libro solo se redibuja su estantería', async () => {
+    const r = await ev(() => { const sl = [...document.querySelectorAll('#carousel .slide')]; sl.forEach((x, i) => x.__k = i); const u = state.units[0], b = state.books.find(x => x.unitId === u.id);
+      b.status = b.status === 'leido' ? 'pendiente' : 'leido'; save(); renderAll(); const now = [...document.querySelectorAll('#carousel .slide')];
+      return { same:now.slice(1).every((x, i) => x.__k === i + 1), redrawn:now[0].__k === undefined, on:now.filter(x => x.classList.contains('on')).length }; });
+    assert(r.same && r.redrawn && r.on === 1, JSON.stringify(r));
+  });
+  await test('fecha de lectura: se puede cambiar en la ficha y Lectura lo agrupa en ese año', async () => {
+    const id = await ev(() => { const b = state.books.find(x => x.status !== 'leido'); b.status = 'leido'; b.readAt = Date.now(); save(); renderAll(); return b.id; });
+    await ev(id => openDetail(id), id); await tab('detalles'); await page.fill('#d-readat', '2025-03-14'); await ev(() => document.querySelector('#d-readat').dispatchEvent(new Event('change', { bubbles:true })));
+    assert(await ev(id => new Date(bookOf(id).readAt).getFullYear() === 2025 && new Date(bookOf(id).readAt).getMonth() === 2, id), 'fecha');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' }); await page.click('#navReading');
+    assert(/2025/.test(await page.locator('#view-reading').innerText()), 'Lectura sin 2025');
+    await page.click('#navShelves');
+  });
+  await test('Lectura: «Terminado» y «Empezar» sin abrir la ficha, con Deshacer', async () => {
+    const id = await ev(() => { state.books.forEach(b => { if(b.status === 'leyendo') b.status = 'pendiente'; }); const b = state.books.find(x => x.status === 'pendiente'); b.status = 'leyendo'; save(); renderAll(); return b.id; });
+    await page.click('#navReading'); await page.click(`[data-quick="finish"][data-id="${id}"]`);
+    assert(await ev(id => bookOf(id).status === 'leido' && !!bookOf(id).readAt, id), 'no se terminó');
+    await page.click('#toast button'); assert(await ev(id => bookOf(id).status === 'leyendo', id), 'no se deshizo');
+    const nx = await ev(() => { const b = state.books.find(x => x.status === 'pendiente'); state.books.forEach(x => x.next = false); b.next = true; save(); renderAll(); return b.id; });
+    await page.click(`[data-quick="start"][data-id="${nx}"]`); assert(await ev(id => bookOf(id).status === 'leyendo' && !bookOf(id).next, id), 'no empezó');
+    await page.click('#navShelves');
+  });
+  await test('ruleta: de cada saga solo sale el tomo que te toca', async () => {
+    const r = await ev(async () => { const k = 'the folk of the air', mem = state.books.filter(b => serKey(b) === k);
+      mem.forEach(b => { b.status = 'pendiente'; }); save(); openRandom(); await new Promise(r => setTimeout(r, 200));
+      document.querySelector('[data-kd="saga"]').click(); const seen = new Set();
+      for(let i = 0; i < 25; i++){ document.querySelector('#r-roll').click(); seen.add(document.querySelector('#r-card h2').textContent); }
+      const first = mem.sort((a, b) => a.series.n - b.series.n)[0].title, others = mem.filter(b => b.title !== first).map(b => b.title);
+      return { first, ok:!others.some(t => seen.has(t)), seen:[...seen] }; });
+    assert(r.ok, JSON.stringify(r)); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('mis ediciones: por comprar / lo tengo por formato, en la ficha y para filtrar', async () => {
+    const id = await ev(() => { const b = state.books[0]; b.formats = {}; save(); return b.id; });
+    await ev(id => openDetail(id), id); await tab('comprar'); await page.click('[data-own="dura"]');
+    assert(await ev(id => bookOf(id).formats.dura === 'quiero', id), 'por comprar'); await page.click('[data-own="dura"]');
+    assert(await ev(id => bookOf(id).formats.dura === 'tengo', id), 'lo tengo'); await tab('resumen');
+    assert(/Lo tengo/.test(await page.locator('.sheet .hero').innerText()), 'sin la marca en el resumen');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await page.click('#btnFilter'); await page.click('[data-ow="tengo"]'); await page.click('#q-apply'); await page.waitForSelector('.sheet', { state:'detached' });
+    const n = await ev(() => state.books.filter(b => matches(b)).length); assert(n >= 1 && /Lo tengo/.test(await page.locator('#filterbar').innerText()), 'filtro ' + n);
     await ev(() => { ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); goTo(0, false); });
   });
   await test('guardar copia descarga un JSON válido', async () => {

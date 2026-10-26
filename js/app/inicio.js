@@ -8,7 +8,7 @@ document.addEventListener('click', e => {
   if(g('[data-open]')){ openDetail(g('[data-open]').dataset.open); return; }
   const act = g('[data-act]'); if(act && !g('.sheet')){
     const a = act.dataset.act;
-    if(a === 'sort') openSort(act.dataset.shelf); else if(a === 'addDecor') openAddDecor(act.dataset.unit); else if(a === 'editUnit') openUnitForm(act.dataset.unit); else if(a === 'newUnit') openUnitForm(null);
+    if(a === 'addDecor') openAddDecor(act.dataset.unit); else if(a === 'editUnit') openUnitForm(act.dataset.unit); else if(a === 'newUnit') openUnitForm(null);
     else if(a === 'clearFilters'){ ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); }
     else if(a === 'clearExamples'){ const n = state.books.filter(b => b.ejemplo).length; state.books = state.books.filter(b => !b.ejemplo); state.units.forEach(u => u.shelves.forEach(s => s.order = s.order.filter(id => bookOf(id)))); save(); renderAll(); toast(`${n} libros de ejemplo borrados`); }
     return;
@@ -57,9 +57,14 @@ async function checkUpdate(){
     if(version && version !== APP_VERSION) $('#update').hidden = false;
   }catch(e){}
 }
+/* Actualizar: se descarga el service worker nuevo (con todos los archivos de la versión nueva) y se recarga cuando ya manda él */
 $('#btnUpdate').addEventListener('click', async () => {
   $('#btnUpdate').disabled = true; $('#btnUpdate').textContent = 'Actualizando…';
-  try{ const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(reg) await reg.update(); }catch(e){}
+  try{
+    const sw = navigator.serviceWorker, reg = sw && await sw.getRegistration();
+    if(reg){ const changed = new Promise(r => sw.addEventListener('controllerchange', r, { once:true }));
+      await reg.update(); if(reg.installing || reg.waiting) await Promise.race([changed, new Promise(r => setTimeout(r, 6000))]); }
+  }catch(e){}
   location.reload();
 });
 checkUpdate();

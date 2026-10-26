@@ -38,7 +38,7 @@ function mergeStates(a, b){
   const newer = (b.metaUpd || 0) > (a.metaUpd || 0) ? b : a, other = newer === a ? b : a;
   const order = [...newer.units.map(u => u.id), ...other.units.map(u => u.id)];
   const units = pick(a.units, b.units).sort((x, y) => order.indexOf(x.id) - order.indexOf(y.id));
-  const out = { v:1, settings:newer.settings || other.settings || { theme:'auto', decor:true }, seriesStyle:{ ...(other.seriesStyle || {}), ...(newer.seriesStyle || {}) },
+  const out = { v:1, settings:newer.settings || other.settings || { theme:'auto' }, seriesStyle:{ ...(other.seriesStyle || {}), ...(newer.seriesStyle || {}) },
     units, books:pick(a.books, b.books), deleted:del, metaUpd:Math.max(a.metaUpd || 0, b.metaUpd || 0) };
   return fixOrphans(out);
 }
@@ -89,6 +89,7 @@ const writeLocal = () => writeState();
 function syncSoon(ms = 2500){ if(!nube.user) return; clearTimeout(nube.t); nube.t = setTimeout(syncNow, ms); }
 async function syncNow(manual){
   if(!nube.sb || !nube.user) return false;
+  await stateReady; // antes de juntar con la nube, la colección completa (puede venir de IndexedDB)
   if(nube.busy){ nube.again = true; return false; }
   if(!manual && ((typeof sheets !== 'undefined' && sheets.length) || (typeof drag !== 'undefined' && drag))){ syncSoon(3000); return false; } // no cambiar datos con una ventana abierta
   if(navigator.onLine === false){ nube.err = 'Sin conexión'; updateCloudUi(); return false; }
@@ -131,7 +132,7 @@ async function syncNow(manual){
   return ok;
 }
 function applyState(s){
-  const before = JSON.stringify(state); state = s; state.seriesStyle = state.seriesStyle || {}; state.settings = state.settings || { theme:'auto', decor:true };
+  const before = JSON.stringify(state); state = s; state.seriesStyle = state.seriesStyle || {}; state.settings = state.settings || { theme:'auto' };
   syncMeta.h = hashAll(state); writeLocal();
   if(JSON.stringify(state) !== before){ ui.active = Math.min(ui.active, state.units.length - 1); applyTheme(); renderAll(); if(typeof refreshCoverPals === 'function') setTimeout(refreshCoverPals, 1000); }
 }

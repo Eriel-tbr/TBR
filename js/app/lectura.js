@@ -12,10 +12,19 @@ function showView(v){
 }
 
 /* ---------- Lectura: lo que estás leyendo, la siguiente y lo leído por año ---------- */
-function readingRow(b, extra = ''){
-  return `<li><button class="rd" type="button" data-open="${b.id}"><span class="cv">${coverHtml(b)}</span>
-    <span class="tx"><b>${esc(b.title)}</b><span>${esc([b.author, b.pages ? b.pages + ' págs.' : ''].filter(Boolean).join(' · '))}</span>${extra}</span></button></li>`;
+function readingRow(b, extra = '', quick = ''){
+  const q = quick === 'finish' ? 'Terminado' : quick === 'start' ? 'Empezar' : '';
+  return `<li class="rd-li${q ? ' has-q' : ''}"><button class="rd" type="button" data-open="${b.id}"><span class="cv">${coverHtml(b)}</span>
+    <span class="tx"><b>${esc(b.title)}</b><span>${esc([b.author, b.pages ? b.pages + ' págs.' : ''].filter(Boolean).join(' · '))}</span>${extra}</span></button>${q ? `<button class="btn sm rd-q" type="button" data-quick="${quick}" data-id="${b.id}">${q}</button>` : ''}</li>`;
 }
+/* Acciones rápidas de Lectura (con Deshacer) */
+document.addEventListener('click', e => {
+  const q = e.target.closest('[data-quick]'); if(!q) return; const b = bookOf(q.dataset.id); if(!b) return;
+  const before = { status:b.status, readAt:b.readAt, next:b.next };
+  if(q.dataset.quick === 'finish'){ b.status = 'leido'; b.readAt = Date.now(); b.next = false; }
+  else { b.status = 'leyendo'; b.next = false; }
+  save(); renderAll(); toast(q.dataset.quick === 'finish' ? `«${b.title}» leído` : `Empiezas «${b.title}»`, () => { Object.assign(b, before); save(); renderAll(); });
+});
 function renderReading(){
   const el = $('#view-reading'); if(!el || el.hidden) return;
   const now = state.books.filter(b => b.status === 'leyendo'), next = state.books.filter(b => b.next && b.status !== 'leido');
@@ -23,8 +32,8 @@ function renderReading(){
   const years = new Map(); read.forEach(b => { const y = b.readAt ? new Date(b.readAt).getFullYear() : 'Sin fecha'; (years.get(y) || years.set(y, []).get(y)).push(b); });
   const stars = b => b.rating ? `<span class="stars-t" aria-label="${b.rating} de 5">${'★'.repeat(b.rating)}${'☆'.repeat(5 - b.rating)}</span>` : '';
   el.innerHTML = `
-    <section class="rd-sec"><h2>Leyendo ahora</h2>${now.length ? `<ul class="rd-list">${now.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Nada empezado.</p>'}</section>
-    <section class="rd-sec"><h2>Siguiente lectura</h2>${next.length ? `<ul class="rd-list">${next.map(b => readingRow(b)).join('')}</ul>` : '<p class="rd-empty">Sin elegir.</p>'}</section>
+    <section class="rd-sec"><h2>Leyendo ahora</h2>${now.length ? `<ul class="rd-list">${now.map(b => readingRow(b, '', 'finish')).join('')}</ul>` : '<p class="rd-empty">Nada empezado.</p>'}</section>
+    <section class="rd-sec"><h2>Siguiente lectura</h2>${next.length ? `<ul class="rd-list">${next.map(b => readingRow(b, '', 'start')).join('')}</ul>` : '<p class="rd-empty">Sin elegir.</p>'}</section>
     <section class="rd-sec"><h2>Leídos</h2>${read.length ? [...years].map(([y, list]) => `<div class="rd-year"><span>${y}</span><span class="note">${list.length} ${list.length === 1 ? 'libro' : 'libros'}</span></div><ul class="rd-list">${list.map(b => readingRow(b, stars(b))).join('')}</ul>`).join('') : '<p class="rd-empty">Todavía ninguno.</p>'}</section>
     <section class="rd-sec"><h2>Estadísticas</h2>${statsHtml()}</section>`;
 }

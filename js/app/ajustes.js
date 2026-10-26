@@ -116,6 +116,7 @@ function openFilters(){
     <div class="sec"><label for="q-text">Buscar</label>${lineHtml('class="field" id="q-text" enterkeyhint="search" placeholder="Título, autor, serie, etiqueta o nota" data-autofocus', f.q)}</div>
     <div class="sec"><span class="lbl">Estado</span><div class="chips">${chipsHtml([['', 'Todos'], ...Object.entries(STATUS)], f.status, 'data-st')}</div></div>
     <div class="sec"><span class="lbl">Idioma</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], f.lang, 'data-lg')}</div></div>
+    <div class="sec"><span class="lbl">Edición</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['tengo', 'Lo tengo'], ['comprar', 'Por comprar']], f.own || '', 'data-ow')}</div></div>
     <div class="sec"><span class="lbl">Longitud</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['corto', 'Menos de 300'], ['medio', '300–500'], ['largo', 'Más de 500']], f.len, 'data-ln')}</div></div>
     <div class="sec"><span class="lbl">Etiquetas (deben cumplirse todas)</span><div class="chips">${allTags().map(([t, n]) => `<button class="chip" type="button" data-tg="${esc(t)}" aria-pressed="${f.tags.includes(t)}">${esc(t)} <small>${n}</small></button>`).join('') || '<span class="note">Aún no hay etiquetas.</span>'}</div></div>`;
   const sh = openSheet(sheetT('Buscar y filtrar', '<div id="qbody"></div>', '<button class="btn" type="button" id="q-clear">Limpiar</button><button class="btn primary" type="button" id="q-apply">Aplicar</button>'));
@@ -124,7 +125,7 @@ function openFilters(){
   sh.addEventListener('input', e => { if(e.target.id === 'q-text') f.q = e.target.value; });
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
-    if(g('[data-st]')) f.status = g('[data-st]').dataset.st; else if(g('[data-lg]')) f.lang = g('[data-lg]').dataset.lg; else if(g('[data-ln]')) f.len = g('[data-ln]').dataset.ln;
+    if(g('[data-st]')) f.status = g('[data-st]').dataset.st; else if(g('[data-lg]')) f.lang = g('[data-lg]').dataset.lg; else if(g('[data-ln]')) f.len = g('[data-ln]').dataset.ln; else if(g('[data-ow]')) f.own = g('[data-ow]').dataset.ow;
     else if(g('[data-tg]')){ const t = g('[data-tg]').dataset.tg; f.tags = f.tags.includes(t) ? f.tags.filter(x => x !== t) : [...f.tags, t]; }
     else if(g('#q-clear')){ ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); await closeSheet(); return; }
     else if(g('#q-apply')){ ui.filters = f; renderAll(); await closeSheet(); goToFirstHit(); return; }
@@ -135,15 +136,19 @@ function openFilters(){
 
 /* ---------- Libro aleatorio ---------- */
 function openRandom(){
-  const f = { unit:'', lang:'', tag:'', len:'', kind:'' }; let cur = null;
-  const pool = () => state.books.filter(b => (b.status || 'pendiente') === 'pendiente' && (!f.unit || b.unitId === f.unit) && (!f.kind || seriesKind(state, b) === f.kind) && matches(b, { q:'', status:'', lang:f.lang, tags:f.tag ? [f.tag] : [], len:f.len }));
+  const f = { unit:'', lang:'', tag:'', len:'', kind:'', next:true }; let cur = null;
+  // De una saga solo sale el tomo que te toca: el de número más bajo sin leer (si estás leyendo uno, ninguno más de esa saga)
+  const turn = b => { const k = serKey(b); if(!k || !f.next) return true; const n = +b.series.n || 99;
+    return !state.books.some(x => x.id !== b.id && serKey(x) === k && x.status !== 'leido' && (+x.series.n || 99) < n); };
+  const pool = () => state.books.filter(b => (b.status || 'pendiente') === 'pendiente' && turn(b) && (!f.unit || b.unitId === f.unit) && (!f.kind || seriesKind(state, b) === f.kind) && matches(b, { q:'', status:'', lang:f.lang, tags:f.tag ? [f.tag] : [], len:f.len }));
   const body = `<div id="r-card" class="random-card"></div>
     <div class="sec"><span class="lbl">Condiciones</span>
     <div class="two">${pickHtml('r-unit', 'Estantería', [['', 'Cualquiera'], ...state.units.map(u => [u.id, u.name])], '')}
     ${pickHtml('r-tag', 'Etiqueta', [['', 'Cualquiera'], ...allTags().map(([t]) => [t, t])], '')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier idioma'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], '', 'data-lg')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier longitud'], ['corto', 'Corto'], ['medio', 'Medio'], ['largo', 'Largo']], '', 'data-ln')}</div>
-    <div class="chips">${chipsHtml([['', 'Cualquier tipo'], ['ind', 'Individual'], ['bitri', 'Duología / trilogía'], ['saga', 'Saga']], '', 'data-kd')}</div></div>`;
+    <div class="chips">${chipsHtml([['', 'Cualquier tipo'], ['ind', 'Individual'], ['bitri', 'Duología / trilogía'], ['saga', 'Saga']], '', 'data-kd')}</div>
+    <label class="switch">De cada saga, solo el tomo que me toca<input type="checkbox" id="r-next" checked></label></div>`;
   const sh = openSheet(sheetT('Libro aleatorio', body, '<button class="btn" type="button" id="r-open" disabled>Ver ficha</button><button class="btn primary" type="button" id="r-roll">Otro libro</button>'));
   const roll = () => {
     const p = pool(), card = $('#r-card', sh);
@@ -154,7 +159,7 @@ function openRandom(){
       ${b.synopsis ? `<p class="note" style="max-height:6.5em;overflow:hidden">${esc(b.synopsis.slice(0, 260))}${b.synopsis.length > 260 ? '…' : ''}</p>` : ''}<div class="note">${esc(locName(b))}</div>`;
   };
   roll();
-  sh.addEventListener('change', e => { if(e.target.id === 'r-unit'){ f.unit = e.target.value; roll(); } if(e.target.id === 'r-tag'){ f.tag = e.target.value; roll(); } });
+  sh.addEventListener('change', e => { if(e.target.id === 'r-unit'){ f.unit = e.target.value; roll(); } if(e.target.id === 'r-tag'){ f.tag = e.target.value; roll(); } if(e.target.id === 'r-next'){ f.next = e.target.checked; roll(); } });
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
     if(g('[data-lg]')){ f.lang = g('[data-lg]').dataset.lg; $$('[data-lg]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-lg]'))); roll(); }
@@ -254,11 +259,11 @@ async function runFill(){
 let pendingImport = null;
 function applyImport(mode){
   const d = pendingImport; if(!d) return;
-  if(mode === 'replace'){ state = d; if(!state.settings) state.settings = { theme:'auto', decor:true }; state.seriesStyle = state.seriesStyle || {}; }
+  if(mode === 'replace'){ state = d; if(!state.settings) state.settings = { theme:'auto' }; state.seriesStyle = state.seriesStyle || {}; }
   else { d.units.forEach(u => { if(!unitOf(u.id)) state.units.push(u); }); d.books.forEach(b => { if(!bookOf(b.id)) state.books.push(b); }); Object.assign(state.seriesStyle, d.seriesStyle || {}); }
   pendingImport = null; ui.active = 0; applyTheme(); renderAll();
   clearTimeout(saveT); if(typeof syncStamp === 'function') syncStamp();
-  if(writeState()){ toast('Copia importada'); if(typeof syncSoon === 'function'){ syncSoon(); updateCloudUi(); } }
+  persist().then(ok => { if(ok){ toast('Copia importada'); if(typeof syncSoon === 'function'){ syncSoon(); updateCloudUi(); } } });
 }
 function exportJson(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type:'application/json' }));

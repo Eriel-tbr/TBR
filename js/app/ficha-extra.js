@@ -26,6 +26,13 @@ function storeLinksHtml(b){
     <div class="sec"><span class="lbl">Comprar en inglés</span>${chips(linksEn)}${found.length ? `<div class="eds"><span class="note">Encontradas en Books2Door:</span>${found.map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${[e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''].filter(Boolean).map(esc).join(' · ')}</a>`).join('')}</div>` : ''}</div>`;
 }
 
+/* ---------- Mis ediciones: por formato, «Por comprar» o «Lo tengo» (b.formats) ----------
+   Cada toque pasa al siguiente: nada → por comprar → lo tengo → nada. ES / EN: en qué idioma se ha encontrado ese formato. */
+const OWN_NEXT = { '':'quiero', quiero:'tengo', tengo:'' }, OWN_TXT = { quiero:'por comprar', tengo:'lo tengo' };
+function ownHtml(b){
+  const av = edAvail(b), f = b.formats || {};
+  return `<div class="sec" id="d-own"><span class="lbl">Mis ediciones</span><div class="chips">${FORMATS.map(([k, l]) => `<button class="chip own" type="button" data-own="${k}" data-st="${f[k] || ''}" aria-pressed="${f[k] === 'tengo'}">${esc(l)}${f[k] ? ` · <b>${OWN_TXT[f[k]]}</b>` : ''}${av[k] ? ` <small>${av[k]}</small>` : ''}</button>`).join('')}</div></div>`;
+}
 /* ---------- Audiolibro ---------- */
 const AUDIO_TTL = 30 * 86400000;
 const hms = s => { const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };
@@ -131,7 +138,7 @@ function fichaExtras(sh, id){
   // La ficha se redibuja al tocar estrellas o cambiar el estado: lo que está cargando se guarda fuera (xSt) y se pinta
   // siempre en los paneles que haya en ese momento (antes los resultados iban a los paneles viejos y la sección quedaba en blanco)
   const st = xSt[id] = xSt[id] || { a:'', s:'' };
-  const paint = () => { const cur = bookOf(id), shop = $('#dshop', sh), box = $('#dextra', sh); if(!cur || !shop) return; if(box) box.innerHTML = seriesHtml(cur, st.s); shop.innerHTML = audioHtml(cur, st.a) + storeLinksHtml(cur); };
+  const paint = () => { const cur = bookOf(id), shop = $('#dshop', sh), box = $('#dextra', sh); if(!cur || !shop) return; if(box) box.innerHTML = seriesHtml(cur, st.s); shop.innerHTML = ownHtml(cur) + audioHtml(cur, st.a) + storeLinksHtml(cur); };
   st.paint = paint; // la ficha abierta más reciente es la que recibe los resultados
   const setA = v => { st.a = v; st.paint(); }, setS = v => { st.s = v; st.paint(); };
   paint();
@@ -140,6 +147,8 @@ function fichaExtras(sh, id){
   const box = $('#dextra', sh), shop = $('#dshop', sh); if(!shop) return;
   const onClick = async e => {
     const g = s => e.target.closest(s), cur = bookOf(id); if(!cur) return;
+    if(g('[data-own]')){ const k = g('[data-own]').dataset.own; cur.formats = cur.formats || {}; const nx = OWN_NEXT[cur.formats[k] || ''];
+      if(nx) cur.formats[k] = nx; else delete cur.formats[k]; save(); if(sh.redraw) sh.redraw(); else paint(); return; }
     if(g('[data-xdo="audio"]')) loadAudio(id, setA);
     else if(g('[data-xdo="serie"]')) loadSeries(id, setS);
     else if(g('[data-addvol]')){ const n = +g('[data-addvol]').dataset.addvol; await closeSheet(); addVolume(cur, n); }

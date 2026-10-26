@@ -72,9 +72,6 @@ function openBookForm({ book, item }){
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
-  const drawFmt = () => { if(!q('#ffmt')) return; const av = edAvail(d);
-    q('#ffmt').innerHTML = FORMATS.map(([k, l]) => `<button class="chip fmt" type="button" data-fmt="${k}" data-st="${d.formats[k] || ''}" data-av="${av[k] || ''}">${l}${d.formats[k] ? ': ' + d.formats[k] : ''}</button>`).join('');
-    q('#feds').innerHTML = edsHtml(d.eds) + edsHtml(d.edsEn, true); };
   const drawTags = () => {
     q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + lineHtml('id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta"');
     const used = allTags().map(x => x[0]).filter(t => !d.tags.includes(t)).slice(0, 10), sug = sugTags.filter(t => !d.tags.includes(t));
@@ -163,7 +160,7 @@ function openBookForm({ book, item }){
     el.innerHTML = es ? `<div class="chips" style="margin-top:6px"><button class="chip sug" type="button" data-do="usees">Usar el título en español: «${esc(es)}»</button></div>`
       : d.origTitle && norm(d.origTitle) !== norm(d.title) ? `<div class="note" style="margin-top:4px">Título original: ${esc(d.origTitle)}</div>` : '';
   }
-  drawCover(); drawLangs(); drawFmt(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle(); base = snap();
+  drawCover(); drawLangs(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle(); base = snap();
   sh.addEventListener('change', e => { const v = e.target.dataset && e.target.dataset.vol; if(v){ if(e.target.checked) addVols.add(+v); else addVols.delete(+v); drawVols(); } });
   sh.addEventListener('input', e => {
     const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine(); }
@@ -191,7 +188,6 @@ function openBookForm({ book, item }){
   sh.addEventListener('click', async e => {
     const t = e.target, g = s => t.closest(s);
     if(g('[data-lang]')){ const k = g('[data-lang]').dataset.lang; d.langs = d.langs.includes(k) ? d.langs.filter(x => x !== k) : [...d.langs, k]; drawLangs(); }
-    else if(g('[data-fmt]')){ const k = g('[data-fmt]').dataset.fmt, cur = d.formats[k] || ''; const nx = cur === '' ? 'quiero' : cur === 'quiero' ? 'tengo' : ''; if(nx) d.formats[k] = nx; else delete d.formats[k]; drawFmt(); }
     else if(g('[data-status]')){ d.status = g('[data-status]').dataset.status; if(d.status === 'leido' && !d.readAt) d.readAt = Date.now(); if(d.status !== 'leido'){ d.rating = 0; d.readAt = null; } drawStatus(); }
     else if(g('[data-star]')){ const n = +g('[data-star]').dataset.star; d.rating = d.rating === n ? 0 : n; drawStatus(); }
     else if(g('[data-rt]')){ d.tags = d.tags.filter(x => x !== g('[data-rt]').dataset.rt); drawTags(); }
@@ -248,7 +244,7 @@ function openBookForm({ book, item }){
     });
   }
   function reviewItem(it){
-    if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); } if(it.edsEn && it.edsEn.length) d.edsEn = it.edsEn; drawFmt();
+    if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); } if(it.edsEn && it.edsEn.length) d.edsEn = it.edsEn;
     const ser = it.series && it.series.name ? { name:it.series.name, n:it.series.n || '', total:it.series.total || '' } : it.wd && it.wd.series ? { ...it.wd.series } : null;
     const serTxt = s => s && s.name ? `${s.name}${s.n ? ' · nº ' + s.n : ''}${s.total ? ' de ' + s.total : ''}` : '';
     const langs = [...new Set([...d.langs, ...detectLangs(it)])], langTxt = l => l.map(x => ({ es:'Español', en:'Inglés' }[x])).join(' y ');
@@ -285,8 +281,8 @@ function openBookForm({ book, item }){
     // La sinopsis puesta automáticamente se cambia por la de la edición española si existe; la escrita a mano no se toca
     if(it.desc && (!d.synopsis || (d.synopsis === autoSyn && it.descLang === 'es' && d.synopsis !== it.desc))){ d.synopsis = autoSyn = it.desc; q('#f-syn').value = d.synopsis;
       q('#f-synsrc').textContent = it.descSrc ? `Sinopsis de la edición española (${it.descSrc}).` : ''; }
-    if(it.eds && it.eds.length){ d.eds = it.eds.map(({ synopsis, ...e }) => e); drawFmt(); }
-    if(it.edsEn && it.edsEn.length){ d.edsEn = it.edsEn; drawFmt(); }
+    if(it.eds && it.eds.length) d.eds = it.eds.map(({ synopsis, ...e }) => e);
+    if(it.edsEn && it.edsEn.length) d.edsEn = it.edsEn;
     if(!d.series && it.series && it.series.name){ d.series = { name:it.series.name, n:it.series.n || '', total:it.series.total || '' }; serNote = 'según Hardcover'; serStyle = { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) };
       q('#f-sname').value = d.series.name; q('#f-sn').value = d.series.n; q('#f-st').value = d.series.total; drawSeries(); drawSpine(); }
     if(!d.pages && it.pages){ d.pages = it.pages; q('#f-pages').value = d.pages; }

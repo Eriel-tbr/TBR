@@ -85,7 +85,7 @@ function cabinetHtml(u, i){
   if(!out.length) out.push(`<div class="row" data-row="${u.id}" data-shelf="${u.shelves[0].id}"><div class="tabla"></div>${hint}</div>`);
   const rowsHtml = out.join('');
   const corners = th.corners ? bcSvg('tl') + bcSvg('tr') + bcSvg('bl') + bcSvg('br') : '';
-  return `<section class="slide${i === ui.active ? ' on' : ''}" data-unit="${u.id}" data-i="${i}" aria-label="${esc(u.name)}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
+  return `<section class="slide" data-unit="${u.id}" data-i="${i}" aria-label="${esc(u.name)}"><div class="cab-wrap"><div class="mueble ${th.cls} grainH" style="${cabinetStyleVars(th)}">
     ${crownHtml(u, th)}
     <div class="body"><div class="pil l"></div><div class="inner">${corners}${th.mullion ? '<div class="mull"></div>' : ''}${crownHead(u, th)}${rowsHtml}</div><div class="pil r"></div></div>
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
@@ -100,7 +100,7 @@ function renderHeader(){
     const f = ui.filters, parts = [];
     if(f.q) parts.push('«' + f.q + '»'); if(f.status) parts.push(STATUS[f.status]);
     if(f.lang) parts.push({ es:'Solo español', en:'Solo inglés', both:'Español e inglés' }[f.lang]);
-    if(f.tags.length) parts.push(f.tags.join(', ')); if(f.len) parts.push({ corto:'Menos de 300 págs.', medio:'300–500 págs.', largo:'Más de 500 págs.' }[f.len]);
+    if(f.tags.length) parts.push(f.tags.join(', ')); if(f.own) parts.push(f.own === 'tengo' ? 'Lo tengo' : 'Por comprar'); if(f.len) parts.push({ corto:'Menos de 300 págs.', medio:'300–500 págs.', largo:'Más de 500 págs.' }[f.len]);
     const n = state.books.filter(b => matches(b)).length;
     fb.hidden = false; fb.innerHTML = `<span>${n} ${n === 1 ? 'libro' : 'libros'} · ${esc(parts.join(' · '))}</span><button class="btn sm" type="button" data-act="clearFilters">Quitar</button>`;
   } else fb.hidden = true;
@@ -115,9 +115,14 @@ function renderTabs(){
   $('#tabs').classList.toggle('filtering', f);
   $('#tabs').innerHTML = state.units.map((u, i) => `<button class="dot-b${f && hits.has(u.id) ? ' hit' : ''}" type="button" data-i="${i}" aria-label="${esc(u.name)}${f ? (hits.has(u.id) ? ': con resultados' : ': sin resultados') : ''}" title="${esc(u.name)}" aria-current="${i === ui.active}"><i></i></button>`).join('');
 }
+/* Solo se cambian en la página los muebles cuyo dibujo ha cambiado (antes se rehacían todos con cada estrella o cambio de estado) */
 function renderCarousel(){
   const c = $('#carousel'), sl = c.scrollLeft; ui.width = c.clientWidth;
-  c.innerHTML = state.units.map(cabinetHtml).join('');
+  // Para comparar, sin los números de los id de los dibujos (decoracion.js los numera con un contador y cambian en cada pintado)
+  const html = state.units.map(cabinetHtml), key = h => h.replace(/(id="|url\(#|href="#)([A-Za-z]+)\d+/g, '$1$2'), kids = [...c.children];
+  if(kids.length !== html.length){ c.innerHTML = html.join(''); [...c.children].forEach((el, i) => el._h = key(html[i])); }
+  else html.forEach((h, i) => { const k = key(h); if(kids[i]._h === k) return; const t = document.createElement('div'); t.innerHTML = h; const el = t.firstElementChild; el._h = k; kids[i].replaceWith(el); });
+  $$('.slide', c).forEach(s => s.classList.toggle('on', +s.dataset.i === ui.active));
   c.style.scrollBehavior = 'auto'; c.scrollLeft = sl; c.style.scrollBehavior = '';
 }
 function setAccent(){

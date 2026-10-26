@@ -27,7 +27,7 @@ function defaultState(){
   const units = [U('Fantasía', 'fantasia', ['Épica', 'Gótica', 'Paranormal', 'Cozy']), U('Romantasy', 'romantasy', ['Fae', 'Dragones', 'Otras']),
     U('Ciencia ficción', 'cienciaficcion', ['Space opera', 'Distopía']), U('Dark academia', 'darkacademia', ['General']),
     U('Contemporánea y thriller', 'contemporanea', ['Contemporánea', 'Thriller y misterio']), U('Romance', 'romance', ['General'])];
-  const s = { v:1, fresh:true, settings:{ theme:'auto', decor:true }, units, books:[], seriesStyle:{} };
+  const s = { v:1, fresh:true, settings:{ theme:'auto' }, units, books:[], seriesStyle:{} };
   const ex = [
     ['El nombre del viento','Patrick Rothfuss',660,['es','en'],['épica'],0,0,['Crónica del asesino de reyes',1,3]],['Juego de tronos','George R. R. Martin',800,['es','en'],['épica'],0,0,['Canción de hielo y fuego',1,7]],
     ['El Hobbit','J. R. R. Tolkien',300,['es','en'],['clásico','épica'],0,0],['Mexican Gothic','Silvia Moreno-Garcia',320,['en'],['gótica','terror'],0,1],
@@ -50,7 +50,7 @@ function load(){
 }
 /* Cambios de una sola vez en colecciones ya creadas (la marca va en settings, que es lo que se conserva al juntar con la nube) */
 function migrate(s){
-  s.settings = s.settings || { theme:'auto', decor:true };
+  s.settings = s.settings || { theme:'auto' };
   if(!s.settings.migThriller){ // la estantería de contemporánea pasa a ser también la de thriller
     s.units.filter(u => u.preset === 'contemporanea' && norm(u.name) === 'contemporanea').forEach(u => { u.name = 'Contemporánea y thriller';
       if(!u.shelves.some(sh => /thriller|misterio|suspense/.test(norm(sh.name)))) u.shelves.push(mkShelf('Thriller y misterio')); });
@@ -88,17 +88,51 @@ async function storageReport(err){
   return { error:err ? `${err.name || 'Error'}: ${err.message || ''}`.slice(0, 160) : '', appKB:Math.round(JSON.stringify(state).length * 2 / 1024), localKB:Math.round(lsBytes() / 1024), keys,
     usedMB:est ? +(est.usage / 1048576).toFixed(1) : null, quotaMB:est ? +(est.quota / 1048576).toFixed(0) : null };
 }
-let saveFailShown = false;
-function writeState(){
-  const json = JSON.stringify(state);
-  try{ localStorage.setItem(KEY, json); saveFailShown = false; return true; }
-  catch(e1){
-    try{ CACHE_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.setItem(KEY, json); saveFailShown = false; return true; } // sin cachés
-    // Nunca se borra la copia guardada para «hacer sitio»: si la nueva tampoco cabe, se perdería todo (y al volver a abrir,
-    // la app arrancaría con los ejemplos). Lo guardado antes se queda tal cual hasta que se pueda escribir.
-    catch(e2){ if(!saveFailShown){ saveFailShown = true; showSaveFail(e2); } return false; }
-  }
+/* ---------- IndexedDB: copia completa de la colección ----------
+   localStorage da unos 5 MB y es lo que se lee al abrir (al momento). IndexedDB guarda lo mismo sin ese límite,
+   con las portadas subidas incluidas. Si localStorage se llena, allí va una copia «ligera» (sin las portadas subidas)
+   y al abrir se completa con la de IndexedDB. Solo se avisa de que no se pudo guardar si fallan las dos. */
+const IDB_NAME = 'mi-tbr';
+let idbP = null;
+function idbOpen(){
+  if(idbP) return idbP;
+  return idbP = new Promise((res, rej) => { try{ const r = indexedDB.open(IDB_NAME, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error || new Error('IndexedDB')); r.onblocked = () => rej(new Error('IndexedDB bloqueada')); }catch(e){ rej(e); } })
+    .catch(e => { idbP = null; throw e; });
 }
+function idbGet(k){ return idbOpen().then(db => new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); })); }
+function idbSet(k, v){ return idbOpen().then(db => new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => rej(tx.error || new Error('IndexedDB')); })); }
+/* Copia sin las portadas subidas (data:), para que quepa en localStorage */
+const slimJson = () => JSON.stringify({ ...state, slim:true, books:state.books.map(b => (b.coverData || '').startsWith('data:') ? { ...b, coverData:'' } : b) });
+function lsWrite(json){
+  try{ localStorage.setItem(KEY, json); return null; }
+  catch(e1){ try{ CACHE_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.setItem(KEY, json); return null; }catch(e2){ return e2; } } // sin cachés
+}
+let saveFailShown = false, lastIdb = Promise.resolve(true);
+/* Guarda en los dos sitios. Devuelve true si localStorage lo tiene (completo o ligero); la promesa lastIdb dice si IndexedDB también.
+   Nunca se borra la copia guardada para «hacer sitio»: si la nueva tampoco cabe, lo guardado antes se queda tal cual. */
+function writeState(){
+  state.savedAt = Date.now(); delete state.slim;
+  const json = JSON.stringify(state), idb = lastIdb = idbSet(KEY, json).then(() => true, () => false);
+  let err = lsWrite(json); if(err && state.books.some(b => (b.coverData || '').startsWith('data:'))) err = lsWrite(slimJson()) && err;
+  if(!err){ saveFailShown = false; return true; }
+  idb.then(ok => { if(ok) saveFailShown = false; else if(!saveFailShown){ saveFailShown = true; showSaveFail(err); } });
+  return false;
+}
+/* Guardado completo (para importar y reintentar): true si quedó guardado en algún sitio */
+async function persist(){ const ls = writeState(), idb = await lastIdb; return ls || idb; }
+/* Al abrir: si IndexedDB tiene una versión más reciente que localStorage (o la de localStorage es la ligera), se usa esa */
+const stateReady = (async () => {
+  try{
+    const raw = await idbGet(KEY), s = raw ? JSON.parse(raw) : null;
+    if(!(s && s.v === 1 && Array.isArray(s.units) && Array.isArray(s.books))){ if(!state.fresh) writeState(); return; } // primera vez: se copia
+    if((s.savedAt || 0) > (state.savedAt || 0) || (state.slim && (s.savedAt || 0) >= (state.savedAt || 0))){
+      state = migrate(s); state.seriesStyle = state.seriesStyle || {}; delete state.slim;
+      if(typeof syncMeta !== 'undefined' && typeof hashAll === 'function'){ syncMeta.h = hashAll(state); saveMeta(); } // lo recuperado es el punto de partida
+      if(typeof renderAll === 'function'){ applyTheme(); renderAll(); }
+    }
+  }catch(e){}
+})();
 async function showSaveFail(err){
   const r = await storageReport(err), lowQuota = r.quotaMB !== null && r.quotaMB < 50;
   const diag = `Mi TBR ${(document.querySelector('meta[name="app-version"]') || {}).content || ''} · ${r.error} · colección ${r.appKB} KB · guardado ${r.localKB} KB [${r.keys.join(', ')}] · navegador ${r.usedMB ?? '?'} de ${r.quotaMB ?? '?'} MB`;
@@ -109,7 +143,7 @@ async function showSaveFail(err){
   const sh = openSheet(sheetT('No se pudo guardar', body, '<button class="btn" type="button" data-do="copydiag">Copiar datos</button><button class="btn primary" type="button" data-do="retrysave">Reintentar</button>'));
   sh.addEventListener('click', async e => {
     if(e.target.closest('[data-do="copydiag"]')){ try{ await navigator.clipboard.writeText(diag); toast('Datos copiados'); }catch(x){ toast('No se pudieron copiar'); } }
-    if(e.target.closest('[data-do="retrysave"]')){ saveFailShown = false; if(writeState()){ await closeSheet(); toast('Guardado'); } else toast('Sigue sin dejar guardar'); }
+    if(e.target.closest('[data-do="retrysave"]')){ saveFailShown = true; if(await persist()){ saveFailShown = false; await closeSheet(); toast('Guardado'); } else toast('Sigue sin dejar guardar'); }
   });
 }
 function save(){
@@ -153,13 +187,16 @@ function groupSeries(arr){
   }
   return out;
 }
-function filtersActive(){ const f = ui.filters; return !!(f.q || f.status || f.lang || f.tags.length || f.len); }
+function filtersActive(){ const f = ui.filters; return !!(f.q || f.status || f.lang || f.tags.length || f.len || f.own); }
+/* Ediciones: lo tengo (en algún formato) / por comprar (alguno que quieres y ninguno que tengas) */
+const ownKind = b => { const v = Object.values(b.formats || {}); return v.includes('tengo') ? 'tengo' : v.includes('quiero') ? 'comprar' : ''; };
 function langKind(b){ const l = b.langs || []; return l.length === 2 ? 'both' : l[0] === 'es' ? 'es' : l[0] === 'en' ? 'en' : ''; }
 function matches(b, f = ui.filters){
   if(f.q && !norm([b.title, b.origTitle, b.esTitle, b.series && b.series.name, b.author, (b.tags || []).join(' '), b.notes].filter(Boolean).join(' ')).includes(norm(f.q))) return false; // también serie y título original
   if(f.status && (b.status || 'pendiente') !== f.status) return false;
   if(f.lang && langKind(b) !== f.lang) return false;
   if(f.tags && f.tags.length && !f.tags.every(t => (b.tags || []).includes(t))) return false;
+  if(f.own && ownKind(b) !== f.own) return false;
   if(f.len){ const p = +b.pages; if(!p) return false; if(f.len === 'corto' && p >= 300) return false; if(f.len === 'medio' && (p < 300 || p > 500)) return false; if(f.len === 'largo' && p <= 500) return false; }
   return true;
 }

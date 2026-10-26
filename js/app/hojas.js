@@ -106,13 +106,6 @@ const FMT_NAME = { blanda:'Tapa blanda', dura:'Tapa dura', bolsillo:'Bolsillo', 
 const edFmtSet = eds => new Set((eds || []).filter(e => !e.set).map(e => e.fmt === 'bolsillo' ? 'blanda' : e.fmt).filter(Boolean));
 function edAvail(b){ const es = edFmtSet(b.eds), en = edFmtSet(b.edsEn), out = {};
   FORMATS.forEach(([k]) => { const l = [es.has(k) && 'ES', en.has(k) && 'EN'].filter(Boolean).join('·'); if(l) out[k] = l; }); return out; }
-function edsHtml(eds, en){
-  if(!eds || !eds.length) return '';
-  return `<div class="eds"><span class="note">${en ? 'En inglés, en Books2Door:' : 'Ediciones en español encontradas:'}</span>${eds.map(e => {
-    const bind = /no definid|^libro$|otro formato/i.test(e.binding || '') ? '' : e.binding;
-    const bits = (en ? [e.title, FMT_NAME[e.fmt], e.price, e.available === false ? 'agotado' : ''] : [e.publisher, FMT_NAME[e.fmt] || bind, e.year]).filter(Boolean).map(esc).join(' · ');
-    return `<a href="${esc(e.url)}" target="_blank" rel="noopener">${bits || esc(e.isbn)}</a>`; }).join('')}</div>`;
-}
 /* Campos de una línea (textarea .one, ver lineHtml): Enter termina en vez de saltar de línea; sin saltos al pegar; los numéricos solo admiten cifras */
 document.addEventListener('input', e => { const t = e.target; if(!t.classList || !t.classList.contains('one')) return;
   const v = 'num' in t.dataset ? t.value.replace(/\D/g, '') : t.value.replace(/[\r\n]+/g, ' ');

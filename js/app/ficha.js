@@ -12,7 +12,7 @@ function openDetail(id){
     const cur = startTab('ficha', TABS);
     const resumen = `
       <div class="hero"><div class="cover-box">${coverHtml(b)}</div><div class="meta"><h2>${esc(b.title)}</h2>${b.origTitle && norm(b.origTitle) !== norm(b.title) ? `<div class="note">Título original: ${esc(b.origTitle)}</div>` : ''}<div>${esc(b.author) || '<span class="note">Autor sin indicar</span>'}</div>
-        <div class="chips">${langBadges(b)}<span class="badge">${STATUS[b.status || 'pendiente']}</span>${b.next ? '<span class="badge">Siguiente lectura</span>' : ''}</div>
+        <div class="chips">${langBadges(b)}<span class="badge">${STATUS[b.status || 'pendiente']}</span>${b.next ? '<span class="badge">Siguiente lectura</span>' : ''}${ownKind(b) ? `<span class="badge own-${ownKind(b)}">${ownKind(b) === 'tengo' ? 'Lo tengo' : 'Por comprar'}</span>` : ''}</div>
         ${b.series && b.series.name ? `<div class="note">Serie: ${esc(b.series.name)} · libro ${b.series.n || '?'}${seriesTotal(state, b) ? ' de ' + seriesTotal(state, b) : ''}</div>` : ''}
         <div class="note">${esc(locName(b))}</div>
         ${b.status === 'leido' ? `<div class="stars" aria-label="Puntuación">${[1,2,3,4,5].map(n => `<button class="star ${n <= b.rating ? 'on' : ''}" type="button" data-star="${n}" aria-label="${n} de 5">${ICON.star}</button>`).join('')}</div>` : ''}
@@ -28,7 +28,7 @@ function openDetail(id){
       <dl class="kv"><dt>Páginas</dt><dd>${b.pages || '—'}</dd><dt>Publicación</dt><dd>${b.year || '—'}</dd>
         <dt>Idiomas</dt><dd>${(b.langs || []).length === 2 ? 'Español e inglés' : (b.langs || [])[0] === 'es' ? 'Solo español' : (b.langs || [])[0] === 'en' ? 'Solo inglés' : '—'}</dd>
         <dt>Dónde está</dt><dd>${esc(locName(b))}</dd>
-        ${b.readAt ? `<dt>Leído</dt><dd>${new Date(b.readAt).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}</dd>` : ''}</dl>
+        ${b.status === 'leido' ? `<dt><label for="d-readat">Leído el</label></dt><dd><input type="date" class="field datein" id="d-readat" data-readat value="${b.readAt ? isoDay(b.readAt) : ''}" max="${isoDay(Date.now())}"></dd>` : ''}</dl>
       ${(b.tags || []).length ? `<div class="sec"><span class="lbl">Etiquetas</span><div class="chips">${b.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div></div>` : ''}
       ${b.notes ? `<div class="sec"><span class="lbl">Notas</span><div class="synopsis">${esc(b.notes)}</div></div>` : ''}
       <button class="btn danger" type="button" data-do="del">Borrar libro</button>`;
@@ -37,7 +37,10 @@ function openDetail(id){
       + tabPanel('ficha', 'comprar', cur, '<div id="dshop" style="display:flex;flex-direction:column;gap:18px"></div>');
     fichaExtras(sh, id);
   };
-  draw();
+  draw(); sh.redraw = draw;
+  // Fecha en que lo terminaste (por defecto, el día que lo marcaste): se puede cambiar
+  sh.addEventListener('change', e => { if(!e.target.matches('[data-readat]')) return; const b = bookOf(id); if(!b) return;
+    b.readAt = e.target.value ? new Date(e.target.value + 'T12:00:00').getTime() : null; save(); renderAll(); toast(b.readAt ? 'Fecha de lectura cambiada' : 'Sin fecha de lectura'); });
   sh.addEventListener('click', async e => {
     const star = e.target.closest('[data-star]'), act = e.target.closest('[data-do]'), b = bookOf(id); if(!b) return;
     if(star){ b.rating = b.rating === +star.dataset.star ? 0 : +star.dataset.star; save(); draw(); return; }
@@ -86,24 +89,6 @@ function openMove(id, after){
     const o = e.target.closest('[data-m]'); if(o) await moveTo(o.dataset.m);
   });
 }
-function openSort(shelfId){
-  const { s } = shelfOf(shelfId);
-  const draw = () => {
-    const dirs = SORT_DIR[s.sort];
-    return `<div class="row-opts">${Object.entries(SORTS).map(([k, l]) => `<button class="opt" type="button" role="radio" data-sort="${k}" aria-checked="${s.sort === k}"><span class="dot"></span>${l}</button>`).join('')}</div>
-      ${dirs ? `<div class="sec"><span class="lbl">Dirección</span><div class="chips">${chipsHtml([['asc', dirs[0]], ['desc', dirs[1]]], s.dir, 'data-dir')}</div></div>` : '<p class="note">Orden manual: mantén pulsado un libro y arrástralo hasta su sitio.</p>'}`;
-  };
-  const sh = openSheet(sheetT('Balda «' + s.name + '»', `<div class="sec"><label for="s-name">Nombre de la balda</label>${lineHtml('class="field" id="s-name"', s.name)}</div><div class="sec"><span class="lbl">Ordenar</span><div id="sbody"></div></div>`));
-  $('#sbody', sh).innerHTML = draw();
-  sh.addEventListener('change', e => { if(e.target.id === 's-name'){ const v = e.target.value.trim(); if(v){ s.name = v; save(); renderAll(); $('.sheet-head h2', sh).textContent = 'Balda «' + v + '»'; } } });
-  sh.addEventListener('click', e => {
-    const o = e.target.closest('[data-sort]'), d = e.target.closest('[data-dir]');
-    if(o){ if(o.dataset.sort === 'manual' && s.sort !== 'manual') s.order = sortedBooks(s).map(b => b.id); s.sort = o.dataset.sort; if(s.sort === 'added' || s.sort === 'pub') s.dir = s.dir || 'asc'; }
-    else if(d) s.dir = d.dataset.dir; else return;
-    save(); renderAll(); $('#sbody', sh).innerHTML = draw();
-  });
-}
-
 /* ---------- Decoración colocada a mano ---------- */
 function decoThumbs(th, cur, attr){
   return `<div class="decor-grid">${Object.keys(DECO_NAMES).filter(k => DECO[k]).map(k => { const d = DECO[k](th.decoC), s = Math.min(.9, 50 / d.h);

@@ -1,8 +1,9 @@
-/* Mi TBR · service worker: la app abre sin conexión.
-   La versión la escribe tools/version.py en cada publicación; no hace falta tocarla a mano. */
-const VERSION = '2026.10.26-5';
+/* Mi TBR · service worker: la app abre al momento, también sin conexión o con mala cobertura.
+   Los archivos propios se sirven de lo guardado para esta versión (antes se esperaba a la red cada vez).
+   version.json y la API (api/) van siempre a la red. La versión la escribe tools/version.py; no hace falta tocarla a mano. */
+const VERSION = '2026.10.26-6';
 const CACHE = 'mi-tbr-' + VERSION;
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'version.json', 'css/styles.css', 'css/furniture.css',
+const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'css/styles.css', 'css/furniture.css',
   'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/muebles.js', 'js/art/temas.js',
   'js/app/estado.js', 'js/app/hojas.js', 'js/app/colores.js', 'js/app/estanterias.js', 'js/app/ficha.js', 'js/app/ficha-extra.js', 'js/app/formulario.js', 'js/app/anadir.js', 'js/app/ajustes.js', 'js/app/arrastrar.js', 'js/app/nube.js', 'js/app/lectura.js', 'js/app/inicio.js',
   'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
@@ -16,9 +17,14 @@ self.addEventListener('fetch', e => {
   const req = e.request; if(req.method !== 'GET') return;
   const url = new URL(req.url);
   if(url.origin === location.origin){
-    // Archivos propios: siempre la versión más reciente si hay conexión; si no, la guardada.
-    e.respondWith(fetch(req, { cache:'no-cache' }).then(r => { if(r.ok){ const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return r; })
-      .catch(() => caches.match(req, { ignoreSearch:true }).then(r => r || caches.match('index.html'))));
+    if(url.pathname.includes('/api/') || url.pathname.endsWith('version.json')) return; // siempre a la red, sin guardar
+    // Lo guardado de esta versión, al momento (todo de la misma versión: nunca se mezclan archivos nuevos y viejos).
+    // La versión nueva llega con un service worker nuevo, que el navegador descarga solo o al pulsar «Actualizar».
+    e.respondWith(caches.open(CACHE).then(async c => {
+      const hit = await c.match(req, { ignoreSearch:true }) || (req.mode === 'navigate' ? await c.match('index.html') : null);
+      if(hit) return hit;
+      return fetch(req, { cache:'no-cache' }).then(r => { if(r.ok) c.put(req, r.clone()); return r; }).catch(() => c.match('index.html'));
+    }));
   } else if(url.hostname === 'cdn.jsdelivr.net'){
     // Librería de la nube (versión fija): se guarda la primera vez y luego se usa la guardada
     e.respondWith(caches.open('mi-tbr-libs').then(c => c.match(req).then(hit => hit || fetch(req).then(r => { if(r.ok || r.type === 'opaque') c.put(req, r.clone()); return r; }))));
