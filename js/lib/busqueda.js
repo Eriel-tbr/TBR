@@ -26,7 +26,11 @@ function cleanSynopsis(s){
   if(!s) return s || '';
   let t = String(s).replace(/\r/g, '').split(/\n\s*(?:reseñas|críticas|la crítica ha dicho|lo que dice la crítica|los blogs opinan|opiniones|praise for[^\n]*|elogios[^\n]*)\s*:?\s*(?:\n|$)/i)[0];
   const quote = p => { const q = p.trim(); return /^[«"“]/.test(q) && /[»"”][.!]?\s*(?:\n[^\n]{1,80}|\s*[(A-ZÁÉÍÓÚÑ][^.\n]{0,70})?$/.test(q); };
-  const out = t.split(/\n{2,}/).filter(p => p.trim() && !quote(p)).join('\n\n').trim();
+  // Reclamos de la editorial al principio («NO TE PIERDAS LA EDICIÓN COLECCIONISTA…»): párrafos largos en mayúsculas o de promoción
+  const caps = p => { const l = p.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]/g, ''); return p.trim().length >= 40 && l.length && l.replace(/[^A-ZÁÉÍÓÚÑÜ]/g, '').length / l.length > .8; };
+  const promo = p => caps(p) || /^\s*(no te pierdas|ahora en (edici|formato)|edici[oó]n (coleccionista|especial|limitada|exclusiva))/i.test(p);
+  const paras = t.split(/\n{2,}/).filter(p => p.trim() && !quote(p)); while(paras.length > 1 && promo(paras[0])) paras.shift();
+  const out = paras.join('\n\n').trim();
   return out.length > 80 ? out : String(s).trim(); // si casi todo eran citas, mejor no tocarla
 }
 /* El resultado que corresponde a un libro (títulos posibles + autor/a); sure = sin dudas razonables */

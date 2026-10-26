@@ -483,8 +483,10 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(r.t === 'Mercurio' && r.o === 'Quicksilver', JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
-  await test('«Nicci French» y «french nicci» son el mismo libro al juntar fuentes', async () => {
+  await test('«Nicci French» y «french nicci» son el mismo libro; las sinopsis sin reclamos de la editorial', async () => {
     assert(await ev(() => bookKey({ title:'Blue Monday', author:'Nicci French' }) === bookKey({ title:'blue monday', author:'french nicci' })), 'claves distintas');
+    const c = await ev(() => cleanSynopsis('NO TE PIERDAS LA EDICIÓN COLECCIONISTA, ENRIQUECIDA Y LIMITADA, DE LA SAGA MÁS LEÍDA.\n\nViolet Sorrengail tenía previsto entrar en el Cuadrante de los Escribas y vivir tranquila entre libros.'));
+    assert(c.startsWith('Violet'), 'reclamo de la editorial: ' + c.slice(0, 40));
   });
   await test('si el móvil no deja guardar, se explica con datos y se puede reintentar', async () => {
     await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'prueba guardado'; save(); });
