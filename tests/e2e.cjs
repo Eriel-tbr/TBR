@@ -258,7 +258,9 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const t = await ev(() => drag && drag.target); await page.mouse.up(); await page.waitForTimeout(450); return t;
   };
   await test('colocar a mano: un libro se queda en el espacio libre donde se suelta, y se le quita el espacio pegándolo', async () => {
-    const r0 = await ev(() => { const u = state.units[0]; u.decorMode = 'none'; delete u.place; const [ep, go] = u.shelves; state.books.filter(b => b.shelfId === go.id).forEach(b => { b.shelfId = ep.id; });
+    // Balda con solo dos libros (sitio libre de sobra en la fila); los demás de esta estantería, a la segunda balda
+    const r0 = await ev(() => { const u = state.units[0]; u.decorMode = 'none'; delete u.place; const [ep, go] = u.shelves;
+      state.books.filter(b => b.unitId === u.id).forEach((b, i) => { b.shelfId = i < 2 ? ep.id : go.id; });
       const l = sortedBooks(ep); save(); renderAll(); goTo(0, false); return { u:u.id, ep:ep.id, a:l[l.length - 1].id, prev:l[l.length - 2].id }; });
     await ev(r0 => { const u = unitOf(r0.u); u.shelves[0].order = []; save(); renderAll(); }, r0); await page.waitForTimeout(200);
     // El último libro de la balda, a tres cuartos de la fila (espacio libre)
