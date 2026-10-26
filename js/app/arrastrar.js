@@ -37,7 +37,7 @@ function startDrag(){
 function moveGhost(){ drag.ghost.style.left = lastPt.x + 'px'; drag.ghost.style.top = lastPt.y + 'px'; }
 function autoLoop(){
   if(!drag) return; const c = $('#carousel');
-  // window.innerWidth: «innerWidth» a secas es la función de estanterias.js (por eso nunca pasaba de estantería arrastrando)
+  // Ancho y alto de la ventana (antes «innerWidth» era una función de la app y el autodesplazamiento no funcionaba)
   if(lastPt.x < 50) c.scrollLeft -= 14; else if(lastPt.x > window.innerWidth - 50) c.scrollLeft += 14;
   if(lastPt.y < 120) scrollBy(0, -12); else if(lastPt.y > window.innerHeight - 90) scrollBy(0, 12);
   updateTarget(); autoRaf = requestAnimationFrame(autoLoop);

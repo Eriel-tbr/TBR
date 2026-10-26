@@ -54,9 +54,10 @@ function materializeDecor(id){
   u.decorMode = 'manual'; toast('Ahora la decoración de esta estantería la colocas tú');
   return mine;
 }
-function innerWidth(th){ const c = $('#carousel'); const slide = Math.min((c.clientWidth || 360) - 28, 420); return slide - 2 * th.P - 20; }
+// Ancho útil de una fila (antes se llamaba innerWidth y tapaba window.innerWidth del navegador)
+function rowWidth(th){ const c = $('#carousel'); const slide = Math.min((c.clientWidth || 360) - 28, 420); return slide - 2 * th.P - 20; }
 function cabinetHtml(u, i){
-  const th = themeOf(u), W = innerWidth(th), decorOn = u.decorMode !== 'none', manual = u.decorMode === 'manual';
+  const th = themeOf(u), W = rowWidth(th), decorOn = u.decorMode !== 'none', manual = u.decorMode === 'manual';
   const seq = unitSeq(u), total = u.shelves.reduce((n, sh) => n + state.books.filter(b => b.shelfId === sh.id).length, 0), shown = seq.length;
   const plan = !decorOn ? [] : manual ? (u.decorItems || []) : autoPlan(u, th, seq);
   const ids = new Set(seq.map(b => b.id)), after = new Map(), tail = [];
