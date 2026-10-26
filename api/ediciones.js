@@ -13,6 +13,7 @@ async function editions(id){
 module.exports = async (req, res) => {
   const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag');
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
+  if(p.get('schema')){ try{ const d = await gql(`{ __type(name: "${p.get('schema').replace(/\W/g, '')}") { fields { name } } }`); return res.end(JSON.stringify(d)); }catch(e){ return res.end(JSON.stringify({ error:e.message })); } }
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
   try{
     const book = await findBook(t, a);
