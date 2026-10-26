@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
       return { title:d.title, subtitle:d.subtitle || '', author:(d.author_names || []).slice(0, 2).join(', '), year:d.release_year || null, pages:d.pages || 0,
         cover:(d.image && d.image.url) || '', desc:d.description || '', isbns:(d.isbns || []).slice(0, 12),
         series:ser.name || (d.series_names || [])[0] ? { name:ser.name || d.series_names[0], n:fs.position || d.featured_series_position || '', total:ser.primary_books_count || '' } : null,
-        genres:(d.genres || []).slice(0, 10), users:d.users_count || 0, slug:d.slug || '' };
+        genres:(d.genres || []).slice(0, 10), users:d.users_count || 0, slug:d.slug || '', altTitles:[...new Set(d.alternative_titles || [])].slice(0, 25) };
     });
     res.setHeader('cache-control', 'public, s-maxage=86400, stale-while-revalidate=604800');
     res.end(JSON.stringify({ items }));

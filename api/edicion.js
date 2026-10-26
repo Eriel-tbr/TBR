@@ -4,7 +4,7 @@
 const { get, jsonLd, meta, pairs, text, fmtOf, inner } = require('./_lib/fichas');
 const clean = s => String(s || '').replace(/[^0-9Xx]/g, '').toUpperCase();
 async function ficha(isbn){
-  const r = await get(`https://www.todostuslibros.com/libros/x_${isbn}`);
+  const r = await get(`https://www.todostuslibros.com/libros/x_${isbn}`, 5000);
   if(!r.html) return { isbn, ok:false, status:r.status };
   const ld = jsonLd(r.html).find(x => /Book|Product/i.test([].concat(x['@type']).join())) || {};
   const p = pairs(r.html);
@@ -26,7 +26,15 @@ module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('access-control-allow-origin', '*');
   if(!isbns.length){ res.statusCode = 400; return res.end(JSON.stringify({ error:'Falta el ISBN' })); }
-  const eds = await Promise.all(isbns.map(i => ficha(i).catch(e => ({ isbn:i, ok:false, error:String(e.message || e) }))));
+  // De una en una y con una pausa corta: si se le piden muchas a la vez, todostuslibros deja de responder un rato.
+  // Con stop=1 se para en la primera ficha que tenga sinopsis (lo que necesita la app) y no se gastan más peticiones.
+  const stop = u.searchParams.get('stop') === '1', t0 = Date.now(), eds = [];
+  for(const i of isbns){
+    if(Date.now() - t0 > 8000) break; // límite de tiempo de la función
+    const e = await ficha(i).catch(e => ({ isbn:i, ok:false, error:String(e.message || e) })); eds.push(e);
+    if(stop && e.ok && (e.synopsis || '').length > 60) break;
+    await new Promise(r => setTimeout(r, 250));
+  }
   res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
   res.end(JSON.stringify({ eds }));
 };

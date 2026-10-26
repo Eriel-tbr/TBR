@@ -203,30 +203,48 @@ function openSettings(){
     }catch(err){ toast('Ese archivo no es una copia válida de Mi TBR'); }
   });
 }
-/* Completar sinopsis en bloque: vacías, o en inglés cuando el libro existe en español (misma regla que al añadir) */
-let fillRun = null;
-async function fillSynopses(btn, out){
-  if(fillRun){ fillRun.stop = true; btn.textContent = 'Parando…'; return; }
-  const list = state.books.filter(b => !(b.synopsis || '').trim() || ((b.langs || []).includes('es') && textLang(b.synopsis) === 'en'));
-  if(!list.length){ out.textContent = 'Todas las fichas tienen sinopsis (en español si el libro está traducido).'; return; }
-  const run = fillRun = { stop:false }; btn.textContent = 'Parar'; let done = 0; const miss = [];
-  for(const [i, b0] of list.entries()){
-    if(run.stop) break;
-    out.textContent = `Buscando ${i + 1} de ${list.length}: ${b0.title}…`;
-    try{
-      const res = await searchBooks((b0.origTitle || b0.title) + ' ' + lastName(b0.author), new AbortController().signal);
-      const m = bestMatch((res && res.items) || [], [b0.title, b0.origTitle], b0.author);
-      if(!m.sure){ miss.push(b0.title); continue; }
-      const it = await enrichBook(m.item, new AbortController().signal), b = bookOf(b0.id); if(!b) continue;
-      const empty = !(b.synopsis || '').trim();
-      if(it.desc && (empty || (it.descLang === 'es' && textLang(it.desc) === 'es'))){ b.synopsis = it.desc; done++; } else miss.push(b0.title);
-      if(it.esTitle && !b.esTitle && norm(it.esTitle) !== norm(b.title)) b.esTitle = it.esTitle;
-      if(it.eds && it.eds.length && !(b.eds || []).length) b.eds = it.eds.map(({ synopsis, ...e }) => e);
-      save();
-    }catch(e){ miss.push(b0.title); }
+/* ---------- Completar fichas ----------
+   Busca los datos de cada libro: de la edición española si está traducido (sinopsis de la editorial, páginas), si no, de la original.
+   Rellena lo que falta y cambia la sinopsis en inglés por la española; la escrita a mano (en español) no se toca.
+   El título y la portada no se cambian solos: al terminar se ofrecen los españoles para elegir. */
+const FILL_TTL = 30 * 86400000;
+const fichaMissing = b => { const syn = (b.synopsis || '').trim(); return !syn || !b.pages || !b.year || !(b.cover || b.coverData || b.cover2) || ((b.langs || []).includes('es') && textLang(syn) === 'en'); };
+const needsFill = b => !b.ejemplo && (!b.filled || (fichaMissing(b) && Date.now() - b.filled > FILL_TTL));
+const fill = { run:null, done:0, total:0, cur:'', results:[], listeners:new Set() };
+const fillPing = () => { fill.listeners.forEach(f => f()); if(typeof renderFillNote === 'function') renderFillNote(); };
+async function fillOne(id, signal){
+  const b0 = bookOf(id); if(!b0) return null;
+  const it = await enrichBook({ title:b0.origTitle || b0.title, author:b0.author, covers:[], desc:'', lang:'', subjects:[] }, signal);
+  const b = bookOf(id); if(!b) return null;
+  const ch = [], tr = !!(it.esFound || (it.eds || []).length);
+  const L = [...new Set([...(b.langs || []), ...detectLangs(it)])]; if(L.length !== (b.langs || []).length){ b.langs = L; ch.push('idiomas'); }
+  const syn = (b.synopsis || '').trim(), itEs = it.desc && it.descLang === 'es' && textLang(it.desc) !== 'en';
+  if(it.desc && (!syn || (textLang(syn) === 'en' && itEs))){ b.synopsis = it.desc; ch.push(itEs ? 'sinopsis en español' : 'sinopsis'); }
+  const pg = tr && it.pagesEs ? it.pagesEs : !b.pages ? it.pages : 0;
+  if(pg && +pg !== +b.pages){ b.pages = +pg; ch.push(tr && it.pagesEs ? 'páginas de la edición española' : 'páginas'); }
+  if(!b.year && it.year){ b.year = +it.year; ch.push('año'); }
+  if(!b.cover && !b.coverData && !b.cover2){ const c = (tr && it.coverEs) || (it.covers || [])[0]; if(c){ b.cover = c; ch.push('portada'); } }
+  if(!(b.series && b.series.name)){ const sr = it.series && it.series.name ? it.series : it.wd && it.wd.series; if(sr && sr.name){ b.series = { name:sr.name, n:sr.n || '', total:sr.total || '' }; ch.push('serie'); } }
+  if(it.eds && it.eds.length) b.eds = it.eds.map(({ synopsis, ...e }) => e); if(it.edsEn && it.edsEn.length) b.edsEn = it.edsEn;
+  // Título original: si el libro ya está con su título en español y no se sabía el original (sirve para buscar en fuentes en inglés)
+  const hcT = it.hc ? it.hc.book.title.replace(/\s*[:(].*$/, '').replace(/,\s*or\b.*$/i, '').trim() : '';
+  if(!b.origTitle && hcT && norm(hcT) !== norm(b.title) && it.hc.es.some(e => norm(e.title).startsWith(norm(b.title)))){ b.origTitle = hcT; ch.push('título original'); }
+  else if(it.esTitle && norm(it.esTitle) !== norm(b.title) && !b.origTitle) b.esTitle = it.esTitle;
+  b.filled = Date.now();
+  const offer = { id, esTitle:!b.origTitle && b.esTitle && norm(b.esTitle) !== norm(b.title) ? b.esTitle : '', coverEs:tr && it.coverEs && it.coverEs !== b.cover && !b.coverData ? it.coverEs : '' };
+  return { id, title:b.title, ch, found:!!(it.hc || it.desc), offer:offer.esTitle || offer.coverEs ? offer : null };
+}
+async function runFill(){
+  if(fill.run){ fill.run.stop = true; fillPing(); return; }
+  const ids = state.books.filter(needsFill).map(b => b.id); if(!ids.length){ fillPing(); return; }
+  const run = fill.run = { stop:false }; fill.done = 0; fill.total = ids.length; fill.results = []; fillPing();
+  for(const id of ids){
+    if(run.stop) break; const b = bookOf(id); if(!b){ fill.done++; continue; }
+    fill.cur = b.title; fillPing();
+    try{ const r = await fillOne(id, new AbortController().signal); if(r) fill.results.push(r); }catch(e){ fill.results.push({ id, title:b.title, ch:[], found:false }); }
+    fill.done++; save(); fillPing();
   }
-  fillRun = null; btn.textContent = 'Completar sinopsis'; renderAll();
-  out.textContent = `${done} ${done === 1 ? 'sinopsis completada' : 'sinopsis completadas'}.` + (miss.length ? ` Sin encontrar o sin dudas razonables: ${miss.join(', ')}. Prueba «Buscar y comparar datos» en su ficha.` : '');
+  fill.run = null; fill.cur = ''; renderAll(); fillPing();
 }
 let pendingImport = null;
 function applyImport(mode){

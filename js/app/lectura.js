@@ -40,9 +40,34 @@ function openAdd(){
 /* Al elegir un resultado o «A mano», se cierra la hoja de añadir antes de abrir el formulario */
 async function leaveAdd(){ if($('.sheet .addbar')) await closeSheet(); }
 
-/* ---------- Completar fichas (desde Estanterías) ---------- */
+/* ---------- Completar fichas (aviso bajo los puntos, solo cuando hay fichas por completar) ---------- */
+function fillCount(){ return state.books.filter(needsFill).length; }
+function renderFillNote(){
+  const el = $('#fillnote'); if(!el) return; const n = fillCount();
+  el.hidden = !n && !fill.run; el.innerHTML = fill.run ? `Completando fichas · <b>${fill.done} de ${fill.total}</b>` : `${n} ${n === 1 ? 'ficha' : 'fichas'} por completar · <b>Completar</b>`;
+}
 function openFill(){
-  const sh = openSheet(sheetT('Completar fichas', `<p class="note">Busca las sinopsis que faltan y las que están en inglés si el libro está traducido. Las tuyas no se tocan.</p>
-    <button class="btn primary" type="button" data-do="fillsyn">Completar sinopsis</button><div class="note" id="s-fill" aria-live="polite"></div>`));
-  sh.addEventListener('click', e => { const b = e.target.closest('[data-do="fillsyn"]'); if(b) fillSynopses(b, $('#s-fill', sh)); });
+  const sh = openSheet(sheetT('Completar fichas', `<p class="note">Datos de la edición en español si está traducido; si no, de la original. Lo que escribiste a mano no se toca.</p>
+    <button class="btn primary" type="button" data-do="fillrun"></button><div id="s-fill" aria-live="polite"></div>`), () => fill.listeners.delete(paint));
+  const paint = () => {
+    const btn = $('[data-do="fillrun"]', sh), out = $('#s-fill', sh); if(!btn) return; const n = fillCount();
+    btn.textContent = fill.run ? (fill.run.stop ? 'Parando…' : 'Parar') : n ? `Completar ${n} ${n === 1 ? 'ficha' : 'fichas'}` : 'Todo completo'; btn.disabled = !fill.run && !n;
+    const changed = fill.results.filter(r => r.ch.length), miss = fill.results.filter(r => !r.found), offers = fill.results.filter(r => r.offer && bookOf(r.id));
+    out.innerHTML = (fill.run ? `<p class="note">${fill.done} de ${fill.total}${fill.cur ? ': ' + esc(fill.cur) : ''}…</p>` : fill.results.length ? `<p class="note">${changed.length} ${changed.length === 1 ? 'ficha completada' : 'fichas completadas'} de ${fill.results.length} revisadas.</p>` : '')
+      + (changed.length ? `<ul class="fill-list">${changed.map(r => `<li><b>${esc(r.title)}</b>: ${esc(r.ch.join(', '))}</li>`).join('')}</ul>` : '')
+      + (miss.length && !fill.run ? `<p class="note">Sin encontrar: ${miss.map(r => esc(r.title)).join(', ')}. Revisa el título y la autoría en su ficha.</p>` : '')
+      + (offers.length && !fill.run ? `<div class="sec"><span class="lbl">En español también hay</span><div class="row-opts">${offers.map(r => `<button class="opt" type="button" role="checkbox" data-offer="${r.id}" aria-checked="false" style="align-items:flex-start"><span class="dot" style="margin-top:2px;border-radius:4px"></span><span>${[r.offer.esTitle ? `Título «${esc(r.offer.esTitle)}» en vez de «${esc(bookOf(r.id).title)}»` : '', r.offer.coverEs ? `portada española${r.offer.esTitle ? '' : ' de «' + esc(bookOf(r.id).title) + '»'}` : ''].filter(Boolean).join(' y ')}</span></button>`).join('')}</div>
+        <button class="btn" type="button" data-do="offerapply" style="align-self:flex-start">Usar lo marcado</button></div>` : '');
+  };
+  fill.listeners.add(paint); paint();
+  sh.addEventListener('click', e => {
+    if(e.target.closest('[data-do="fillrun"]')){ runFill(); return; }
+    const o = e.target.closest('[data-offer]'); if(o){ o.setAttribute('aria-checked', o.getAttribute('aria-checked') !== 'true'); return; }
+    if(e.target.closest('[data-do="offerapply"]')){ let n = 0;
+      $$('[data-offer][aria-checked="true"]', sh).forEach(x => { const r = fill.results.find(y => y.id === x.dataset.offer), b = bookOf(x.dataset.offer); if(!r || !b) return;
+        if(r.offer.esTitle){ b.origTitle = b.origTitle || b.title; b.title = r.offer.esTitle; delete b.esTitle; }
+        if(r.offer.coverEs){ b.cover2 = b.cover || b.cover2; b.cover = r.offer.coverEs; delete b.coverPal; delete b.coverPalSrc; }
+        r.offer = null; n++; });
+      if(n){ save(); renderAll(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 500); toast(`${n} ${n === 1 ? 'libro cambiado' : 'libros cambiados'}`); } paint(); }
+  });
 }

@@ -13,7 +13,6 @@ async function editions(id){
 module.exports = async (req, res) => {
   const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag');
   res.setHeader('content-type', 'application/json; charset=utf-8'); res.setHeader('access-control-allow-origin', '*');
-  if(p.get('schema')){ try{ const d = await gql(`{ __type(name: "${p.get('schema').replace(/\W/g, '')}") { fields { name } } }`); return res.end(JSON.stringify(d)); }catch(e){ return res.end(JSON.stringify({ error:e.message })); } }
   if(!t){ res.statusCode = 400; return res.end('{"error":"t"}'); }
   try{
     const book = await findBook(t, a);
@@ -28,7 +27,10 @@ module.exports = async (req, res) => {
       out[l].push({ title:e.title || '', isbn, publisher:(e.publisher || {}).name || '', pages:e.pages || 0,
         year:((e.release_date || '').match(/\d{4}/) || [''])[0], cover:(e.image || {}).url || '', format:e.edition_format || '', users:e.users_count || 0 });
     });
-    const result = { book:{ id:+book.id, title:book.title, slug:book.slug || '', year:book.release_year || null }, es:out.es.slice(0, 12), en:out.en.slice(0, 12) };
+    const fs = book.featured_series || {}, ser = fs.series || {};
+    const result = { book:{ id:+book.id, title:book.title, slug:book.slug || '', year:book.release_year || null, pages:book.pages || 0, desc:book.description || '', cover:(book.image || {}).url || '',
+      series:ser.name ? { name:ser.name, n:fs.position || '', total:ser.primary_books_count || '' } : null, authors:(book.author_names || []).slice(0, 3) },
+      es:out.es.slice(0, 12), en:out.en.slice(0, 12) };
     res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
     res.end(JSON.stringify(diag ? { ...result, raw:{ book, editions:list } } : result));
   }catch(e){ res.statusCode = 502; res.end(JSON.stringify({ error:e.message })); }

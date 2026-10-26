@@ -94,18 +94,11 @@ async function fetchSeriesData(name, title, author){
 }
 /* Libros añadidos de golpe (tomos de una saga): se completan en segundo plano con portada, páginas, año, sinopsis e idiomas */
 async function completeNewBooks(ids){
+  // Lo mismo que «Completar fichas» (edición española si está traducido); si el tomo de partida usa el título en español, este también
   for(const id of ids){
-    const b0 = bookOf(id); if(!b0) continue;
     try{
-      const res = await searchBooks(b0.title + ' ' + lastName(b0.author), new AbortController().signal);
-      const m = bestMatch((res && res.items) || [], [b0.title], b0.author); if(!m.item || !m.sure) continue;
-      const it = await enrichBook(m.item, new AbortController().signal), b = bookOf(id); if(!b) continue;
-      if(!b.cover && (it.covers || []).length){ b.cover = it.covers[0]; b.cover2 = it.covers[1] || ''; }
-      if(!b.pages && it.pages) b.pages = it.pages; if(!b.year && it.year) b.year = it.year;
-      if(!(b.synopsis || '').trim() && it.desc) b.synopsis = it.desc;
-      b.langs = [...new Set([...(b.langs || []), ...detectLangs(it)])];
-      if(it.eds && it.eds.length) b.eds = it.eds.map(({ synopsis, ...e }) => e); if(it.edsEn && it.edsEn.length) b.edsEn = it.edsEn;
-      if(it.esTitle && norm(it.esTitle) !== norm(b.title)){ if(b.useEs){ b.origTitle = b.title; b.title = it.esTitle; } else b.esTitle = it.esTitle; }
+      await fillOne(id, new AbortController().signal); const b = bookOf(id); if(!b) continue;
+      if(b.useEs && b.esTitle && !b.origTitle){ b.origTitle = b.title; b.title = b.esTitle; delete b.esTitle; }
       delete b.useEs; save(); renderAll();
     }catch(e){}
   }

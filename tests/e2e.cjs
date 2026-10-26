@@ -27,7 +27,7 @@ function fakeOwnApi(route){
   if(u.pathname === '/api/buscar'){ if(googleDown) return route.fulfill({ status:429, contentType:'application/json', body:'{}' });
     return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(GB(u.searchParams.get('langRestrict') === 'es')) }); }
   if(u.pathname === '/api/hardcover') return googleDown ? route.fulfill({ status:503, body:'{}' }) : route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[{ title:'Quicksilver', author:'Callie Hart', year:2024, pages:610, cover:'',
-    desc:'Fae romantasy.', series:{ name:'Fae & Alchemy', n:1, total:3 }, genres:['Fantasy', 'Romance'] }] }) });
+    desc:'Fae romantasy.', series:{ name:'Fae & Alchemy', n:1, total:3 }, genres:['Fantasy', 'Romance'], altTitles:['Quicksilver', 'Mercurio'] }] }) });
   if(u.pathname === '/api/b2d') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:/quicksilver/i.test(u.searchParams.get('q')) ? [
     { title:'Quicksilver', full:'Quicksilver by Callie Hart - Special Edition Sprayed Edges', price:'£22.00', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/qs', isbn:'', fmt:'especial', author:'Callie Hart' },
     { title:'Quicksilver', full:'Quicksilver by Callie Hart', price:'£9.99', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/9781399741',  isbn:'', fmt:'', author:'Callie Hart' }] : [] }) });
@@ -36,6 +36,10 @@ function fakeOwnApi(route){
     { id:'h1', src:'hardcover', store:'Hardcover', title:'The Wicked King', lang:'en', seconds:36000, narrators:['Caitlin Kelly'], drama:true }] }) }));
   if(u.pathname === '/api/serie') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ name:'The Folk of the Air', total:4, url:'https://hardcover.app/series/x',
     books:[{ n:1, main:true, title:'The Cruel Prince', year:2018 }, { n:2, main:true, title:'The Wicked King', year:2019 }, { n:3, main:true, title:'The Queen of Nothing', year:2019 }, { n:3.5, main:false, title:'How the King of Elfhame Learned to Hate Stories', year:2020 }, { n:4, main:true, title:'The Stolen Heir', year:2023, pages:350 }] }) });
+  if(u.pathname === '/api/ediciones'){ const t = u.searchParams.get('t') || '';
+    if(!/wicked|rey malvado/i.test(t)) return route.fulfill({ status:404, contentType:'application/json', body:'{"error":"libro no encontrado"}' });
+    return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ book:{ id:7, title:'The Wicked King', year:2019, pages:336, desc:'English blurb from Hardcover.', cover:'', series:{ name:'The Folk of the Air', n:2, total:3 } },
+      es:[{ title:'El rey malvado', isbn:'9788417390624', publisher:'Hidra', pages:352, year:'2019', cover:'https://example.com/rey.jpg', format:'Hardcover', users:9 }], en:[{ title:'The Wicked King', isbn:'9781471407352', publisher:'Hot Key', pages:336, year:'2019', users:90 }] }) }); }
   if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
   return route.fulfill({ status:404, body:'' });
 }
@@ -452,12 +456,35 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(r.t === 'El rey malvado' && /The Wicked King/.test(r.n), JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
-  await test('Estanterías → Completar fichas: sinopsis que faltan', async () => {
-    await ev(() => { state.books.forEach(b => { if(!b.synopsis) b.synopsis = 'Texto puesto para la prueba en español, con la historia de la que va el libro.'; }); const b = state.books.find(x => x.title === 'El rey malvado'); b.synopsis = ''; save(); });
-    await page.click('#btnFill'); await page.click('[data-do="fillsyn"]');
-    await page.waitForFunction(() => /completada/.test(document.querySelector('#s-fill').textContent), null, { timeout:30000 });
-    const s = await ev(() => state.books.find(x => x.title === 'El rey malvado').synopsis); assert(/Sinopsis oficial/.test(s), s);
+  await test('Completar fichas: aviso solo si hay fichas por completar; datos de la edición española y título español a elegir', async () => {
+    await ev(() => { state.books.forEach(b => { if(!b.ejemplo) b.filled = Date.now(); }); renderAll(); });
+    assert(await page.locator('#fillnote').isHidden(), 'el aviso sale sin nada que completar');
+    assert(!(await page.locator('#btnFill').count()), 'sigue el botón fijo de la barra');
+    assert(/Estantería/.test(await page.locator('#btnNewUnit').innerText()), 'el + de estantería sin texto');
+    const id = await ev(() => { const b = { ...newDraft(null).draft, title:'The Wicked King', author:'Holly Black', synopsis:'', pages:'', year:'', langs:['en'], cover:'' }; state.books.push(b); save(); renderAll(); return b.id; });
+    await page.waitForSelector('#fillnote:not([hidden])'); assert(/1 ficha por completar/.test(await page.locator('#fillnote').innerText()), 'contador');
+    await page.click('#fillnote'); await page.click('[data-do="fillrun"]');
+    await page.waitForSelector('[data-offer]', { timeout:30000 });
+    const b = await ev(id => { const b = bookOf(id); return { syn:b.synopsis, langs:b.langs.sort().join(), pages:b.pages, year:b.year, ser:b.series && b.series.name, filled:!!b.filled }; }, id);
+    assert(/Sinopsis oficial/.test(b.syn) && b.langs === 'en,es' && b.pages === 352 && b.year == 2019 && b.ser === 'The Folk of the Air' && b.filled, JSON.stringify(b));
+    assert(/páginas de la edición española/.test(await page.locator('#s-fill').innerText()), 'resumen de cambios');
+    await page.click('[data-offer]'); await page.click('[data-do="offerapply"]');
+    const t = await ev(id => ({ t:bookOf(id).title, o:bookOf(id).origTitle, c:bookOf(id).cover }), id);
+    assert(t.t === 'El rey malvado' && t.o === 'The Wicked King' && t.c === 'https://example.com/rey.jpg', JSON.stringify(t));
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    assert(await page.locator('#fillnote').isHidden(), 'el aviso sigue después de completar');
+    await ev(id => { state.books = state.books.filter(b => b.id !== id); save(); renderAll(); }, id);
+  });
+  await test('buscar por el título en español encuentra el libro aunque las fuentes lo tengan en inglés', async () => {
+    await addSheet(); await page.fill('#addInput', 'Mercurio'); await page.waitForFunction(() => [...document.querySelectorAll('#suggest .sg-t')].some(x => x.textContent === 'Mercurio'), null, { timeout:8000 });
+    const i = await ev(() => [...document.querySelectorAll('#suggest [data-pick]')].findIndex(x => x.querySelector('.sg-t').textContent === 'Mercurio'));
+    await page.click(`#suggest [data-pick="${i}"]`); await page.waitForSelector('#f-title');
+    const r = await ev(() => { const d = [...document.querySelectorAll('.sheet')].pop().draft; return { t:document.querySelector('#f-title').value, o:d.origTitle }; });
+    assert(r.t === 'Mercurio' && r.o === 'Quicksilver', JSON.stringify(r));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('«Nicci French» y «french nicci» son el mismo libro al juntar fuentes', async () => {
+    assert(await ev(() => bookKey({ title:'Blue Monday', author:'Nicci French' }) === bookKey({ title:'blue monday', author:'french nicci' })), 'claves distintas');
   });
   await test('si el móvil no deja guardar, se explica con datos y se puede reintentar', async () => {
     await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'prueba guardado'; save(); });

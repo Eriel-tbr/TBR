@@ -113,6 +113,7 @@ function renderHeader(){
     const n = state.books.filter(b => matches(b)).length;
     fb.hidden = false; fb.innerHTML = `<span>${n} ${n === 1 ? 'libro' : 'libros'} · ${esc(parts.join(' · '))}</span><button class="btn sm" type="button" data-act="clearFilters">Quitar</button>`;
   } else fb.hidden = true;
+  if(typeof renderFillNote === 'function') renderFillNote();
   const ban = $('#banner');
   if(state.books.some(b => b.ejemplo)){ ban.hidden = false; ban.innerHTML = `<span>Los libros de ejemplo te muestran cómo queda. Cuando quieras, bórralos.</span><button class="btn sm" type="button" data-act="clearExamples">Borrar ejemplos</button>`; }
   else ban.hidden = true;

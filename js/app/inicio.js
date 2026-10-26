@@ -17,7 +17,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { const p = e.target.closest && e.target.closest('.crown-hit'); if(p && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); p.click(); } });
 $('#btnFilter').addEventListener('click', openFilters);
-$('#btnFill').addEventListener('click', openFill);
+$('#fillnote').addEventListener('click', openFill);
 $('#btnRandom').addEventListener('click', openRandom);
 $('#btnSettings').addEventListener('click', openSettings);
 $('#navAdd').addEventListener('click', openAdd);

@@ -13,7 +13,7 @@ function drawResults(res, done){
   if(!results.length){ if(done) suggestMsg(res.failed ? 'No se pudo consultar internet. Puedes añadirlo a mano.' : 'Sin resultados.', true); return; }
   $('#suggest').hidden = false;
   $('#suggest').innerHTML = results.map((r, i) => `<li><button class="sg" type="button" data-pick="${i}">${r.covers[0] ? `<img class="sg-cover" src="${esc(r.covers[0])}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<span class="sg-cover"></span>'}
-      <span><span class="sg-t">${esc(r.title)}</span><br><span class="sg-a">${esc(r.author || 'Autor desconocido')}${r.year ? ' · ' + r.year : ''}${r.pages ? ' · ' + r.pages + ' págs.' : ''}${r.lang === 'es' ? ' · ES' : r.lang === 'en' ? ' · EN' : ''}</span></span></button></li>`).join('')
+      <span><span class="sg-t">${esc(r.esTitleQ || r.title)}</span>${r.esTitleQ ? ` <span class="sg-a">(${esc(r.title)})</span>` : ''}<br><span class="sg-a">${esc(r.author || 'Autor desconocido')}${r.year ? ' · ' + r.year : ''}${r.pages ? ' · ' + r.pages + ' págs.' : ''}${r.lang === 'es' ? ' · ES' : r.lang === 'en' ? ' · EN' : ''}</span></span></button></li>`).join('')
     + (done ? '' : '<li class="sg-note">Buscando más…</li>')
     + (done && res.googleDown ? '<li class="sg-note">Google Books y Hardcover no han respondido: solo hay resultados de Open Library.</li>' : '') + manualRow();
 }

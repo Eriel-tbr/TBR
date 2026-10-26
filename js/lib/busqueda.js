@@ -33,7 +33,8 @@ function cleanSynopsis(s){
 function bestMatch(items, titles, author){
   const nts = titles.filter(Boolean).map(norm), na = lastName(author) && norm(lastName(author));
   const tScore = x => Math.max(...nts.map(nt => norm(x.title) === nt ? 3 : norm(x.title).includes(nt) || nt.includes(norm(x.title)) ? 2 : 0));
-  const score = x => tScore(x) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0);
+  const score = x => Math.max(tScore(x), altScore(x)) + (na && norm(x.author || '').includes(na) ? 2 : 0) + (x.covers && x.covers.length ? .5 : 0) + (x.desc ? .5 : 0);
+  const altScore = x => x.esTitleQ ? Math.max(...nts.map(nt => norm(x.esTitleQ) === nt ? 3 : 0)) : 0;
   const ranked = [...(items || [])].sort((a, b) => score(b) - score(a));
   const sure = !!ranked[0] && score(ranked[0]) >= 4.5 && !(ranked[1] && score(ranked[1]) >= score(ranked[0]) && bookKey(ranked[1]) !== bookKey(ranked[0]));
   return { ranked, item:ranked[0] || null, sure };
@@ -65,7 +66,7 @@ async function searchHardcover(q, signal){
   const r = await fetchTimeout(API_BASE + 'api/hardcover?q=' + encodeURIComponent(q), signal, 6000); if(!r.ok) throw new Error('Hardcover ' + r.status);
   const { items = [] } = await r.json();
   return items.map(d => ({ src:'h', title:d.title, author:d.author, year:d.year, pages:d.pages, lang:'', covers:d.cover ? [d.cover] : [], subjects:d.genres || [],
-    desc:d.desc || '', descLang:d.desc ? 'en' : '', series:d.series && d.series.name ? d.series : null, seriesN:d.series ? +d.series.n || 0 : 0, users:d.users || 0 }));
+    desc:d.desc || '', descLang:d.desc ? 'en' : '', series:d.series && d.series.name ? d.series : null, seriesN:d.series ? +d.series.n || 0 : 0, users:d.users || 0, altTitles:d.altTitles || [] }));
 }
 async function searchOpenLib(q, signal){
   const u = 'https://openlibrary.org/search.json?limit=8&fields=key,title,author_name,first_publish_year,number_of_pages_median,language,cover_i,subject&q=' + encodeURIComponent(q);
@@ -74,14 +75,20 @@ async function searchOpenLib(q, signal){
     pages:d.number_of_pages_median || 0, olLangs:d.language || [], olKey:d.key || '', covers:d.cover_i ? ['https://covers.openlibrary.org/b/id/' + d.cover_i + '-L.jpg'] : [],
     subjects:(d.subject || []).slice(0, 25) })).filter(x => x.title);
 }
-const bookKey = x => norm(x.title).replace(/[^a-z0-9]/g, '').slice(0, 24) + '|' + norm((x.author || '').split(',')[0]).split(' ').pop();
+/* Clave de un libro: título + la palabra más larga del primer autor/a (así «Nicci French» y «french nicci», de Open Library, son el mismo libro) */
+const authKey = a => norm(String(a || '').split(',')[0]).replace(/[^a-z ]/g, ' ').split(/\s+/).filter(w => w.length > 2).sort((x, y) => y.length - x.length || x.localeCompare(y))[0] || '';
+const bookKey = x => norm(x.title).replace(/[^a-z0-9]/g, '').slice(0, 24) + '|' + authKey(x.author);
 async function searchBooks(q, signal, onPartial){
   // Tres búsquedas a la vez: Google (general y solo ediciones en español) y Open Library.
   // Se enseñan resultados en cuanto llega algo; Open Library (más lenta) se espera como mucho 5 s.
-  const nq = norm(q), score = x => (norm(x.title).includes(nq) || nq.includes(norm(x.title)) ? 0 : 1);
+  const nq = norm(q), hit = t => { const n = norm(t); return n && (n.includes(nq) || nq.includes(n)); };
+  // Buscado por su título traducido (p. ej. «Una ventana a la oscuridad»): Hardcover lo devuelve con el original y el traducido entre sus títulos alternativos
+  const altOf = x => !hit(x.title) && (x.altTitles || []).find(t => hit(t) && norm(t).length >= Math.min(nq.length, 6));
+  const score = x => (hit(x.title) || x.esTitleQ ? 0 : 1);
   const got = { g:null, ge:null, h:null, o:null }, fail = { g:false, ge:false, h:false, o:false };
   const merge = () => {
     const gi = [...(got.g || []), ...(got.ge || [])].sort((a, b) => score(a) - score(b)), map = new Map();
+    (got.h || []).forEach(x => { const a = altOf(x); if(a) x.esTitleQ = a; });
     for(const x of [...gi, ...(got.h || []).sort((a, b) => score(a) - score(b)), ...(got.o || [])]){
       const k = bookKey(x), cur = map.get(k);
       if(!cur){ map.set(k, { ...x }); continue; }
@@ -89,7 +96,7 @@ async function searchBooks(q, signal, onPartial){
       cur.subjects = [...new Set([...(cur.subjects || []), ...(x.subjects || [])])];
       cur.pages = cur.pages || x.pages; cur.year = x.year || cur.year;
       cur.desc = cur.desc || x.desc; cur.descLang = cur.descLang || x.descLang; cur.lang = cur.lang || x.lang;
-      cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey; cur.isbn = cur.isbn || x.isbn; cur.series = cur.series || x.series;
+      cur.olLangs = cur.olLangs || x.olLangs; cur.seriesN = cur.seriesN || x.seriesN; cur.olKey = cur.olKey || x.olKey; cur.isbn = cur.isbn || x.isbn; cur.series = cur.series || x.series; cur.esTitleQ = cur.esTitleQ || x.esTitleQ; cur.altTitles = cur.altTitles || x.altTitles;
     }
     return { items:[...map.values()].sort((a, b) => score(a) - score(b)).slice(0, 12), failed:fail.g && fail.ge && fail.h && fail.o, googleDown:fail.g && fail.ge && fail.h };
   };
@@ -122,7 +129,19 @@ async function enrichBook(item, signal){
     }).catch(() => {}));
   }
   tasks.push(wikidataInfo(item.title, author, signal).then(w => { if(w) out.wd = w; }).catch(() => {}));
+  // Ediciones de Hardcover por idioma: la manera fiable de saber si está traducido, cómo se llama en español y su ISBN
+  tasks.push(hardcoverEditions(item.title, author, signal).then(h => { if(h) out.hc = h; }).catch(() => {}));
   await Promise.all(tasks);
+  const hc = out.hc;
+  if(hc){
+    if(hc.es.length){ out.esFound = true; const best = bestEsEdition(hc.es); out.hcEsTitle = best.title; out.pagesEs = best.pages || 0; out.coverEs = best.cover || '';
+      rankEsIsbns(hc.es).forEach(i => isbns.add(i)); }
+    if(hc.en.length) out.enFound = true;
+    if(!out.desc && hc.book.desc){ out.desc = hc.book.desc; out.descLang = textLang(hc.book.desc) || 'en'; }
+    if(!out.series && hc.book.series) out.series = hc.book.series;
+    out.pages = out.pages || hc.book.pages || 0; out.year = out.year || hc.book.year || null;
+    if(hc.book.cover) out.covers = [...new Set([...(out.covers || []), hc.book.cover])];
+  }
   // Con el título en español de Wikidata se busca la edición española (sinopsis e idioma)
   if(out.wd && out.wd.esTitle && (out.descLang !== 'es' || !out.esFound)){
     try{
@@ -137,11 +156,12 @@ async function enrichBook(item, signal){
     if(out.olKey) (await Promise.race([olSpanishIsbns(out.olKey, signal).catch(() => []), new Promise(r => setTimeout(() => r([]), 4000))])).forEach(i => isbns.add(i));
     if(isbns.size){
       const eds = await spanishEditions([...isbns], author, signal);
+      if(hc && hc.es.length) hcEds(hc.es).forEach(e => { if(!eds.some(x => x.isbn === e.isbn)) eds.push(e); }); // y las demás ediciones españolas que conoce Hardcover
       if(eds.length){
         out.eds = eds; out.esFound = true;
         const best = [...eds].filter(e => e.synopsis && e.synopsis.length > 60).sort((a, b) => (a.fmt === 'especial') - (b.fmt === 'especial') || b.synopsis.length - a.synopsis.length)[0];
         if(best){ out.desc = best.synopsis; out.descLang = 'es'; out.descSrc = best.publisher; }
-        out.pages = out.pages || (eds.find(e => e.pages) || {}).pages || 0;
+        out.pages = out.pages || (eds.find(e => e.pages) || {}).pages || 0; out.pagesEs = out.pagesEs || (eds.find(e => e.pages && e.fmt !== 'especial') || {}).pages || 0;
         if(!(out.covers || []).length) out.covers = eds.map(e => e.cover).filter(Boolean).slice(0, 2);
       }
     }
@@ -153,8 +173,10 @@ async function enrichBook(item, signal){
     if(eds.length){ out.edsEn = eds; out.enFound = true; }
   }catch(e){}
   // Título en español, si el libro está traducido y se llama distinto (Wikidata o la edición española encontrada)
-  const cleanT = s => { s = String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); return s && s === s.toUpperCase() ? s.charAt(0) + s.slice(1).toLowerCase() : s; };
-  const esT = cleanT((out.wd && out.wd.esTitle) || ((out.eds || []).find(e => e.title) || {}).title);
+  // Sin lo que añaden las editoriales: «(Saga X 1)», «(EDICIÓN ESPECIAL)», mayúsculas, o un subtítulo detrás del título original («Babel: Una historia arcana»)
+  const cleanT = s => { s = String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); if(s && s === s.toUpperCase()) s = s.charAt(0) + s.slice(1).toLowerCase();
+    const nt = norm(item.title), m = s.match(/^(.+?)\s*[:.]\s+\S/); return m && norm(m[1]) === nt ? m[1] : s; };
+  const esT = cleanT(out.hcEsTitle || ((out.eds || []).find(e => e.title && e.synopsis) || {}).title || (out.wd && out.wd.esTitle) || ((out.eds || []).find(e => e.title) || {}).title);
   if(esT && norm(esT) !== norm(item.title) && (out.esFound || (out.wd && out.wd.es))) out.esTitle = esT;
   out.desc = cleanSynopsis(out.desc); if(out.desc && textLang(out.desc) === 'en') out.descLang = 'en';
   return out;
@@ -178,7 +200,7 @@ async function olSpanishIsbns(key, signal){
   return (j.entries || []).filter(e => (e.languages || []).some(l => l.key === '/languages/spa')).flatMap(e => e.isbn_13 || []).slice(0, 6);
 }
 async function spanishEditions(isbns, author, signal){
-  const r = await fetch(API_BASE + 'api/edicion?isbn=' + spainFirst(isbns).slice(0, 6).join(','), { signal }); if(!r.ok) return [];
+  const r = await fetch(API_BASE + 'api/edicion?stop=1&isbn=' + spainFirst(isbns).slice(0, 4).join(','), { signal }); if(!r.ok) return [];
   const last = norm(author).split(' ').pop();
   const { eds = [] } = await r.json();
   let ok = eds.filter(e => e.ok && /castellano|espa/i.test(e.lang || 'castellano') && (!last || !e.author || norm(e.author).includes(last)));
@@ -187,6 +209,21 @@ async function spanishEditions(isbns, author, signal){
   return ok
     .map(e => ({ isbn:e.isbn, title:e.title, publisher:e.publisher, binding:e.binding, fmt:e.fmt, year:e.year, pages:e.pages, url:e.url, synopsis:e.synopsis, cover:e.cover || '' }));
 }
+/* Ediciones de un libro en Hardcover, separadas en español e inglés (api/ediciones). null si no lo encuentra */
+async function hardcoverEditions(title, author, signal){
+  const r = await fetchTimeout(API_BASE + `api/ediciones?t=${encodeURIComponent(String(title || '').slice(0, 200))}&a=${encodeURIComponent(author || '')}`, signal, 9000);
+  if(!r.ok) return null; const j = await r.json(); return j && j.book ? { book:j.book, es:j.es || [], en:j.en || [] } : null;
+}
+const SPECIAL = /especial|limitad|deluxe|coleccionista|collector/i, spainIsbn = i => /^(97884|97913|84)/.test(i || '');
+/* La edición española de referencia: de España, no especial, la que más gente tiene */
+function bestEsEdition(list){
+  const pool = list.filter(e => spainIsbn(e.isbn)).length ? list.filter(e => spainIsbn(e.isbn)) : list;
+  return [...pool].sort((a, b) => SPECIAL.test(a.title) - SPECIAL.test(b.title) || !!b.publisher - !!a.publisher || (b.users || 0) - (a.users || 0))[0] || {};
+}
+/* ISBN españoles para pedir su ficha (sinopsis de la editorial): primero los de España y los más leídos */
+const rankEsIsbns = list => [...list].filter(e => e.isbn).sort((a, b) => spainIsbn(b.isbn) - spainIsbn(a.isbn) || SPECIAL.test(a.title) - SPECIAL.test(b.title) || (b.users || 0) - (a.users || 0)).map(e => e.isbn);
+const HC_FMT = { hardcover:'dura', paperback:'blanda', 'mass market paperback':'bolsillo', 'trade paperback':'blanda' };
+const hcEds = list => list.filter(e => e.isbn).map(e => ({ isbn:e.isbn, title:e.title, publisher:e.publisher, binding:e.format, fmt:SPECIAL.test(e.title) ? 'especial' : HC_FMT[norm(e.format)] || '', year:e.year, pages:e.pages, url:'', cover:e.cover || '' }));
 /* Wikidata: serie, número dentro de la serie, total y si existe en español o inglés */
 async function wikidataInfo(title, author, signal){
   const api = 'https://www.wikidata.org/w/api.php?format=json&origin=*&';

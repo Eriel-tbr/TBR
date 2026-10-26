@@ -8,11 +8,13 @@ function lastLoc(){
 }
 function newDraft(item){
   const it = item || {}, sugTags = suggestTags(it), sug = suggestShelf(state, sugTags), loc = sug || lastLoc();
-  const ps = parseSeries(it.title); let title = it.title || '', series = null, serNote = '';
+  const ps = parseSeries(it.title); let title = it.title || '', series = null, serNote = '', origTitle = '';
   if(ps){ title = title.replace(/\s*\([^()]*\)\s*$/, '').trim() || title; series = { name:ps.name, n:ps.n, total:'' }; serNote = 'detectada en el título'; }
   else if(it.series && it.series.name){ series = { name:it.series.name, n:it.series.n || '', total:it.series.total || '' }; serNote = 'según Hardcover'; }
   else if(it.seriesN){ const same = state.books.find(b => b.series && b.series.name && lastName(b.author) && lastName(b.author) === lastName(it.author)); if(same){ series = { name:same.series.name, n:+it.seriesN, total:same.series.total || '' }; serNote = 'según Google Books y tus otros libros de esta autora o autor'; } }
-  return { serNote, draft:{ series, spine:null, id:uid(), title, author:it.author || '', synopsis:it.desc || '', pages:it.pages || '', year:it.year || '', langs:detectLangs(it), formats:{}, tags:[], notes:'',
+  // Buscado por su título en español: se queda ese título y el original se guarda para buscar en fuentes en inglés
+  if(it.esTitleQ && norm(it.esTitleQ) !== norm(title)){ origTitle = title; title = it.esTitleQ; }
+  return { serNote, draft:{ series, spine:null, id:uid(), title, ...(origTitle ? { origTitle } : {}), author:it.author || '', synopsis:it.desc || '', pages:it.pages || '', year:it.year || '', langs:detectLangs(it), formats:{}, tags:[], notes:'',
     status:'pendiente', rating:0, next:false, cover:(it.covers || [])[0] || '', cover2:(it.covers || [])[1] || '', coverData:'', unitId:loc.unitId, shelfId:loc.shelfId, addedAt:Date.now() }, sugTags, sugged:!!sug };
 }
 function openBookForm({ book, item }){
