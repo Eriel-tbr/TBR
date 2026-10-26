@@ -1,5 +1,5 @@
 'use strict';
-/* Mi TBR — los 15 diseños de lomo (fase 5, 27/10/2026).
+/* Mi TBR — los 15 diseños de lomo (fase 5, 26/10/2026).
    Reglas de todos:
    - El título manda: tiene su zona propia, lo más alta posible, sin adornos encima; letras con contraste ≥ 4 (bestInk).
    - Cada color que se ve sale de una parte editable (o de un tono más claro u oscuro de ella): no hay colores fijos,

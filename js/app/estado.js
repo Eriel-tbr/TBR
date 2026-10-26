@@ -70,7 +70,7 @@ function migrate(s){
     if(s.settings.decor === false) s.units.forEach(u => { u.decorMode = 'none'; });
     delete s.settings.decor; delete s.settings.spineFromCover; s.settings.migDecor = 1;
   }
-  if(!s.settings.migSpine2){ // lomos nuevos (27/10/2026): los estilos antiguos pasan a su parecido y los colores elegidos, a las partes nuevas
+  if(!s.settings.migSpine2){ // lomos nuevos (26/10/2026): los estilos antiguos pasan a su parecido y los colores elegidos, a las partes nuevas
     const MAP = { jaspeado:{ accent:'base', base:'alt', m1:'v1', m2:'v2', foil:'foil' }, escamas:{ base:'base', accent:'accent', foil:'foil' }, nervios:{ base:'base', accent:'alt', foil:'foil' },
       marco:{ base:'base', foil:'foil', orn:'orn' }, grimorio:{ base:'base', foil:'foil', gem:'accent' }, acuarela:{ base:'base', accent:'accent', accent2:'alt' }, holo:{ c1:'c1', c2:'c2', c3:'c3' },
       cristal:{ c1:'c1', c2:'c2', c3:'c3' }, estrellado:{ base:'base', accent:'alt', foil:'foil' }, ilustrado:{ base:'base', sky2:'alt', moon:'foil' }, enredadera:{ base:'base', leaf:'leaf', bloom:'accent' },
