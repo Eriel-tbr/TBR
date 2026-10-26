@@ -353,3 +353,28 @@ a.chip{color:inherit;text-decoration:none}
 .badge.own-tengo{background:var(--acc);color:var(--acc-fg)}
 .badge.own-comprar{border:1px dashed var(--acc)}
 .datein{height:40px;padding:6px 10px;max-width:190px}
+/* ---------- Pestaña Lomo (fase 5): vista previa fija, miniaturas de diseños, partes y editor de color ---------- */
+.lomo-top{position:sticky;top:-4px;z-index:6;display:flex;gap:14px;align-items:flex-end;background:var(--surface);padding:4px 0 10px;margin-top:-4px;border-bottom:1px solid var(--line)}
+.lomo-top .sp-prev{width:96px;height:196px}
+.lomo-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.lomo-side b{font-family:var(--font-display);font-size:1.15rem;line-height:1.15}
+.sp-grid{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.sp-th{flex:none;scroll-snap-align:start;width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px 6px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.sp-th[aria-checked="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
+.sp-mini{height:112px;width:58px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.sp-mini .it{height:auto;transform:scale(.68);transform-origin:50% 100%}
+.sp-mini .bk{margin:0}
+.sp-thl{font-size:.68rem;font-weight:700;line-height:1.15;text-align:center;color:var(--fg)}
+.sp-parts{display:flex;flex-wrap:wrap;gap:6px}
+.sp-part{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:4px 10px 4px 5px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.sp-part i{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.sp-part span{font-weight:700;font-size:.86rem}
+.sp-part small{color:var(--muted);font-size:.72rem}
+.sp-part[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
+.ce{display:flex;flex-direction:column;gap:12px;margin-top:10px;padding:12px;border-radius:14px;background:var(--surface2)}
+.ce-head{display:flex;align-items:center;gap:10px}
+.ce-head b{font-size:.98rem}.ce-head small{color:var(--muted);font-size:.78rem;flex:1}
+.ce-sw{width:34px;height:34px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);flex:none}
+.ce-cover{display:flex;gap:12px;align-items:flex-start}
+.ce-cover canvas{flex:none;width:96px;height:auto;border-radius:4px;box-shadow:0 4px 10px rgba(0,0,0,.3);cursor:crosshair;touch-action:manipulation}
+.ce .sws{gap:6px}.ce .sw{width:30px;height:30px;border-radius:8px}

@@ -23,7 +23,7 @@ function openBookForm({ book, item }){
   if(isNew){ const n = newDraft(item); d = n.draft; sugTags = n.sugTags; sugged = n.sugged; serNote = n.serNote; autoSyn = d.synopsis; } else d = JSON.parse(JSON.stringify(book));
   d.series = d.series || null; d.spine = d.spine || null;
   let serStyle = d.series && d.series.name ? { ...((state.seriesStyle || {})[norm(d.series.name)] || {}) } : {};
-  let coverTrios = null, coverTriosSrc = null, lastArt = {};
+  let coverTrios = null, coverTriosSrc = null, lastArt = {}, selPart = ''; // selPart: parte del lomo que se está coloreando
   const shelfOpts = uId => (unitOf(uId) || state.units[0]).shelves.map(s => [s.id, s.name]);
   // Pestañas: Datos · Serie · Lomo · Dónde va. Lo menos usado, plegado.
   const TABS = [['datos', 'Datos'], ['serie', 'Serie'], ['lomo', 'Lomo'], ['lugar', 'Dónde va']], tab0 = lastTab.libro = 'datos'; // siempre se empieza por Datos
@@ -52,12 +52,14 @@ function openBookForm({ book, item }){
       <div id="f-sernote"></div></div>
     <div class="sec" id="f-vols"></div>
     <div id="f-sermode" class="sermode"></div>`;
+  // Pestaña Lomo: vista previa fija arriba, los diseños como miniaturas de este libro, las partes y su editor de color en el sitio
   const pLomo = `
-    <div class="sp-edit"><div class="sp-prev" id="fsp-prev"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><span class="lbl">Estilo</span><div class="chips" id="fsp-style"></div><div class="chips" id="fsp-scene"></div></div></div>
-    ${fold('Colores de cada parte', '<div id="fsp-parts" class="parts"></div><div class="note" id="fsp-inknote"></div>', true)}
-    ${fold('Combinaciones rápidas', '<span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div><span class="lbl">Paleta de la estantería</span><div class="trios" id="fsp-pal"></div>')}
-    <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>
-    <button class="btn sm" type="button" data-do="spauto" style="align-self:flex-start">Volver a automático</button>`;
+    <div class="lomo-top"><div class="sp-prev" id="fsp-prev"></div><div class="lomo-side"><span class="lbl">Diseño</span><b id="fsp-name"></b><span class="note" id="fsp-sernote"></span>
+      <button class="btn sm" type="button" data-do="spauto">Todo automático</button></div></div>
+    <div class="sec"><span class="lbl">Elige diseño</span><div class="sp-grid" id="fsp-style" role="radiogroup" aria-label="Diseño del lomo"></div></div>
+    <div class="sec"><span class="lbl">Colores</span><div class="sp-parts" id="fsp-parts"></div><div class="ce" id="fsp-editor"></div></div>
+    ${fold('Paletas rápidas', '<span class="lbl">De la portada</span><div class="trios" id="fsp-cover"></div><span class="lbl">De la estantería</span><div class="trios" id="fsp-pal"></div>')}
+    <label class="switch">Ajustar a la estética de la estantería<input type="checkbox" id="fsp-adj"></label>`;
   const pLugar = `
     <div class="sec"><span class="lbl">Dónde va</span>${sugged ? '<div class="note">Sugerida por las etiquetas.</div>' : ''}
       <div class="two">${pickHtml('f-unit', 'Estantería', state.units.map(u => [u.id, u.name]), d.unitId)}
@@ -124,23 +126,35 @@ function openBookForm({ book, item }){
     q('#f-sermode').innerHTML = `<div class="sec"><span class="lbl">Diseño de toda la serie</span><div class="chips">${chipsHtml([['auto', 'Automático'], ['iguales', 'Iguales con número'], ['colores', 'Un color por tomo'], ['luna', 'Fases de la luna'], ['paisaje', 'Paisaje continuo']], mode, 'data-smode')}</div></div>`
       + ((mode === 'paisaje' || (mode === 'auto' && (+d.series.total || 0) >= 4)) ? `<div class="sec"><span class="lbl">Paisaje</span><div class="chips">${chipsHtml([['', 'Automático'], ...Object.entries(SAGA_SCENES)], scene, 'data-sscene')}</div></div>` : '');
   }
-  function drawSpine(){
-    const u = unitNow(), th = themeOf(u), sp = d.spine || {}, ctx = previewCtx();
+  /* opts.thumbs: redibujar las miniaturas de diseños; opts.editor: volver a montar el editor de color (al cambiar de parte o de diseño) */
+  function drawSpine(opts = {}){
+    const { thumbs = true, editor = true } = opts;
+    const u = unitNow(), th = themeOf(u), sp = d.spine || {}, ctx = previewCtx(), bk = { ...d, title:d.title || 'Sin título' };
     const pv = q('#fsp-prev'); pv.className = 'sp-prev ' + th.cls; pv.setAttribute('style', cabinetStyleVars(th));
-    lastArt = spineArt({ ...d, title:d.title || 'Sin título' }, u, th, { series:ctx }); pv.innerHTML = lastArt.html;
-    // En «Iguales con número» y «Un color por tomo» el estilo es de toda la serie (se guarda en seriesStyle.style)
-    const serWide = ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores'), cur = serWide ? (serStyle.style || 'auto') : (sp.style || 'auto');
-    q('#fsp-style').innerHTML = ctx && !serWide ? '<span class="note">El estilo lo marca el diseño de la serie.</span>'
-      : (serWide ? '<span class="note">Se aplica a todos los tomos de la serie.</span>' : '') + chipsHtml([['auto', 'Automático'], ...th.styles.map(s => [s, SPINE_STYLES[s]]), ...Object.keys(SPINE_STYLES).filter(s => !th.styles.includes(s)).map(s => [s, SPINE_STYLES[s]])], cur, 'data-spstyle');
-    q('#fsp-scene').innerHTML = (cur === 'ilustrado' || (cur === 'auto' && pv.querySelector('.bk') && spineArt(d, u, th).style === 'ilustrado')) && !ctx ? chipsHtml([['', 'Ilustración automática'], ...Object.entries(SCENES)], sp.scene || '', 'data-spscene') : '';
+    lastArt = spineArt(bk, u, th, { series:ctx }); pv.innerHTML = lastArt.html;
+    // En «Iguales con número» y «Un color por tomo» el diseño es de toda la serie; en «Fases de la luna» y «Paisaje» lo marca el modo
+    const serWide = ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores'), locked = ctx && !serWide;
+    const cur = serWide ? (styleKey(serStyle.style) || 'auto') : (styleKey(sp.style) || 'auto');
+    q('#fsp-name').textContent = lastArt.style === 'saga' ? 'Paisaje continuo' : SPINE_STYLES[lastArt.style] + (cur === 'auto' ? ' (automático)' : '');
+    q('#fsp-sernote').textContent = locked ? 'Lo marca el modo de la serie (pestaña Serie).' : serWide ? 'Se aplica a todos los tomos de la serie.' : '';
+    if(thumbs){
+      const order = [...th.styles, ...SPINE_ORDER.filter(k => !th.styles.includes(k))];
+      const mini = k => spineArt({ ...bk, spine:{ ...sp, style:k === 'auto' ? '' : k } }, u, th).html;
+      q('#fsp-style').innerHTML = locked ? '' : ['auto', ...order].map(k => `<button class="sp-th" type="button" role="radio" data-spstyle="${k}" aria-checked="${cur === k}"><span class="sp-mini">${mini(k)}</span><span class="sp-thl">${k === 'auto' ? 'Automático' : esc(SPINE_STYLES[k])}</span></button>`).join('');
+    }
+    // Partes: cada una con su color de ahora (elegido o automático); las letras, aparte
+    const own = sp.parts || {}, parts = [...(lastArt.parts || []).filter(p => isHex(p[2])), ['ink', 'Letras', isHex(lastArt.ink) ? lastArt.ink : '#ffffff']];
+    if(!parts.some(p => p[0] === selPart)) selPart = parts[0][0];
+    const manual = k => k === 'ink' ? isHex(sp.ink) : isHex(own[k]);
+    q('#fsp-parts').innerHTML = parts.map(([k, l, c]) => `<button class="sp-part" type="button" data-part="${k}" aria-pressed="${k === selPart}"><i style="background:${c}"></i><span>${esc(l)}</span><small>${manual(k) ? 'elegido' : 'auto'}</small></button>`).join('');
+    if(editor){ const [k, l, c] = parts.find(p => p[0] === selPart), src = d.coverData || d.cover || d.cover2 || '';
+      colorEditor(q('#fsp-editor'), { label:l, color:c, manual:manual(k), cover:src, groups:[['De este lomo', parts.filter(p => p[0] !== k).map(p => p[2])], ['De la estantería', th.pal.flat()]],
+        onPick:(hex, live) => { const s2 = { ...(d.spine || {}) }; if(k === 'ink') s2.ink = hex; else s2.parts = { ...(s2.parts || {}), [k]:hex }; d.spine = s2; drawSpine({ thumbs:!live, editor:false }); },
+        onAuto:() => { const s2 = { ...(d.spine || {}) }; if(k === 'ink') delete s2.ink; else { s2.parts = { ...(s2.parts || {}) }; delete s2.parts[k]; } d.spine = s2; drawSpine(); } }); }
     const trio = (c, sel) => `<button class="trio" type="button" data-trio="${c.join(',')}" aria-pressed="${sel}">${c.map(x => `<i style="background:${x}"></i>`).join('')}</button>`;
     const isSel = c => !!sp.base && sp.base === c[0] && sp.foil === c[1] && sp.accent === c[2];
     q('#fsp-pal').innerHTML = th.pal.map(c => trio(c, isSel(c))).join('');
     q('#fsp-cover').innerHTML = coverTrios === null ? '<span class="note">Analizando la portada…</span>' : coverTrios === false ? `<span class="note">${coverTriosSrc ? 'No se pueden leer los colores de esta portada desde su web. Si subes la portada tú, sí podré sacarlos.' : 'Sin portada todavía.'}</span>` : coverTrios.map(c => trio(c, isSel(c))).join('');
-    // Una fila por parte del diseño actual, con el color que se ve ahora; al tocarla se abre el selector partiendo de ese color
-    const own = sp.parts || {}, row = (f, l, c, manual) => `<div class="part"><button class="part-b" type="button" data-part="${f}" data-col="${c}" data-lbl="${esc(l)}"><i style="background:${c}"></i><span>${esc(l)}</span><small>${manual ? 'elegido' : 'automático'}</small></button>${manual ? `<button class="iconbtn sm" type="button" data-partauto="${f}" aria-label="Volver a automático: ${esc(l)}">${ICON.x}</button>` : ''}</div>`;
-    q('#fsp-parts').innerHTML = (lastArt.parts || []).filter(p => p[2]).map(([f, l, c]) => row(f, l, c, isHex(own[f]))).join('') + row('ink', 'Letras', isHex(lastArt.ink) ? lastArt.ink : '#ffffff', isHex(sp.ink));
-    q('#fsp-inknote').textContent = isHex(sp.ink) ? '' : 'Letras automáticas: siempre con contraste suficiente para leerse.';
     q('#fsp-adj').checked = sp.adjust !== false;
   }
   function refreshCoverTrios(){
@@ -163,7 +177,7 @@ function openBookForm({ book, item }){
   drawCover(); drawLangs(); drawTags(); drawStatus(); drawSeries(); drawSpine(); drawEsTitle(); base = snap();
   sh.addEventListener('change', e => { const v = e.target.dataset && e.target.dataset.vol; if(v){ if(e.target.checked) addVols.add(+v); else addVols.delete(+v); drawVols(); } });
   sh.addEventListener('input', e => {
-    const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine(); }
+    const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine({ editor:false }); }
     const id = e.target.id;
     if(id === 'f-sname' || id === 'f-sn' || id === 'f-st'){ if(id === 'f-sname') volsTyping = true;
       const name = q('#f-sname').value.trim();
@@ -197,10 +211,9 @@ function openBookForm({ book, item }){
     else if(g('[data-do="refill"]')){ refill(g('[data-do="refill"]')); }
     else if(g('[data-do="save"]')){ await doSave(); }
     else if(g('[data-spstyle]')){ const v = g('[data-spstyle]').dataset.spstyle, ctx = previewCtx();
-      if(ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores')){ serStyle.style = v === 'auto' ? '' : v; if(d.spine) delete d.spine.style; drawSpine(); } else setSpine({ style:v }); }
-    else if(g('[data-spscene]')){ setSpine({ scene:g('[data-spscene]').dataset.spscene }); }
+      if(ctx && (ctx.mode === 'iguales' || ctx.mode === 'colores')){ serStyle.style = v === 'auto' ? '' : v; if(d.spine) delete d.spine.style; drawSpine(); } else setSpine({ style:v === 'auto' ? '' : v }); }
     else if(g('[data-trio]')){ const c = g('[data-trio]').dataset.trio.split(','); setSpine({ base:c[0], foil:c[1], accent:c[2], parts:{} }); }
-    else if(g('[data-do="spauto"]')){ d.spine = null; drawSpine(); }
+    else if(g('[data-do="spauto"]')){ d.spine = null; if(previewCtx()) serStyle.style = ''; drawSpine(); }
     else if(g('[data-do="usees"]')){ d.origTitle = d.origTitle || d.title; d.title = d.esTitle; q('#f-title').value = d.title; drawEsTitle(); drawSpine(); drawCover(); }
     else if(g('[data-volall]')){ const k = norm(d.series.name), remote = (seriesCache[k] || {}).data, mine = seriesMembers(state, k);
       const miss = remote ? remote.books.filter(x => x.main && !mine.some(b => b.id !== d.id && +b.series.n === x.n) && x.n !== +d.series.n).map(x => x.n) : [];
@@ -208,12 +221,7 @@ function openBookForm({ book, item }){
     else if(g('[data-do="delbook"]')){ if(confirmTap(g('[data-do="delbook"]'), 'Borrar libro')){ sh.guard = null; await closeSheet(); deleteBook(d.id); } }
     else if(g('[data-do="newshelf"]')){ const s = await newShelfIn(d.unitId); if(s){ d.shelfId = s.id; setPick(q('#f-shelf'), shelfOpts(d.unitId), s.id); } }
     else if(g('[data-do="newunit"]')){ const u = await newUnitQuick(); if(u){ d.unitId = u.id; d.shelfId = u.shelves[0].id; setPick(q('#f-unit'), state.units.map(x => [x.id, x.name]), u.id); setPick(q('#f-shelf'), shelfOpts(u.id), d.shelfId); drawSpine(); } }
-    else if(g('[data-part]')){ const b = g('[data-part]'), f = b.dataset.part, th = themeOf(unitNow());
-      const c = await openColorPicker({ title:b.dataset.lbl, color:b.dataset.col, cover:d.coverData || d.cover || d.cover2 || '', palette:th.pal.flat() });
-      if(!c) return;
-      if(f === 'ink') setSpine({ ink:c }); else setSpine({ parts:{ ...((d.spine || {}).parts || {}), [f]:c } }); }
-    else if(g('[data-partauto]')){ const f = g('[data-partauto]').dataset.partauto, sp = { ...(d.spine || {}) };
-      if(f === 'ink') delete sp.ink; else { sp.parts = { ...(sp.parts || {}) }; delete sp.parts[f]; } d.spine = sp; drawSpine(); }
+    else if(g('[data-part]')){ selPart = g('[data-part]').dataset.part; drawSpine({ thumbs:false }); }
     else if(g('[data-smode]')){ serStyle.mode = g('[data-smode]').dataset.smode; drawSeries(); drawSpine(); }
     else if(g('[data-sscene]')){ serStyle.scene = g('[data-sscene]').dataset.sscene; drawSeries(); drawSpine(); }
     else if(g('[data-serpick]')){ const i = q('#f-sname'); i.value = g('[data-serpick]').dataset.serpick; q('#f-serlist').innerHTML = ''; i.dispatchEvent(new Event('input', { bubbles:true })); q('#f-serlist').innerHTML = ''; }

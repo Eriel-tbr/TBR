@@ -239,7 +239,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   });
   await test('sin campos <input> de texto (la barra de autorrellenar de Chrome) y Enter no salta de línea', async () => {
     await addSheet(); await page.click('#btnAddManual');
-    const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file]):not([type=date])').length); assert(n === 0, n + ' campos input');
+    const n = await ev(() => document.querySelectorAll('input:not([type=color]):not([type=checkbox]):not([type=file]):not([type=date]):not([type=range])').length); assert(n === 0, n + ' campos input');
     await page.fill('#f-title', 'Prueba'); await page.focus('#f-pages'); await page.keyboard.type('12a3'); await page.keyboard.press('Enter');
     const r = await ev(() => ({ t:document.querySelector('#f-title').value, p:document.querySelector('#f-pages').value })); assert(r.t === 'Prueba' && r.p === '123', JSON.stringify(r));
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
@@ -444,26 +444,52 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const r = await ev(() => ({ m:state.units[1].decorMode, a:JSON.stringify(state.units[1].decorItems.map(d => d.after)) }));
     assert(r.m === 'manual' && r.a !== before, JSON.stringify(r) + before); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
-  await test('colores del lomo: parten de los actuales, letras elegibles y legibles', async () => {
-    await ev(() => openBookForm({ book:state.books.find(x => x.title === 'El rey malvado') }));
-    await tab('lomo');
-    const before = await ev(() => [...document.querySelectorAll('#fsp-parts [data-part]')].map(b => b.dataset.part + '=' + b.dataset.col));
-    assert(before.length >= 3 && before.some(x => x.startsWith('ink=')), 'partes: ' + before.join());
-    // El selector propio parte del color actual
-    const base = before[0].split('=')[1]; await page.click('#fsp-parts [data-part] >> nth=0'); await page.waitForSelector('.cp-sheet #cp-hex', { state:'attached' });
-    assert(await ev(() => document.querySelector('#cp-hex').value) === base, 'no parte del color actual');
-    await page.click('.cp-sheet #cp-shades .sw >> nth=0'); const chosen = await ev(() => document.querySelector('#cp-hex').value);
-    await page.click('[data-do="cpok"]'); await page.waitForSelector('.cp-sheet', { state:'detached' });
-    const after = await ev(() => document.querySelector('#fsp-parts [data-part]').dataset.col); assert(after === chosen && after !== base, after + ' / ' + chosen);
+  await test('pestaña Lomo: miniaturas de los 15 diseños, partes y editor de color en el sitio', async () => {
+    await ev(() => openBookForm({ book:state.books.find(x => x.title === 'Dune') })); await tab('lomo');
+    assert(await page.locator('#fsp-style [data-spstyle]').count() === 16, 'miniaturas');
+    await page.click('#fsp-style [data-spstyle="jaspeado"]');
+    const parts = await ev(() => [...document.querySelectorAll('#fsp-parts [data-part]')].map(b => b.dataset.part));
+    assert(parts.join() === 'base,alt,v1,v2,foil,ink', parts.join());
+    await page.click('#fsp-parts [data-part="alt"]'); await page.waitForSelector('#fsp-editor #ce-shades .sw');
+    const before = await ev(() => document.querySelector('#fsp-prev').innerHTML);
+    await page.click('#fsp-editor #ce-shades .sw >> nth=1'); const chosen = await ev(() => document.querySelector('#ce-hex').value);
+    const r = await ev(() => ({ part:([...document.querySelectorAll('.sheet')].pop().draft.spine || {}).parts, now:document.querySelector('#fsp-prev').innerHTML, label:document.querySelector('[data-part="alt"] small').textContent }));
+    assert(r.part.alt === chosen && r.now !== before && r.label === 'elegido', JSON.stringify({ ...r, now:'' }));
+    // Deslizador: cambia en vivo; «Automático» devuelve la parte a su color de serie
+    await unfold(); await ev(() => { const l = document.querySelector('#ce-l'); l.value = 20; l.dispatchEvent(new Event('input', { bubbles:true })); });
+    assert(await ev(c => ([...document.querySelectorAll('.sheet')].pop().draft.spine.parts.alt !== c), chosen), 'el deslizador no cambia el color');
+    await page.click('#fsp-editor [data-ce="auto"]'); assert(await ev(() => !([...document.querySelectorAll('.sheet')].pop().draft.spine.parts || {}).alt), 'no volvió a automático');
     // Letras
-    await page.click('#fsp-parts [data-part="ink"]'); await page.waitForSelector('.cp-sheet #cp-hex', { state:'attached' });
-    await unfold(); await page.fill('#cp-hex', '#ff0000'); await page.click('[data-do="cpok"]'); await page.waitForSelector('.cp-sheet', { state:'detached' });
+    await page.click('#fsp-parts [data-part="ink"]'); await unfold(); await page.fill('#ce-hex', '#ff0000');
     assert(await ev(() => getComputedStyle(document.querySelector('#fsp-prev .tt')).color) === 'rgb(255, 0, 0)', 'letras');
     await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    const bad = await ev(() => { const out = []; state.units.forEach(u => { const th = themeOf(u); Object.keys(SPINE_STYLES).forEach(st => [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030']].forEach(([b, f, a]) => {
-      const div = document.createElement('div'); div.innerHTML = spineArt({ id:'q', title:'Prueba de contraste', spine:{ style:st, base:b, foil:f, accent:a, adjust:false } }, u, th).html;
-      const t = div.querySelector('.tt'); if(t && !SF_KIND[st]){ const m = t.getAttribute('style').match(/color:(#[0-9a-f]{6})/i); if(m && b === '#f2d7a0' && st === 'marco' && contrast(m[1], b) < 2.5) out.push(u.name + '/' + st); } })); }); return out; });
-    assert(!bad.length, 'títulos ilegibles: ' + bad.join(', '));
+  });
+  await test('lomos: con cualquier color se lee el título (contraste ≥ 4 salvo fondos de varios colores, ≥ 3)', async () => {
+    const bad = await ev(() => { const P = [['#f2d7a0', '#f6e6c0', '#ffffff'], ['#101010', '#202020', '#303030'], ['#7a7a7a', '#8a8a8a', '#6a6a6a'], ['#c45cff', '#ffd400', '#ff2fb8'], ['#1f4a3c', '#d9b25f', '#8fb36a'], ['#e8a9b3', '#7a1f3a', '#c9566f']], out = [];
+      SPINE_ORDER.forEach(st => P.forEach(pal => { const D = SPINES[st], c = D.colors(pal), r = D.draw({ w:32, h:150, seed:7, title:'Prueba' }, c, 32, 150), ink = bestInk(r.ink, r.tbg);
+        const worst = Math.min(...r.tbg.filter(isHex).map(b => contrast(ink, b))); if(worst < (r.tbg.length > 1 ? 3 : 4)) out.push(st + ' ' + pal[0] + ' ' + worst.toFixed(2)); }));
+      return out; });
+    assert(!bad.length, bad.join(' | '));
+  });
+  await test('lomos: cada parte cambia algo y no hay zonas de color fijo', async () => {
+    const r = await ev(() => { const u = state.units[0], th = themeOf(u), X = '#ff00ff', out = { inert:[], fixed:[] };
+      SPINE_ORDER.forEach(st => { const draw = parts => spineArt({ id:'z', title:'Prueba de lomo', author:'Ana Pérez', pages:300, spine:{ style:st, parts, ink:X } }, u, th).html.replace(/(id="|url\(#)([A-Za-z]+)\d+/g, '$1$2');
+        const base = draw({}); SPINES[st].parts.forEach(([k]) => { if(draw({ [k]:'#00ff00' }) === base) out.inert.push(st + '.' + k); });
+        // Todas las partes del mismo color: todo lo que se ve tiene que ser ese color o un tono suyo (más claro u oscuro)
+        const all = draw(Object.fromEntries(SPINES[st].parts.map(([k]) => [k, X])));
+        const svg = all.slice(all.indexOf('<svg'), all.indexOf('</svg>')), cols = [...new Set((svg.match(/#[0-9a-f]{6}\b/gi) || []).map(c => c.toLowerCase()))];
+        const off = cols.filter(c => { const [h, s] = hexHsl(c); return s > .05 && Math.abs(h - 300) > 3; }); if(off.length) out.fixed.push(st + ':' + off.join(',')); });
+      return out; });
+    assert(!r.inert.length, 'partes que no cambian nada: ' + r.inert.join(', ')); assert(!r.fixed.length, 'zonas de color fijo: ' + r.fixed.join(' | '));
+  });
+  await test('lomos: los estilos y colores guardados antes pasan a los diseños nuevos', async () => {
+    const r = await ev(() => { const s = migrate({ v:1, settings:{ migThriller:1, migAdjust:1, migSort:1, migDecor:1, migGaps:1 }, units:[], seriesStyle:{ x:{ style:'enredadera' } }, books:[
+      { spine:{ style:'jaspeado', parts:{ accent:'#111111', base:'#eeeeee', m1:'#ff0000', m2:'#00ff00', m3:'#0000ff' } } }, { spine:{ style:'ilustrado', parts:{ base:'#101030', sky2:'#303060', moon:'#ffee88' } } },
+      { spine:{ style:'acuarela', parts:{ accent2:'#abcdef' } } }] });
+      return { a:s.books[0].spine, b:s.books[1].spine, c:s.books[2].spine.parts, ser:s.seriesStyle.x.style }; });
+    assert(r.a.parts.base === '#111111' && r.a.parts.alt === '#eeeeee' && r.a.parts.v1 === '#ff0000' && r.a.parts.v2 === '#00ff00', JSON.stringify(r.a));
+    assert(r.b.style === 'celestial' && r.b.parts.alt === '#303060' && r.b.parts.foil === '#ffee88', JSON.stringify(r.b));
+    assert(r.c.alt === '#abcdef' && r.ser === 'botanico', JSON.stringify(r));
   });
   await test('ficha: serie completa con los tomos que faltan, audiolibro y enlaces a tiendas', async () => {
     const id = await ev(() => state.books.find(b => b.title === 'The Cruel Prince').id);

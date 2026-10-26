@@ -1,10 +1,10 @@
 /* Mi TBR · service worker: la app abre al momento, también sin conexión o con mala cobertura.
    Los archivos propios se sirven de lo guardado para esta versión (antes se esperaba a la red cada vez).
    version.json y la API (api/) van siempre a la red. La versión la escribe tools/version.py; no hace falta tocarla a mano. */
-const VERSION = '2026.10.26-6';
+const VERSION = '2026.10.26-7';
 const CACHE = 'mi-tbr-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'css/styles.css', 'css/furniture.css',
-  'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/muebles.js', 'js/art/temas.js',
+  'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/disenos.js', 'js/art/muebles.js', 'js/art/temas.js',
   'js/app/estado.js', 'js/app/hojas.js', 'js/app/colores.js', 'js/app/estanterias.js', 'js/app/ficha.js', 'js/app/ficha-extra.js', 'js/app/formulario.js', 'js/app/anadir.js', 'js/app/ajustes.js', 'js/app/arrastrar.js', 'js/app/nube.js', 'js/app/lectura.js', 'js/app/inicio.js',
   'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {

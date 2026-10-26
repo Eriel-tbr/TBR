@@ -70,6 +70,22 @@ function migrate(s){
     if(s.settings.decor === false) s.units.forEach(u => { u.decorMode = 'none'; });
     delete s.settings.decor; delete s.settings.spineFromCover; s.settings.migDecor = 1;
   }
+  if(!s.settings.migSpine2){ // lomos nuevos (27/10/2026): los estilos antiguos pasan a su parecido y los colores elegidos, a las partes nuevas
+    const MAP = { jaspeado:{ accent:'base', base:'alt', m1:'v1', m2:'v2', foil:'foil' }, escamas:{ base:'base', accent:'accent', foil:'foil' }, nervios:{ base:'base', accent:'alt', foil:'foil' },
+      marco:{ base:'base', foil:'foil', orn:'orn' }, grimorio:{ base:'base', foil:'foil', gem:'accent' }, acuarela:{ base:'base', accent:'accent', accent2:'alt' }, holo:{ c1:'c1', c2:'c2', c3:'c3' },
+      cristal:{ c1:'c1', c2:'c2', c3:'c3' }, estrellado:{ base:'base', accent:'alt', foil:'foil' }, ilustrado:{ base:'base', sky2:'alt', moon:'foil' }, enredadera:{ base:'base', leaf:'leaf', bloom:'accent' },
+      deco:{ base:'base', foil:'foil', accent:'accent' }, synth:{ c1:'base', c2:'alt', c3:'foil' }, planeta:{ c1:'base', c2:'alt', c3:'foil' } };
+    const ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'botanico', synth:'degradado', cristal:'holo' };
+    s.books.forEach(b => { const sp = b.spine; if(!sp) return; const st = sp.style && sp.style !== 'auto' ? sp.style : '';
+      if(sp.parts){ const m = MAP[st], np = {};
+        if(m) Object.entries(sp.parts).forEach(([k, v]) => { if(m[k]) np[m[k]] = v; });
+        else Object.entries(sp.parts).forEach(([k, v]) => { np[k === 'accent2' ? 'alt' : k] = v; });
+        if(st === 'escamas' && sp.parts.base && !np.alt) np.alt = sp.parts.base;
+        sp.parts = np; }
+      if(ALIAS[st]) sp.style = ALIAS[st]; });
+    Object.values(s.seriesStyle || {}).forEach(x => { if(x && ALIAS[x.style]) x.style = ALIAS[x.style]; });
+    s.settings.migSpine2 = 1;
+  }
   if(!s.settings.migGaps){ // los huecos («Hueco antes / después») dejan paso a colocar libros y objetos donde se sueltan
     s.units.forEach(u => { delete u.gaps; }); s.settings.migGaps = 1;
   }

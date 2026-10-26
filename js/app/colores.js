@@ -1,7 +1,5 @@
 'use strict';
-/* Mi TBR — selector de color propio (sustituye al <input type="color"> del sistema).
-   Parte siempre del color actual y ofrece, por orden de utilidad: colores de la portada (y tocar la portada para
-   coger el color exacto), tonos del color actual, la paleta de la estantería y un ajuste fino con tono, saturación y luz. */
+/* Mi TBR — editor de color de los lomos (sustituye al <input type="color"> del sistema y a la ventana de color de antes). */
 
 /* Portada en un canvas pequeño (a través del proxy de portadas, para poder leer sus píxeles) */
 const coverCanvasCache = new Map();
@@ -31,49 +29,46 @@ function canvasSwatches(c){
 }
 const swatch = (c, attr = 'data-cp') => `<button class="sw" type="button" ${attr}="${c}" style="background:${c}" aria-label="Color ${c}"></button>`;
 function shades(hex){ const [h, s] = hexHsl(hex); return [.12, .22, .32, .42, .52, .62, .72, .82, .92].map(l => hslToHex(h, s, l)); }
-function tints(hex){ const [h, , l] = hexHsl(hex); return [0, .2, .4, .6, .8, 1].map(s => hslToHex(h, s, l)); }
-
-/* Abre el selector. Devuelve una promesa con el color elegido (#rrggbb) o null si se cancela. */
-function openColorPicker({ title = 'Color', color = '#888888', cover = '', palette = [] } = {}){
-  return new Promise(res => {
-    const start = isHex(color) ? color.toLowerCase() : '#888888'; let cur = start, picked = null;
-    const pal = [...new Set(palette.filter(isHex).map(c => c.toLowerCase()))].slice(0, 18);
-    const body = `<div class="cp-prev"><div style="background:${start}"><span>Antes</span></div><div id="cp-now" style="background:${start}"><span>Ahora</span></div></div>
-      <div class="sec" id="cp-coversec"${cover ? '' : ' hidden'}><span class="lbl">De la portada</span><div class="cp-cover"><canvas id="cp-canvas" aria-label="Portada: toca para coger un color"></canvas><div><div class="sws" id="cp-cov"><span class="note">Leyendo la portada…</span></div><p class="note" id="cp-tapnote">O toca un punto de la portada.</p></div></div></div>
-      <div class="sec"><span class="lbl">Tonos de este color</span><div class="sws" id="cp-shades"></div><div class="sws" id="cp-tints"></div></div>
-      ${pal.length ? `<div class="sec"><span class="lbl">Paleta de la estantería</span><div class="sws">${pal.map(c => swatch(c)).join('')}</div></div>` : ''}
-      ${fold('Ajuste fino', `<label class="cp-sl">Tono<input type="range" id="cp-h" min="0" max="359"></label><label class="cp-sl">Saturación<input type="range" id="cp-s" min="0" max="100"></label><label class="cp-sl">Luz<input type="range" id="cp-l" min="0" max="100"></label>
-        <div class="sec"><label for="cp-hex">Código</label>${lineHtml('class="field" id="cp-hex" spellcheck="false" autocapitalize="off"', start)}</div>`)}`;
-    const sh = openSheet(sheetT(title, body, '<button class="btn" type="button" data-close>Cancelar</button><button class="btn primary" type="button" data-do="cpok">Usar este color</button>'), () => res(picked));
-    sh.classList.add('cp-sheet');
-    const q = s => $(s, sh);
-    const sync = (from) => {
-      q('#cp-now').style.background = cur;
-      q('#cp-shades').innerHTML = shades(cur).map(c => swatch(c)).join(''); q('#cp-tints').innerHTML = tints(cur).map(c => swatch(c)).join('');
-      if(from !== 'sl'){ const [h, s, l] = hexHsl(cur); q('#cp-h').value = Math.round(h); q('#cp-s').value = Math.round(s * 100); q('#cp-l').value = Math.round(l * 100); }
-      const H = +q('#cp-h').value, S = +q('#cp-s').value / 100, L = +q('#cp-l').value / 100;
-      q('#cp-h').style.background = `linear-gradient(90deg,${[0, 60, 120, 180, 240, 300, 359].map(x => hslToHex(x, Math.max(S, .5), .5)).join(',')})`;
-      q('#cp-s').style.background = `linear-gradient(90deg,${hslToHex(H, 0, L)},${hslToHex(H, 1, L)})`;
-      q('#cp-l').style.background = `linear-gradient(90deg,#000,${hslToHex(H, S, .5)},#fff)`;
-      if(from !== 'hex') q('#cp-hex').value = cur;
-      $$('.sw', sh).forEach(b => b.setAttribute('aria-pressed', b.dataset.cp === cur));
-    };
-    sync();
-    if(cover) coverCanvas(cover).then(c => {
-      if(!sh.isConnected) return;
-      if(!c){ q('#cp-cov').innerHTML = '<span class="note">No se puede leer esta portada desde su web. Si la subes tú, sí.</span>'; q('#cp-canvas').hidden = true; q('#cp-tapnote').hidden = true; return; }
-      const cv = q('#cp-canvas'); cv.width = c.width; cv.height = c.height; cv.getContext('2d').drawImage(c, 0, 0);
-      q('#cp-cov').innerHTML = canvasSwatches(c).map(x => swatch(x)).join(''); sync();
-      cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * cv.width), y = Math.floor((e.clientY - r.top) / r.height * cv.height);
-        const p = cv.getContext('2d').getImageData(Math.max(0, Math.min(cv.width - 1, x)), Math.max(0, Math.min(cv.height - 1, y)), 1, 1).data; cur = rgbHex(p[0], p[1], p[2]); sync(); });
-    });
-    sh.addEventListener('click', async e => {
-      const s = e.target.closest('[data-cp]'); if(s){ cur = s.dataset.cp; sync(); return; }
-      if(e.target.closest('[data-do="cpok"]')){ picked = cur; await closeSheet(); }
-    });
-    sh.addEventListener('input', e => {
-      if(/^cp-[hsl]$/.test(e.target.id)){ cur = hslToHex(+q('#cp-h').value, +q('#cp-s').value / 100, +q('#cp-l').value / 100); sync('sl'); }
-      if(e.target.id === 'cp-hex'){ let v = e.target.value.trim(); if(!v.startsWith('#')) v = '#' + v; if(isHex(v)){ cur = v.toLowerCase(); sync('hex'); } }
-    });
+/* ---------- Editor de color dentro de la pestaña Lomo ----------
+   Se pinta en el sitio (sin ventana encima) para ver el lomo cambiar mientras eliges. Parte del color actual y ofrece:
+   colores de la portada (y tocar la portada para coger uno exacto), tonos del color, colores de este lomo, la paleta
+   de la estantería y un ajuste fino (tono, saturación, luz y código).
+   onPick(hex, live): live = true mientras se arrastra un deslizador (redibujo ligero). onAuto(): volver a automático. */
+function colorEditor(el, { label, color, manual, cover = '', groups = [], onPick, onAuto }){
+  let cur = isHex(color) ? color.toLowerCase() : '#888888';
+  const uniq = l => [...new Set(l.filter(isHex).map(c => c.toLowerCase()))];
+  const head = m => `<span class="ce-sw" id="ce-now" style="background:${cur}"></span><b>${esc(label)}</b><small>${m ? 'elegido' : 'automático'}</small>${m ? '<button class="btn sm" type="button" data-ce="auto">Automático</button>' : ''}`;
+  el.innerHTML = `<div class="ce-head" id="ce-head">${head(manual)}</div>
+    <div class="sec" id="ce-covsec"${cover ? '' : ' hidden'}><span class="lbl">De la portada</span><div class="ce-cover"><canvas id="ce-canvas" aria-label="Portada: toca para coger un color"></canvas><div class="sws" id="ce-cov"><span class="note">Leyendo la portada…</span></div></div></div>
+    <div class="sec"><span class="lbl">Tonos</span><div class="sws" id="ce-shades"></div></div>
+    ${groups.map(([t, cols]) => uniq(cols).length ? `<div class="sec"><span class="lbl">${esc(t)}</span><div class="sws">${uniq(cols).slice(0, 18).map(c => swatch(c)).join('')}</div></div>` : '').join('')}
+    ${fold('Ajuste fino', `<label class="cp-sl">Tono<input type="range" id="ce-h" min="0" max="359"></label><label class="cp-sl">Saturación<input type="range" id="ce-s" min="0" max="100"></label><label class="cp-sl">Luz<input type="range" id="ce-l" min="0" max="100"></label>
+      <div class="sec"><label for="ce-hex">Código</label>${lineHtml('class="field" id="ce-hex" spellcheck="false" autocapitalize="off"', cur)}</div>`)}`;
+  const q = s => $(s, el);
+  const sync = from => {
+    q('#ce-now').style.background = cur; if(from !== 'sl') q('#ce-shades').innerHTML = shades(cur).map(c => swatch(c)).join('');
+    if(from !== 'sl'){ const [h, s, l] = hexHsl(cur); q('#ce-h').value = Math.round(h); q('#ce-s').value = Math.round(s * 100); q('#ce-l').value = Math.round(l * 100); }
+    const H = +q('#ce-h').value, S = +q('#ce-s').value / 100, L = +q('#ce-l').value / 100;
+    q('#ce-h').style.background = `linear-gradient(90deg,${[0, 60, 120, 180, 240, 300, 359].map(x => hslToHex(x, Math.max(S, .5), .5)).join(',')})`;
+    q('#ce-s').style.background = `linear-gradient(90deg,${hslToHex(H, 0, L)},${hslToHex(H, 1, L)})`;
+    q('#ce-l').style.background = `linear-gradient(90deg,#000,${hslToHex(H, S, .5)},#fff)`;
+    if(from !== 'hex') q('#ce-hex').value = cur;
+    $$('.sw', el).forEach(b => b.setAttribute('aria-pressed', b.dataset.cp === cur));
+  };
+  const pick = (hex, live, from) => { cur = hex.toLowerCase(); if(!manual){ manual = true; q('#ce-head').innerHTML = head(true); } sync(from); onPick && onPick(cur, !!live); };
+  sync();
+  if(cover) coverCanvas(cover).then(c => {
+    if(!el.isConnected || !q('#ce-cov')) return;
+    if(!c){ q('#ce-cov').innerHTML = '<span class="note">No se puede leer esta portada desde su web. Si la subes tú, sí.</span>'; q('#ce-canvas').hidden = true; return; }
+    const cv = q('#ce-canvas'); cv.width = c.width; cv.height = c.height; cv.getContext('2d').drawImage(c, 0, 0);
+    q('#ce-cov').innerHTML = canvasSwatches(c).map(x => swatch(x)).join(''); sync('cover');
+    cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * cv.width), y = Math.floor((e.clientY - r.top) / r.height * cv.height);
+      const p = cv.getContext('2d').getImageData(clamp(x, 0, cv.width - 1), clamp(y, 0, cv.height - 1), 1, 1).data; pick(rgbHex(p[0], p[1], p[2])); });
   });
+  el.onclick = e => { const s = e.target.closest('[data-cp]'); if(s){ pick(s.dataset.cp); return; } if(e.target.closest('[data-ce="auto"]')) onAuto && onAuto(); };
+  el.oninput = e => {
+    if(/^ce-[hsl]$/.test(e.target.id)) pick(hslToHex(+q('#ce-h').value, +q('#ce-s').value / 100, +q('#ce-l').value / 100), true, 'sl');
+    if(e.target.id === 'ce-hex'){ let v = e.target.value.trim(); if(!v.startsWith('#')) v = '#' + v; if(isHex(v)) pick(v, false, 'hex'); }
+  };
+  el.onchange = e => { if(/^ce-[hsl]$/.test(e.target.id)) pick(cur, false, 'sl'); }; // al soltar el deslizador, redibujo completo
 }
