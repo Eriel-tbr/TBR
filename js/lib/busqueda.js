@@ -135,7 +135,7 @@ async function enrichBook(item, signal){
   const hc = out.hc;
   if(hc){
     if(hc.es.length){ out.esFound = true; const best = bestEsEdition(hc.es); out.hcEsTitle = best.title; out.pagesEs = best.pages || 0; out.coverEs = best.cover || '';
-      rankEsIsbns(hc.es).forEach(i => isbns.add(i)); }
+      out.hcIsbns = rankEsIsbns(hc.es); }
     if(hc.en.length) out.enFound = true;
     if(!out.desc && hc.book.desc){ out.desc = hc.book.desc; out.descLang = textLang(hc.book.desc) || 'en'; }
     if(!out.series && hc.book.series) out.series = hc.book.series;
@@ -154,8 +154,10 @@ async function enrichBook(item, signal){
   // Ediciones en español: ISBN de Google Books y Open Library → fichas con los datos de las editoriales (API propia)
   try{
     if(out.olKey) (await Promise.race([olSpanishIsbns(out.olKey, signal).catch(() => []), new Promise(r => setTimeout(() => r([]), 4000))])).forEach(i => isbns.add(i));
-    if(isbns.size){
-      const eds = await spanishEditions([...isbns], author, signal);
+    // Primero las de Hardcover (ordenadas: de España, no especiales, las más leídas); luego las de Google y Open Library
+    const all = [...new Set([...(out.hcIsbns || []), ...isbns])];
+    if(all.length){
+      const eds = await spanishEditions(all, author, signal);
       if(hc && hc.es.length) hcEds(hc.es).forEach(e => { if(!eds.some(x => x.isbn === e.isbn)) eds.push(e); }); // y las demás ediciones españolas que conoce Hardcover
       if(eds.length){
         out.eds = eds; out.esFound = true;
