@@ -267,15 +267,17 @@ const SPINES = {
       s += `<circle cx="${r1(w * .7)}" cy="12" r="${r1(Math.min(3.6, w * .1))}" fill="${c.accent}"/>`;
       for(let i = 0; i < 7; i++) s += `<circle cx="${r1(2 + rr() * (w - 4))}" cy="${r1(4 + rr() * 16)}" r="${r1(.3 + rr() * .35)}" fill="${c.accent}" opacity="${r1(.5 + rr() * .4)}"/>`;
       // edificios del fondo (más claros) y los de delante con ventanas
-      for(let x = -2; x < w; ){ const bw = 5 + rr() * 6, bh = 30 + rr() * 16; s += `<rect x="${r1(x)}" y="${r1(h - bh)}" width="${r1(bw + .3)}" height="${r1(bh)}" fill="${far}"/>`;
+      for(let x = -2; x < w; ){ const bw = 5 + rr() * 6, bh = 22 + rr() * 12; s += `<rect x="${r1(x)}" y="${r1(h - bh)}" width="${r1(bw + .3)}" height="${r1(bh)}" fill="${far}"/>`;
         if(rr() > .6) s += `<rect x="${r1(x + bw / 2 - .3)}" y="${r1(h - bh - 4)}" width=".6" height="4" fill="${far}"/>`; x += bw; }
-      for(let x = -1; x < w; ){ const bw = 6 + rr() * 6, bh = 16 + rr() * 14, top = h - bh;
+      for(let x = -1; x < w; ){ const bw = 6 + rr() * 6, bh = 12 + rr() * 10, top = h - bh;
         s += `<rect x="${r1(x)}" y="${r1(top)}" width="${r1(bw + .3)}" height="${r1(bh)}" fill="${c.leaf}"/>`;
         if(rr() > .55) s += `<rect x="${r1(x + 1.2)}" y="${r1(top - 2.2)}" width="${r1(bw - 2.4)}" height="2.4" fill="${c.leaf}"/>`;
-        for(let y = top + 3; y < h - 4; y += 3.4) for(let xx = x + 1.4; xx < x + bw - 1.6; xx += 2.6) if(rr() > .62) s += `<rect x="${r1(xx)}" y="${r1(y)}" width="1.2" height="1.6" fill="${c.accent}" opacity="${r1(.65 + rr() * .35)}"/>`;
+        for(let y = top + 3; y < h - 4; y += 3.4) for(let xx = x + 1.4; xx < x + bw - 1.6; xx += 2.6) if(rr() > .62 && !(o.num && Math.hypot(xx - w / 2, y - cy) < 9.5)) s += `<rect x="${r1(xx)}" y="${r1(y)}" width="1.2" height="1.6" fill="${c.accent}" opacity="${r1(.65 + rr() * .35)}"/>`;
         x += bw + .8 + rr() * 1.2; }
-      const tt = 22, tb = h - 52;
-      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, mix(c.base, c.alt, .15)], ink:lighten(c.accent, .4), num:{ cy, bg:c.leaf, ink:c.accent } }; } },
+      // con número, una placa redonda encima de los edificios para que se lea
+      if(o.num) s += ring(w / 2, cy, 7, c.leaf, c.accent, .8);
+      const tt = 38, tb = h - 38; // el título, centrado en el lomo
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, mix(c.base, c.alt, .5)], ink:lighten(c.accent, .4), num:{ cy, bg:c.leaf, ink:c.accent } }; } },
   /* Modo de serie «Fases de la luna»: la luna crece de un tomo a otro (no sale en la lista de diseños) */
   luna:{ name:'Fases de la luna', saga:true, parts:[['base', 'Cielo'], ['foil', 'Luna y estrellas'], ['alt', 'Sombra de la luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F]) => ({ base:darken(B, .45), foil:lighten(F, .2), alt:darken(B, .6) }),

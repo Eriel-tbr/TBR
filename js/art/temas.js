@@ -89,7 +89,7 @@ function themeDecor(u, th){
 
 /* ---------- Estilos de lomo (los diseños están en disenos.js) ---------- */
 const SPINE_STYLES = Object.fromEntries(SPINE_ORDER.map(k => [k, SPINES[k].name]));
-const SAGA_SCENES = { castle:'Castillo', sea:'Mar', dragon:'Dragón', forest:'Bosque' };
+const SAGA_SCENES = { castle:'Castillo', sea:'Mar', dragon:'Dragón', dragon2:'Dragón estilizado', forest:'Bosque' };
 function adjustToTheme(hex, th){
   if(!isHex(hex) || !th.range) return hex; const [h, s, l] = hexHsl(hex);
   return hslToHex(h, clamp(s, th.range.s[0], th.range.s[1]), clamp(l, th.range.l[0], th.range.l[1]));
@@ -145,7 +145,7 @@ function sagaArt(b, sp, ser, [B, F, A], w, h, num){
   const sc = ser.scene || ['castle', 'sea', 'dragon', 'forest'][ser.seed % 4];
   const spec = applyParts({ saga:sc, base:darken(B, lum(B) > .45 ? .62 : .35), accent:vivid(mix(B, A, .6), .42), sky2:vivid(mix(A, F, .35), .72), moon:mix(lighten(F, .6), '#fff3c8', .5), sil:darken(B, .82), sil2:darken(vivid(mix(B, A, .5), .4), .3), foil:lum(F) > .6 ? F : lighten(F, .7),
     font:'pag', max:12, cont:{ off:ser.off, total:ser.totalW, seed:ser.seed } }, 'saga', sp.parts);
-  spec.titleInk = isHex(sp.ink) ? sp.ink : bestInk(spec.foil, [spec.base]); spec.numInk = sc === 'dragon' ? bestInk(spec.sil, [cloudCols(spec).mid, cloudCols(spec).light]) : bestInk(spec.moon, [spec.sil]); // en el dragón, abajo hay nubes
+  spec.titleInk = isHex(sp.ink) ? sp.ink : bestInk(spec.foil, [spec.base]); spec.numInk = /^dragon/.test(sc) ? bestInk(spec.sil, [cloudCols(spec).mid, cloudCols(spec).light]) : bestInk(spec.moon, [spec.sil]); // en el dragón, abajo hay nubes
   return { w, h, style:'saga', pal:[B, F, A], parts:SPINE_PARTS.saga.map(([k, l]) => [k, l, spec[k]]), ink:spec.titleInk, html:sagaSpine({ w, h, title:b.title || 'Sin título', num, ...spec }) };
 }
 
