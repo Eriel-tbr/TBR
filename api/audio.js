@@ -18,7 +18,7 @@ async function apple(term, country){
     if(!r.ok) throw new Error('Apple ' + r.status); return (await r.json()).results || [];
   }finally{ clearTimeout(t); }
 }
-module.exports = async (req, res) => { try{ await main(req, res); }catch(e){ res.statusCode = 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ items:[], errors:{ fallo:e.message, stack:String(e.stack).slice(0, 600) } })); } };
+module.exports = async (req, res) => { try{ await main(req, res); }catch(e){ res.statusCode = 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ items:[], errors:{ fallo:e.message } })); } }; // sin el detalle interno del error
 async function main(req, res){
   if(/[?&]ping=1/.test(req.url)){ res.setHeader('content-type', 'application/json'); return res.end('{"ok":true}'); }
   const p = new URL(req.url, 'http://x').searchParams, t = (p.get('t') || '').slice(0, 200), es = (p.get('es') || '').slice(0, 200), a = (p.get('a') || '').slice(0, 120), diag = p.get('diag'), only = p.get('only') || '';
