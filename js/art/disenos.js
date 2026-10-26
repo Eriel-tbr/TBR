@@ -259,14 +259,23 @@ const SPINES = {
       const tt = zt + 4, tb = Math.round(ay - R - 7);
       return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:c.alt, num:{ cy:ay, bg:c.base, ink:c.alt } }; } },
 
-  /* 15. Noir: fondo oscuro, título grande en mayúsculas y una franja en diagonal abajo (contemporánea y thriller) */
-  noir:{ name:'Noir', parts:[['base', 'Fondo'], ['accent', 'Franja'], ['alt', 'Filetes']], font:{ font:'pop', wt:700, up:1, ls:.06, max:20 },
-    colors:([B, F, A]) => ({ base:darken(B, .55), accent:vivid(A, .5), alt:F }),
-    draw:(o, c, w, h) => { const d = Math.min(9, w * .28), y1 = h - 36, bh = 12;
-      let s = `<path d="M0 ${r1(y1 + d)}L${w} ${y1}L${w} ${y1 + bh}L0 ${r1(y1 + d + bh)}Z" fill="${c.accent}"/><path d="M0 ${r1(y1 + d + bh + 4)}L${w} ${y1 + bh + 4}" stroke="${c.alt}" stroke-width=".8"/>
-        <rect x="4" y="6" width="${r1(w * .42)}" height="1.6" fill="${c.accent}"/><rect x="4" y="9" width="${r1(w * .22)}" height=".7" fill="${c.alt}"/>`;
-      const tb = y1 - 5, cy = r1(y1 + d / 2 + bh / 2);
-      return { svg:s, box:{ l:3, t:14, w:w - 6, h:tb - 14 }, tbg:[c.base], ink:lighten(c.alt, .55), num:{ cy, bg:c.accent, ink:lighten(c.accent, .85) } }; } },
+  /* 15. Ciudad: cielo al anochecer y la silueta de una ciudad con ventanas encendidas (contemporánea y thriller) */
+  ciudad:{ name:'Ciudad', parts:[['base', 'Cielo'], ['alt', 'Horizonte'], ['leaf', 'Edificios'], ['accent', 'Ventanas y luna']], font:{ font:'pag', wt:700, max:16 },
+    colors:([B, F, A]) => ({ base:darken(B, .5), alt:mix(lighten(B, .25), A, .5), leaf:darken(B, .78), accent:mix(lighten(F, .5), '#ffe6a0', .4) }),
+    draw:(o, c, w, h) => { const g = sid(), rr = rng(o.seed || 13), far = mix(c.leaf, c.alt, .55), cy = h - 12;
+      let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset=".5" stop-color="${c.base}"/><stop offset="1" stop-color="${c.alt}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
+      s += `<circle cx="${r1(w * .7)}" cy="12" r="${r1(Math.min(3.6, w * .1))}" fill="${c.accent}"/>`;
+      for(let i = 0; i < 7; i++) s += `<circle cx="${r1(2 + rr() * (w - 4))}" cy="${r1(4 + rr() * 16)}" r="${r1(.3 + rr() * .35)}" fill="${c.accent}" opacity="${r1(.5 + rr() * .4)}"/>`;
+      // edificios del fondo (más claros) y los de delante con ventanas
+      for(let x = -2; x < w; ){ const bw = 5 + rr() * 6, bh = 30 + rr() * 16; s += `<rect x="${r1(x)}" y="${r1(h - bh)}" width="${r1(bw + .3)}" height="${r1(bh)}" fill="${far}"/>`;
+        if(rr() > .6) s += `<rect x="${r1(x + bw / 2 - .3)}" y="${r1(h - bh - 4)}" width=".6" height="4" fill="${far}"/>`; x += bw; }
+      for(let x = -1; x < w; ){ const bw = 6 + rr() * 6, bh = 16 + rr() * 14, top = h - bh;
+        s += `<rect x="${r1(x)}" y="${r1(top)}" width="${r1(bw + .3)}" height="${r1(bh)}" fill="${c.leaf}"/>`;
+        if(rr() > .55) s += `<rect x="${r1(x + 1.2)}" y="${r1(top - 2.2)}" width="${r1(bw - 2.4)}" height="2.4" fill="${c.leaf}"/>`;
+        for(let y = top + 3; y < h - 4; y += 3.4) for(let xx = x + 1.4; xx < x + bw - 1.6; xx += 2.6) if(rr() > .62) s += `<rect x="${r1(xx)}" y="${r1(y)}" width="1.2" height="1.6" fill="${c.accent}" opacity="${r1(.65 + rr() * .35)}"/>`;
+        x += bw + .8 + rr() * 1.2; }
+      const tt = 22, tb = h - 52;
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, mix(c.base, c.alt, .15)], ink:lighten(c.accent, .4), num:{ cy, bg:c.leaf, ink:c.accent } }; } },
   /* Modo de serie «Fases de la luna»: la luna crece de un tomo a otro (no sale en la lista de diseños) */
   luna:{ name:'Fases de la luna', saga:true, parts:[['base', 'Cielo'], ['foil', 'Luna y estrellas'], ['alt', 'Sombra de la luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F]) => ({ base:darken(B, .45), foil:lighten(F, .2), alt:darken(B, .6) }),
@@ -279,7 +288,7 @@ const SPINES = {
       if(o.num) s += `<circle cx="${r1(cx - 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/><circle cx="${r1(cx + 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/>`;
       return { svg:s, box:{ l:4, t:10, w:w - 8, h:tb - 10 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 13, bg:c.base, ink:c.foil } }; } }
 };
-const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'noir'];
+const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'ciudad'];
 /* Estilos antiguos → los nuevos (para colecciones guardadas antes) */
 const STYLE_ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'floral', botanico:'floral', synth:'holo', cristal:'holo',
   nervios:'marco', bloque:'tela', deco:'filigrana', rayas:'degradado', acuarela:'holo' };
