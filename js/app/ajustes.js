@@ -81,7 +81,7 @@ function openUnitForm(unitId){
     else if(g('#u-del')){
       const b = g('#u-del'); if(!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'Toca otra vez para eliminar'; return; }
       const to = unitOf((q('#u-moveto') || {}).value) || state.units.find(x => x.id !== u.id);
-      state.books.filter(x => x.unitId === u.id).forEach(x => { x.unitId = to.id; x.shelfId = to.shelves[0].id; to.shelves[0].order = []; });
+      state.books.filter(x => x.unitId === u.id).forEach(x => { x.unitId = to.id; x.shelfId = to.shelves[0].id; }); // el orden manual de la balda que los recibe se conserva; llegan al final
       state.units = state.units.filter(x => x.id !== u.id); ui.active = 0; save(); renderAll(); await closeSheet(); toast('Estantería eliminada');
     }
     else if(g('#u-save')){
@@ -96,7 +96,7 @@ function openUnitForm(unitId){
         const rows = $$('.shelf-edit', sh), keep = [];
         rows.forEach(r => { const id = r.dataset.sid, name = r.querySelector('.field').value.trim() || 'Balda'; let s = orig.shelves.find(x => x.id === id); if(!s){ s = mkShelf(name); s.id = id; } s.name = name; keep.push(s); });
         const first = keep[0];
-        orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; first.order = [];  }));
+        orig.shelves.filter(s => del.has(s.id)).forEach(s => state.books.filter(b => b.shelfId === s.id).forEach(b => { b.shelfId = first.id; })); // se conserva el orden manual de la primera balda; los que llegan van al final
         orig.shelves = keep;
       }
       save(); renderAll(); await closeSheet(); if(isNew) setTimeout(() => goTo(ui.active), 50);
@@ -108,7 +108,7 @@ function openUnitForm(unitId){
 function openFilters(){
   const f = JSON.parse(JSON.stringify(ui.filters));
   const draw = () => `
-    <div class="sec"><label for="q-text">Buscar</label>${lineHtml('class="field" id="q-text" enterkeyhint="search" placeholder="Título, autor, etiqueta o nota" data-autofocus', f.q)}</div>
+    <div class="sec"><label for="q-text">Buscar</label>${lineHtml('class="field" id="q-text" enterkeyhint="search" placeholder="Título, autor, serie, etiqueta o nota" data-autofocus', f.q)}</div>
     <div class="sec"><span class="lbl">Estado</span><div class="chips">${chipsHtml([['', 'Todos'], ...Object.entries(STATUS)], f.status, 'data-st')}</div></div>
     <div class="sec"><span class="lbl">Idioma</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], f.lang, 'data-lg')}</div></div>
     <div class="sec"><span class="lbl">Longitud</span><div class="chips">${chipsHtml([['', 'Cualquiera'], ['corto', 'Menos de 300'], ['medio', '300–500'], ['largo', 'Más de 500']], f.len, 'data-ln')}</div></div>
@@ -180,7 +180,7 @@ function openSettings(){
     ${sec('Copia en archivo', `<div class="actions"><button class="btn" type="button" data-do="export">Guardar copia</button><button class="btn" type="button" data-do="share">Compartir</button><button class="btn" type="button" data-do="import">Importar</button></div>
       <input id="s-file" type="file" accept="application/json,.json" hidden><div id="s-import"></div>`)}
     ${sec('Almacenamiento', '<p class="note" id="s-store">Calculando…</p>')}
-    ${sec('Zona delicada', '<button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button>')}`;
+    ${sec('Zona delicada', `<button class="btn danger" type="button" data-do="reset">Borrar todo y empezar de cero</button>${typeof nube !== 'undefined' && nube.user ? '<p class="note">También se borra de la nube (quedan sus copias de días anteriores).</p>' : ''}`)}`;
   const sh = openSheet(sheetT('Ajustes', body));
   storageReport().then(r => { const el = $('#s-store', sh); if(el) el.textContent = `Tu colección ocupa ${r.appKB} KB. Espacio que el navegador da a la app: ${r.quotaMB !== null ? r.quotaMB + ' MB (' + r.usedMB + ' MB usados)' : 'desconocido'}.`; });
   sh.addEventListener('click', async e => {

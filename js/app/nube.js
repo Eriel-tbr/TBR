@@ -25,7 +25,9 @@ function syncStamp(){
   if(changed && state.fresh) delete state.fresh;
   syncMeta.h = hashAll(state); saveMeta();
 }
-if(!syncMeta.h){ syncMeta.h = hashAll(state); saveMeta(); }
+// Con los libros de ejemplo (colección recién creada, o este dispositivo perdió la suya) se parte de cero:
+// comparar con lo que había antes marcaría como borrados todos los libros de antes y la nube los perdería.
+if(!syncMeta.h || state.fresh){ syncMeta.h = hashAll(state); saveMeta(); }
 
 /* ---------- Juntar dos colecciones ---------- */
 function mergeStates(a, b){
@@ -91,7 +93,7 @@ async function syncNow(manual){
   if(!manual && ((typeof sheets !== 'undefined' && sheets.length) || (typeof drag !== 'undefined' && drag))){ syncSoon(3000); return false; } // no cambiar datos con una ventana abierta
   if(navigator.onLine === false){ nube.err = 'Sin conexión'; updateCloudUi(); return false; }
   nube.busy = true; nube.err = ''; updateCloudUi(); clearTimeout(saveT); syncStamp(); writeLocal();
-  let ok = false, choice = null;
+  let ok = false, choice = null, big = null;
   try{
     await migrateCovers();
     for(let tries = 0; tries < 4 && !ok; tries++){
@@ -100,10 +102,18 @@ async function syncNow(manual){
       const first = syncMeta.uid !== nube.user.id;
       let merged;
       if(!row) merged = JSON.parse(JSON.stringify(state));
-      else if(first && isFresh(state)) merged = row.data;
+      else if(state.fresh || (first && isFresh(state))) merged = row.data; // solo ejemplos aquí: manda la nube
       else if(first){ choice = choice || await askFirstJoin(row.data); if(!choice){ nube.busy = false; updateCloudUi(); return false; }
         merged = choice === 'cloud' ? row.data : choice === 'local' ? JSON.parse(JSON.stringify(state)) : joinFirst(state, row.data); if(choice === 'local') row.force = true; }
-      else merged = mergeStates(state, row.data);
+      else {
+        merged = mergeStates(state, row.data);
+        // Red de seguridad: si este dispositivo va a borrar de golpe muchos libros de la nube, se pregunta antes
+        const lost = bigLoss(row.data, merged);
+        if(lost.length && !nube.allowBigDelete){
+          big = big || await askBigDelete(lost);
+          if(big === 'keep'){ lost.forEach(b => { if(state.deleted) delete state.deleted[b.id]; }); merged = mergeStates(state, row.data); }
+        }
+      }
       delete merged.fresh;
       const same = row && !row.force && JSON.stringify(merged) === JSON.stringify(row.data);
       if(!row){ const { error:e2 } = await nube.sb.from('tbr_state').insert({ user_id:nube.user.id, data:merged, rev:1 }); if(e2){ if(e2.code === '23505') continue; throw e2; } nube.rev = 1; }
@@ -116,7 +126,7 @@ async function syncNow(manual){
     }
     if(!ok) throw new Error('conflicto');
   }catch(e){ nube.err = navigator.onLine === false ? 'Sin conexión' : 'No se pudo sincronizar'; console.warn('Mi TBR nube', e); }
-  nube.busy = false; updateCloudUi();
+  nube.busy = false; nube.allowBigDelete = false; updateCloudUi();
   if(nube.again){ nube.again = false; syncSoon(500); }
   return ok;
 }
@@ -137,6 +147,56 @@ function askFirstJoin(remote){
     let done = null;
     sh.addEventListener('click', async e => { const b = e.target.closest('[data-join]'); if(!b) return; done = b.dataset.join; await closeSheet(); });
   }).then(async c => { if(c) await new Promise(r => setTimeout(r, 50)); return c; });
+}
+
+/* Libros (no de ejemplo) que están en la nube y desaparecerían al subir: si son muchos, se pregunta */
+function bigLoss(cloud, merged){
+  const have = new Set(merged.books.map(b => b.id)), mine = cloud.books.filter(b => !b.ejemplo), lost = mine.filter(b => !have.has(b.id));
+  return lost.length >= 3 && lost.length > mine.length * 0.2 ? lost : [];
+}
+function askBigDelete(lost){
+  return new Promise(res => { let done = 'keep';
+    const names = lost.slice(0, 5).map(b => '«' + esc(b.title) + '»').join(', ') + (lost.length > 5 ? ` y ${lost.length - 5} más` : '');
+    const sh = openSheet(sheetT('¿Borrar estos libros?', `<p>Este dispositivo va a borrar <b>${lost.length}</b> libros de tu colección en la nube: ${names}.</p>
+      <div class="actions col"><button class="btn primary" type="button" data-big="keep">No, recuperarlos</button><button class="btn danger" type="button" data-big="del">Sí, borrarlos</button></div>`), () => res(done));
+    sh.addEventListener('click', async e => { const b = e.target.closest('[data-big]'); if(!b) return; done = b.dataset.big; await closeSheet(); });
+  });
+}
+
+/* ---------- Copias de la nube (tbr_backups: una cada 12 h como mucho, las 30 últimas) ---------- */
+async function openBackups(){
+  if(!nube.sb || !nube.user){ toast('Entra con tu cuenta para ver las copias'); return; }
+  const sh = openSheet(sheetT('Copias de la nube', '<div id="bk-list"><p class="note">Buscando copias…</p></div>'));
+  const { data, error } = await nube.sb.from('tbr_backups').select('id,created_at').eq('user_id', nube.user.id).order('created_at', { ascending:false }).limit(30);
+  const box = $('#bk-list', sh); if(!box) return;
+  if(error){ box.innerHTML = '<p class="note">No se han podido cargar las copias.</p>'; return; }
+  if(!data || !data.length){ box.innerHTML = '<p class="note">Aún no hay copias. Se guarda una al día como mucho.</p>'; return; }
+  const when = t => new Date(t).toLocaleString('es-ES', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  box.innerHTML = `<div class="row-opts">${data.map(r => `<button class="opt" type="button" data-bk="${r.id}"><span class="dot"></span>${esc(when(r.created_at))}</button>`).join('')}</div><div id="bk-pick"></div>`;
+  let chosen = null;
+  sh.addEventListener('click', async e => {
+    const o = e.target.closest('[data-bk]');
+    if(o){ $$('[data-bk]', sh).forEach(x => x.setAttribute('aria-checked', x === o)); $('#bk-pick', sh).innerHTML = '<p class="note">Abriendo la copia…</p>';
+      const { data:row, error:e2 } = await nube.sb.from('tbr_backups').select('data').eq('id', +o.dataset.bk).maybeSingle();
+      if(e2 || !row || !row.data || !Array.isArray(row.data.books)){ $('#bk-pick', sh).innerHTML = '<p class="note">No se ha podido abrir esta copia.</p>'; return; }
+      chosen = row.data; const n = chosen.books.filter(b => !b.ejemplo).length;
+      $('#bk-pick', sh).innerHTML = `<div class="notice">Copia con ${n} ${n === 1 ? 'libro' : 'libros'} y ${chosen.units.length} estanterías. Tienes ${state.books.filter(b => !b.ejemplo).length} ahora.</div>
+        <div class="actions" style="margin-top:8px"><button class="btn danger" type="button" data-do="bkrestore">Volver a esta copia</button></div>`; return; }
+    const r = e.target.closest('[data-do="bkrestore"]'); if(!r || !chosen) return;
+    if(!confirmTap(r, 'Volver a esta copia')) return;
+    await closeSheet(); await restoreBackup(chosen);
+  });
+}
+/* Vuelve a una copia: lo de la copia pasa a ser lo más reciente (gana a la nube) y lo que no estaba en ella se borra */
+async function restoreBackup(data){
+  const now = Date.now(), d = JSON.parse(JSON.stringify(data));
+  d.books.forEach(b => b.upd = now); d.units.forEach(u => u.upd = now); d.metaUpd = now; d.deleted = {};
+  delete d.fresh; clearTimeout(saveT);
+  state = migrate(fixOrphans(d)); state.seriesStyle = state.seriesStyle || {};
+  syncStamp(); writeState(); ui.active = 0; applyTheme(); renderAll();
+  while(nube.busy) await new Promise(r => setTimeout(r, 200));
+  nube.allowBigDelete = true; const ok = await syncNow(true);
+  toast(ok ? 'Colección recuperada de la copia' : 'Copia recuperada en este dispositivo; se subirá a la nube en cuanto se pueda');
 }
 
 /* ---------- Cuenta ---------- */
@@ -186,7 +246,7 @@ function cloudSecHtml(){
     <div class="actions"><button class="btn primary" type="button" data-cloud="login">Entrar con Google</button></div>`;
   const st = nube.busy ? 'Sincronizando…' : nube.err ? nube.err + ' · se reintentará solo' : nube.last ? 'Sincronizado ' + ago(nube.last) : 'Pendiente de sincronizar';
   return `<div class="notice cloud-st${nube.err ? ' bad' : ''}"><b>${esc(nube.user.email || 'Cuenta de Google')}</b><br><span id="cloud-st">${esc(st)}</span></div>
-    <div class="actions"><button class="btn" type="button" data-cloud="sync">Sincronizar ahora</button><button class="btn" type="button" data-cloud="logout">Cerrar sesión</button></div>`;
+    <div class="actions"><button class="btn" type="button" data-cloud="sync">Sincronizar ahora</button><button class="btn" type="button" data-cloud="backups">Copias de la nube</button><button class="btn" type="button" data-cloud="logout">Cerrar sesión</button></div>`;
 }
 function updateCloudUi(){
   const sec = document.getElementById('cloud-sec'); if(sec) sec.innerHTML = cloudSecHtml();
@@ -200,6 +260,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-cloud]'); if(!b) return; const a = b.dataset.cloud;
   if(a === 'login') cloudLogin();
   else if(a === 'logout') cloudLogout();
+  else if(a === 'backups') openBackups();
   else if(a === 'sync'){ const ok = await syncNow(true); if(ok) toast('Colección sincronizada'); }
   else if(a === 'hide'){ try{ localStorage.setItem(BANNER_KEY, 'no'); }catch(err){} updateCloudUi(); }
 });

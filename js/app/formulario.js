@@ -86,13 +86,16 @@ function openBookForm({ book, item }){
     const ctx = shelfRuns(list).get(d.id); state.seriesStyle = saved; return ctx;
   }
   /* Tomos de la serie: los que ya tienes, este y los que faltan (según Hardcover) con casilla para añadirlos al guardar */
-  const addVols = new Set(); let volsFor = '', volsSt = '';
+  // La búsqueda de tomos espera a que termines de escribir el nombre de la serie (antes se lanzaba con cada letra)
+  const addVols = new Set(); let volsFor = '', volsSt = '', volsT = 0, volsTyping = false;
   function drawVols(){
     const el = q('#f-vols'); if(!el) return; const has = d.series && d.series.name;
     if(!has){ el.innerHTML = ''; return; }
     const k = norm(d.series.name), remote = (seriesCache[k] || {}).data;
-    if(!remote && volsFor !== k){ volsFor = k; volsSt = 'busy';
-      fetchSeriesData(d.series.name, d.origTitle || d.title, d.author).then(r => { volsSt = ''; if(r && r.total && !d.series.total){ d.series.total = r.total; q('#f-st').value = r.total; } drawVols(); }).catch(() => { volsSt = 'error'; drawVols(); }); }
+    if(!remote && volsFor !== k){ volsFor = k; volsSt = 'busy'; clearTimeout(volsT);
+      volsT = setTimeout(() => { if(!d.series || norm(d.series.name) !== k) return; const name = d.series.name;
+        fetchSeriesData(name, d.origTitle || d.title, d.author).then(r => { if(!d.series || norm(d.series.name) !== k) return; volsSt = ''; if(r && r.total && !d.series.total){ d.series.total = r.total; q('#f-st').value = r.total; } drawVols(); })
+          .catch(() => { if(volsFor === k){ volsSt = 'error'; drawVols(); } }); }, volsTyping ? SERIES_WAIT : 0); }
     const mine = seriesMembers(state, k).filter(b => b.id !== d.id), total = Math.max(+d.series.total || 0, remote ? remote.total || 0 : 0, ...mine.map(b => +b.series.n || 0), +d.series.n || 0);
     const rows = []; for(let n = 1; n <= total; n++){
       const own = mine.find(b => +b.series.n === n), r = remote && remote.books.find(x => x.main && x.n === n);
@@ -160,7 +163,7 @@ function openBookForm({ book, item }){
   sh.addEventListener('input', e => {
     const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine(); }
     const id = e.target.id;
-    if(id === 'f-sname' || id === 'f-sn' || id === 'f-st'){
+    if(id === 'f-sname' || id === 'f-sn' || id === 'f-st'){ if(id === 'f-sname') volsTyping = true;
       const name = q('#f-sname').value.trim();
       if(!name){ d.series = null; serStyle = {}; }
       else { const prevName = d.series && d.series.name; d.series = { name, n:+q('#f-sn').value || '', total:+q('#f-st').value || '' };
@@ -299,6 +302,7 @@ function openBookForm({ book, item }){
       if(d.series.total) state.books.forEach(b => { if(serKey(b) === k) b.series.total = d.series.total; }); }
     else d.series = null;
     if(isNew){ state.books.push(d); }
+    else { const old = bookOf(d.id); if(old.shelfId !== d.shelfId){ const o = shelfOf(old.shelfId); o && (o.s.order = o.s.order.filter(x => x !== d.id)); } Object.assign(old, d); }
     // Tomos marcados para añadir: con lo básico ahora y el resto en segundo plano
     const newVols = [];
     if(d.series && d.series.name && addVols.size){ const k = norm(d.series.name), remote = (seriesCache[k] || {}).data;
@@ -306,8 +310,7 @@ function openBookForm({ book, item }){
         const nb = { ...newDraft(null).draft, title:r.title, author:d.author, year:r.year || '', pages:r.pages || '', cover:r.cover || '', series:{ name:d.series.name, n, total:d.series.total || remote.total || '' },
           langs:[...d.langs], tags:[...d.tags], unitId:d.unitId, shelfId:d.shelfId, addedAt:Date.now() + n, useEs:!!d.origTitle };
         state.books.push(nb); newVols.push(nb.id); }); }
-    else { const old = bookOf(d.id); if(old.shelfId !== d.shelfId){ const o = shelfOf(old.shelfId); o && (o.s.order = o.s.order.filter(x => x !== d.id)); } Object.assign(old, d); }
-    { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ d.coverPal = coverTrios.slice(0, 3); d.coverPalSrc = src; } }
+    { const src = d.coverData || d.cover || d.cover2 || ''; if(src && src === coverTriosSrc && coverTrios){ const t = bookOf(d.id) || d; t.coverPal = coverTrios.slice(0, 3); t.coverPalSrc = src; } }
     ui.lastShelf = d.shelfId; save(); setTimeout(() => typeof refreshCoverPals === 'function' && refreshCoverPals(), 800);
     const idx = state.units.findIndex(u => u.id === d.unitId); if(idx >= 0) ui.active = idx;
     renderAll(); await closeSheet(); if(isNew && ui.view !== 'shelves') showView('shelves'); goTo(ui.active); flash(d.id);

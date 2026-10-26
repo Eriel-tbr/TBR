@@ -44,7 +44,7 @@ function audioHtml(b, st){
       <a class="chip" href="https://www.google.com/search?q=${enc('site:storytel.com ' + q)}" target="_blank" rel="noopener">Storytel ↗</a></div>
     <p class="note">«¿Dramatizado?» es solo una sospecha por el título: márcalo tú.</p></div>`;
 }
-const audioBusy = new Set(), seriesBusy = new Set();
+const audioBusy = new Set(), seriesBusy = new Set(), xSt = {}; // xSt[id] = { a, s }: estado de la búsqueda de audiolibro y de serie
 async function loadAudio(id, paint){
   const b = bookOf(id); if(!b || audioBusy.has(id)) return; audioBusy.add(id);
   const { t, es } = titlesOf(b);
@@ -62,7 +62,7 @@ async function loadAudio(id, paint){
 }
 
 /* ---------- Serie completa ---------- */
-const SERIES_KEY = 'tbr.series.v1', SERIES_TTL = 14 * 86400000;
+const SERIES_KEY = 'tbr.series.v1', SERIES_TTL = 14 * 86400000, SERIES_WAIT = 800; // ms sin escribir antes de buscar los tomos
 const seriesCache = (() => { try{ return JSON.parse(localStorage.getItem(SERIES_KEY)) || {}; }catch(e){ return {}; } })();
 const saveSeriesCache = () => { try{ localStorage.setItem(SERIES_KEY, JSON.stringify(seriesCache)); }catch(e){} };
 function seriesHtml(b, st){
@@ -135,16 +135,20 @@ function addVolume(b, n){
 function fichaExtras(sh, id){
   const b = bookOf(id); if(!b) return;
   // Serie en su pestaña (si la hay); audiolibro y tiendas en «Ediciones»
-  const box = $('#dextra', sh), shop = $('#dshop', sh); if(!shop) return;
-  let aSt = '', sSt = '';
-  const paint = () => { const cur = bookOf(id); if(!cur || !shop.isConnected) return; if(box) box.innerHTML = seriesHtml(cur, sSt); shop.innerHTML = audioHtml(cur, aSt) + storeLinksHtml(cur); };
+  // La ficha se redibuja al tocar estrellas o cambiar el estado: lo que está cargando se guarda fuera (xSt) y se pinta
+  // siempre en los paneles que haya en ese momento (antes los resultados iban a los paneles viejos y la sección quedaba en blanco)
+  const st = xSt[id] = xSt[id] || { a:'', s:'' };
+  const paint = () => { const cur = bookOf(id), shop = $('#dshop', sh), box = $('#dextra', sh); if(!cur || !shop) return; if(box) box.innerHTML = seriesHtml(cur, st.s); shop.innerHTML = audioHtml(cur, st.a) + storeLinksHtml(cur); };
+  st.paint = paint; // la ficha abierta más reciente es la que recibe los resultados
+  const setA = v => { st.a = v; st.paint(); }, setS = v => { st.s = v; st.paint(); };
   paint();
-  if(!b.audio || Date.now() - (b.audio.at || 0) > AUDIO_TTL) loadAudio(id, s => { aSt = s; paint(); });
-  const sc = b.series && seriesCache[serKey(b)]; if(sc && Date.now() - sc.at > SERIES_TTL) loadSeries(id, s => { sSt = s; paint(); });
+  if((!b.audio || Date.now() - (b.audio.at || 0) > AUDIO_TTL) && !audioBusy.has(id)) loadAudio(id, setA);
+  const sc = b.series && seriesCache[serKey(b)]; if(sc && Date.now() - sc.at > SERIES_TTL) loadSeries(id, setS);
+  const box = $('#dextra', sh), shop = $('#dshop', sh); if(!shop) return;
   const onClick = async e => {
     const g = s => e.target.closest(s), cur = bookOf(id); if(!cur) return;
-    if(g('[data-xdo="audio"]')) loadAudio(id, s => { aSt = s; paint(); });
-    else if(g('[data-xdo="serie"]')) loadSeries(id, s => { sSt = s; paint(); });
+    if(g('[data-xdo="audio"]')) loadAudio(id, setA);
+    else if(g('[data-xdo="serie"]')) loadSeries(id, setS);
     else if(g('[data-addvol]')){ const n = +g('[data-addvol]').dataset.addvol; await closeSheet(); addVolume(cur, n); }
     else if(g('[data-open-book]')){ const o = g('[data-open-book]').dataset.openBook; if(o !== id){ await closeSheet(); openDetail(o); } }
   };

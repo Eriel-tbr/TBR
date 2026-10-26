@@ -98,7 +98,7 @@ function cabinetHtml(u, i){
     <div class="base"><div class="b1"></div><div class="b2"></div><div class="b3"></div></div></div></div></section>`;
 }
 function renderHeader(){
-  const yr = new Date().getFullYear(), pend = state.books.filter(b => b.status !== 'leido').length;
+  const yr = new Date().getFullYear(), pend = state.books.filter(b => (b.status || 'pendiente') === 'pendiente').length; // igual que en Estadísticas
   const read = state.books.filter(b => b.status === 'leido' && b.readAt && new Date(b.readAt).getFullYear() === yr).length;
   $('#stats').innerHTML = `<b>${pend}</b> pendientes · <b>${read}</b> leídos en ${yr}`;
   const nb = state.books.find(b => b.next);

@@ -3,13 +3,15 @@
 (function(){
   const S = () => { try{ return JSON.parse(localStorage.getItem('mock.session')); }catch(e){ return null; } };
   const cbs = [];
-  function from(){
-    const q = { eq:{} }, b = {
-      select(){ return b; }, eq(k, v){ q.eq[k] = v; return b; },
-      maybeSingle(){ return window.mockDb('get').then(r => ({ data:r ? { data:r.data, rev:r.rev } : null, error:null })); },
+  function from(table){
+    const q = { eq:{}, table }, b = {
+      select(){ return b; }, eq(k, v){ q.eq[k] = v; return b; }, order(){ return b; }, limit(){ return b; },
+      maybeSingle(){ if(table === 'tbr_backups') return window.mockDb('backup', q.eq.id).then(r => ({ data:r ? { data:r.data } : null, error:null }));
+        return window.mockDb('get').then(r => ({ data:r ? { data:r.data, rev:r.rev } : null, error:null })); },
       insert(o){ return window.mockDb('insert', o).then(err => ({ error:err })); },
       update(o){ q.upd = o; return b; },
-      then(res, rej){ return window.mockDb('update', { data:q.upd.data, rev:q.upd.rev, expect:q.eq.rev }).then(d => ({ data:d, error:null })).then(res, rej); }
+      then(res, rej){ if(table === 'tbr_backups') return window.mockDb('backups').then(d => ({ data:d, error:null })).then(res, rej);
+        return window.mockDb('update', { data:q.upd.data, rev:q.upd.rev, expect:q.eq.rev }).then(d => ({ data:d, error:null })).then(res, rej); }
     };
     return b;
   }

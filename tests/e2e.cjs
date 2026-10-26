@@ -31,15 +31,15 @@ function fakeOwnApi(route){
   if(u.pathname === '/api/b2d') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:/quicksilver/i.test(u.searchParams.get('q')) ? [
     { title:'Quicksilver', full:'Quicksilver by Callie Hart - Special Edition Sprayed Edges', price:'£22.00', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/qs', isbn:'', fmt:'especial', author:'Callie Hart' },
     { title:'Quicksilver', full:'Quicksilver by Callie Hart', price:'£9.99', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/9781399741',  isbn:'', fmt:'', author:'Callie Hart' }] : [] }) });
-  if(u.pathname === '/api/audio') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[
+  if(u.pathname === '/api/audio') return new Promise(r => setTimeout(r, audioDelay)).then(() => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[
     { id:'a1', src:'apple', store:'Apple Books', country:'es', title:'El rey malvado', lang:'es', url:'https://books.apple.com/x', price:'18.99 EUR' },
-    { id:'h1', src:'hardcover', store:'Hardcover', title:'The Wicked King', lang:'en', seconds:36000, narrators:['Caitlin Kelly'], drama:true }] }) });
+    { id:'h1', src:'hardcover', store:'Hardcover', title:'The Wicked King', lang:'en', seconds:36000, narrators:['Caitlin Kelly'], drama:true }] }) }));
   if(u.pathname === '/api/serie') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ name:'The Folk of the Air', total:4, url:'https://hardcover.app/series/x',
     books:[{ n:1, main:true, title:'The Cruel Prince', year:2018 }, { n:2, main:true, title:'The Wicked King', year:2019 }, { n:3, main:true, title:'The Queen of Nothing', year:2019 }, { n:3.5, main:false, title:'How the King of Elfhame Learned to Hate Stories', year:2020 }, { n:4, main:true, title:'The Stolen Heir', year:2023, pages:350 }] }) });
   if(u.pathname === '/api/portada') return route.fulfill({ status:200, contentType:'image/png', headers:{ 'access-control-allow-origin':'*' }, body:PNG });
   return route.fulfill({ status:404, body:'' });
 }
-let googleDown = false;
+let googleDown = false, audioDelay = 0;
 function fakeApis(route){
   const u = route.request().url(), json = b => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(b) });
   if(u.includes('googleapis.com/books')) return googleDown ? route.fulfill({ status:429, body:'{}' }) : json(GB(u.includes('langRestrict=es')));
@@ -55,13 +55,15 @@ function fakeApis(route){
 
 /* ---- nube simulada ---- */
 const MOCK_SB = fs.readFileSync(path.join(__dirname, 'mock-supabase.js'), 'utf8');
-const db = { row:null, files:[] };
+const db = { row:null, files:[], backups:[] };
 function mockDb(src, op, arg){
   const clone = x => JSON.parse(JSON.stringify(x));
   if(op === 'get') return db.row && clone(db.row);
   if(op === 'insert'){ if(db.row) return { code:'23505' }; db.row = clone(arg); return null; }
   if(op === 'update'){ if(!db.row || db.row.rev !== arg.expect) return []; db.row = { ...db.row, data:clone(arg.data), rev:arg.rev }; return [{ rev:arg.rev }]; }
   if(op === 'upload'){ db.files.push(arg); return null; }
+  if(op === 'backups') return db.backups.map(x => ({ id:x.id, created_at:x.created_at })).reverse();
+  if(op === 'backup'){ const x = db.backups.find(y => y.id === arg); return x && clone(x); }
 }
 async function newDevice(browser, { cdn = true } = {}){
   const c = await browser.newContext({ viewport:{ width:390, height:844 }, deviceScaleFactor:2, serviceWorkers:'block' });
@@ -363,6 +365,24 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(nb && /Stolen Heir/.test(nb.title) && nb.unitId, JSON.stringify(nb && { t:nb.title, s:nb.series }));
     await ev(id => { state.books = state.books.filter(b => b.id !== id); save(); renderAll(); }, nb.id);
   });
+  await test('editar un libro y marcar tomos que faltan guarda también los cambios del libro', async () => {
+    const id = await ev(() => state.books.find(b => b.title === 'The Cruel Prince').id);
+    await ev(id => openBookForm({ book:bookOf(id) }), id); await page.fill('#f-pages', '999');
+    await tab('serie'); await page.waitForSelector('#f-vols [data-vol="4"]', { state:'attached', timeout:8000 }); await page.check('#f-vols [data-vol="4"]');
+    await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });
+    const r = await ev(id => ({ pages:bookOf(id).pages, vol:(state.books.find(b => b.series && b.series.name === 'The Folk of the Air' && +b.series.n === 4) || {}).id }), id);
+    assert(r.pages === 999 && r.vol, JSON.stringify(r));
+    await ev(([id, v]) => { bookOf(id).pages = 380; state.books = state.books.filter(b => b.id !== v); save(); renderAll(); }, [id, r.vol]);
+  });
+  await test('el nombre de la serie se busca al terminar de escribir, no con cada letra', async () => {
+    const calls = []; const on = r => { if(r.url().includes('/api/serie')) calls.push(new URL(r.url()).searchParams.get('s')); }; page.on('request', on);
+    await ev(() => openBookForm({ item:null })); await page.fill('#f-title', 'Prueba de serie'); await tab('serie');
+    await page.click('#f-sname'); await page.keyboard.type('Throne of Glass', { delay:70 }); await page.waitForTimeout(1600);
+    page.off('request', on);
+    assert(calls.length === 1 && calls[0] === 'Throne of Glass', calls.join(' | '));
+    assert(await ev(() => !Object.keys(JSON.parse(localStorage.getItem('tbr.series.v1') || '{}')).some(k => k === 'th' || k === 'thr')), 'caché con nombres a medias');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
   await test('Ajustes sin plegables, estadísticas en Lectura y menos diseños de mueble', async () => {
     await page.click('#btnSettings'); const n = await page.locator('.sheet details').count(); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     assert(n === 0, 'plegables en Ajustes: ' + n);
@@ -443,6 +463,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await ev(() => { window.__set = Storage.prototype.setItem; Storage.prototype.setItem = function(k, v){ if(k === 'tbr.v1') throw new DOMException('cuota', 'QuotaExceededError'); return window.__set.call(this, k, v); }; state.books[0].notes = 'prueba guardado'; save(); });
     await page.waitForSelector('[data-do="retrysave"]', { timeout:4000 });
     const t = await page.locator('.sheet').last().innerText(); assert(/QuotaExceededError/.test(t) && /KB/.test(t), t);
+    assert(await ev(() => !!localStorage.getItem('tbr.v1')), 'al fallar se borró la copia guardada');
     await ev(() => { Storage.prototype.setItem = window.__set; }); await page.click('[data-do="retrysave"]'); await page.waitForSelector('[data-do="retrysave"]', { state:'detached' });
     assert(await ev(() => JSON.parse(localStorage.getItem('tbr.v1')).books[0].notes === 'prueba guardado'), 'no se guardó al reintentar');
   });
@@ -466,6 +487,41 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   await test('libro al azar con filtro de saga', async () => {
     await page.click('#btnRandom'); await page.click('[data-kd="saga"]'); await page.waitForTimeout(200);
     const t = await page.locator('#r-card').innerText(); assert(t.length > 0, 'vacío'); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+  });
+  await test('borrar una balda conserva el orden manual de la balda que recibe sus libros', async () => {
+    const r0 = await ev(() => { const u = state.units.find(x => x.preset === 'romantasy'), fae = u.shelves[0]; u.sort = 'manual';
+      u.shelves.forEach(s => s.order = sortedBooks(s).map(b => b.id)); fae.order.reverse(); save(); renderAll(); goTo(state.units.indexOf(u), false); return { id:u.id, order:[...fae.order], drop:u.shelves[1].id }; });
+    await page.waitForTimeout(300); await page.click(`.slide[data-unit="${r0.id}"] .crown-hit`); await page.waitForSelector('#u-save');
+    await page.click(`.shelf-edit[data-sid="${r0.drop}"] [data-delshelf]`); await page.click(`.shelf-edit[data-sid="${r0.drop}"] [data-delshelf]`); await page.click('#u-save'); await page.waitForSelector('.sheet', { state:'detached' });
+    const after = await ev(id => unitOf(id).shelves[0].order, r0.id);
+    assert(after.slice(0, r0.order.length).join() === r0.order.join(), JSON.stringify({ antes:r0.order, despues:after }));
+    await ev(() => goTo(0, false));
+  });
+  await test('la cabecera y Estadísticas cuentan igual los pendientes', async () => {
+    const r = await ev(() => ({ head:+document.querySelector('#stats b').textContent, stats:+statsHtml().match(/Pendientes<\/dt><dd>(\d+)/)[1], n:state.books.filter(b => (b.status || 'pendiente') === 'pendiente').length }));
+    assert(r.head === r.stats && r.head === r.n, JSON.stringify(r));
+  });
+  await test('buscar encuentra por nombre de serie y por título original', async () => {
+    await page.click('#btnFilter'); await page.fill('#q-text', 'folk of the air'); await page.click('#q-apply'); await page.waitForSelector('.sheet', { state:'detached' });
+    const t = await page.locator('#filterbar').innerText(), n = await ev(() => state.books.filter(b => b.series && /folk of the air/i.test(b.series.name)).length);
+    assert(n >= 3 && new RegExp('^' + n + ' libros').test(t), t);
+    assert(await ev(() => matches({ title:'El rey malvado', origTitle:'The Wicked King', author:'Holly Black' }, { q:'wicked', status:'', lang:'', tags:[], len:'' })), 'título original');
+    await ev(() => { ui.filters = { q:'', status:'', lang:'', tags:[], len:'' }; renderAll(); });
+  });
+  await test('el aviso de balda vacía se lee entero (no lo tapa el parteluz)', async () => {
+    await ev(() => { ui.filters.q = 'zzzz no existe'; renderAll(); goTo(0, false); }); await page.waitForTimeout(300);
+    const r = await ev(() => { const h = document.querySelector('.slide[data-i="0"] .empty-hint'); h.style.pointerEvents = 'auto'; h.scrollIntoView({ block:'center' });
+      const b = h.getBoundingClientRect(), y = b.top + b.height / 2, hit = x => !!(document.elementFromPoint(x, y) || { closest:() => null }).closest('.empty-hint');
+      const out = { l:hit(b.left + 4), c:hit(b.left + b.width / 2), r:hit(b.right - 4) }; h.style.pointerEvents = ''; return out; });
+    await ev(() => { ui.filters.q = ''; renderAll(); });
+    assert(r.l && r.c && r.r, JSON.stringify(r));
+  });
+  await test('ficha: si se redibuja mientras busca el audiolibro, los resultados aparecen igual', async () => {
+    audioDelay = 900; const id = await ev(() => { const b = state.books.find(x => x.title === 'Dune'); delete b.audio; b.status = 'pendiente'; return b.id; });
+    await ev(id => openDetail(id), id); await page.click('.sheet [data-do="start"]'); await tab('comprar');
+    await page.waitForSelector('#d-audio .aud', { timeout:5000 }); audioDelay = 0;
+    assert(await page.locator('#d-audio .aud').count() === 2, 'sin resultados');
+    await ev(id => { bookOf(id).status = 'pendiente'; save(); }, id); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
   await test('guardar copia descarga un JSON válido', async () => {
     await page.click('#btnSettings'); await unfold(); const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-do="export"]')]);
@@ -526,6 +582,35 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(r.u === db.row.data.units.length && r.u === 6, 'estanterías ' + r.u);
     assert(new Set(r.titles).size === r.titles.length, 'libros repetidos: ' + r.titles.join(', '));
     assert(await p3.locator('#cloudban:not([hidden])').count() === 0, 'el aviso sigue');
+  });
+  await test('si este móvil pierde su colección, no borra la de la nube (la recupera de ella)', async () => {
+    await ev(() => syncNow(true)); const before = db.row.data.books.map(b => b.id).sort().join();
+    await ev(() => localStorage.removeItem('tbr.v1')); await page.reload(); await page.waitForSelector('.slide .bk');
+    await until(() => ev(n => state.books.length === n && !state.books.some(b => b.ejemplo && !b.upd && !b.title), db.row.data.books.length), 8000, 'no recuperó la colección');
+    await page.waitForTimeout(800); await ev(() => syncNow(true));
+    const after = db.row.data.books.map(b => b.id).sort().join(), local = await ev(() => state.books.map(b => b.id).sort().join());
+    assert(after === before, 'la nube cambió: ' + db.row.data.books.length + ' libros, ' + Object.keys(db.row.data.deleted || {}).length + ' borrados');
+    assert(local === before, 'este móvil no recuperó la colección');
+  });
+  await test('borrar muchos libros de golpe pregunta antes de tocar la nube', async () => {
+    await ev(() => { state.books.forEach(b => delete b.ejemplo); save(); }); await page.waitForTimeout(300); await ev(() => syncNow(true));
+    const all = db.row.data.books.map(b => b.id), drop = all.slice(0, Math.ceil(all.length / 2));
+    db.backups.push({ id:1, created_at:new Date(Date.now() - 86400000).toISOString(), data:JSON.parse(JSON.stringify(db.row.data)) });
+    const del = () => ev(ids => { state.books = state.books.filter(b => !ids.includes(b.id)); save(); setTimeout(() => syncNow(), 200); }, drop);
+    await del(); await page.waitForSelector('[data-big="keep"]', { timeout:6000 }); await page.click('[data-big="keep"]');
+    await until(() => ev(n => state.books.length === n, all.length), 6000, 'no recuperó los libros');
+    assert(db.row.data.books.length === all.length, 'la nube perdió libros');
+    await del(); await page.waitForSelector('[data-big="del"]', { timeout:6000 }); await page.click('[data-big="del"]');
+    await until(() => db.row.data.books.length === all.length - drop.length, 6000, 'no se borraron al confirmar');
+  });
+  await test('Ajustes → Copias de la nube: volver a una copia recupera los libros', async () => {
+    const n = db.backups[0].data.books.length;
+    await page.click('#btnSettings'); await page.click('[data-cloud="backups"]'); await page.click('[data-bk="1"]'); await page.waitForSelector('[data-do="bkrestore"]');
+    assert(new RegExp(n + ' libros').test(await page.locator('#bk-pick').innerText()), 'resumen de la copia');
+    await page.click('[data-do="bkrestore"]'); await page.click('[data-do="bkrestore"]');
+    await until(() => db.row.data.books.length === n, 8000, 'la nube no recuperó la copia');
+    assert(await ev(n => state.books.length === n, n), 'este móvil no recuperó la copia');
+    while(await ev(() => sheets.length)){ await ev(() => closeSheet()); await page.waitForTimeout(400); }
   });
   await test('cerrar sesión deja los libros en el móvil', async () => {
     await dev2.p.evaluate(() => syncNow(true)); const n = await dev2.p.evaluate(() => state.books.length); await dev2.p.evaluate(() => cloudLogout()); await dev2.p.waitForTimeout(300);

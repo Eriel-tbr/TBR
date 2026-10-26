@@ -91,10 +91,9 @@ function writeState(){
   try{ localStorage.setItem(KEY, json); saveFailShown = false; return true; }
   catch(e1){
     try{ CACHE_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.setItem(KEY, json); saveFailShown = false; return true; } // sin cachés
-    catch(e2){
-      try{ localStorage.removeItem(KEY); localStorage.setItem(KEY, json); saveFailShown = false; return true; } // a veces el navegador no deja sobrescribir pero sí escribir de nuevo
-      catch(e3){ if(!saveFailShown){ saveFailShown = true; showSaveFail(e3); } return false; }
-    }
+    // Nunca se borra la copia guardada para «hacer sitio»: si la nueva tampoco cabe, se perdería todo (y al volver a abrir,
+    // la app arrancaría con los ejemplos). Lo guardado antes se queda tal cual hasta que se pueda escribir.
+    catch(e2){ if(!saveFailShown){ saveFailShown = true; showSaveFail(e2); } return false; }
   }
 }
 async function showSaveFail(err){
@@ -154,7 +153,7 @@ function groupSeries(arr){
 function filtersActive(){ const f = ui.filters; return !!(f.q || f.status || f.lang || f.tags.length || f.len); }
 function langKind(b){ const l = b.langs || []; return l.length === 2 ? 'both' : l[0] === 'es' ? 'es' : l[0] === 'en' ? 'en' : ''; }
 function matches(b, f = ui.filters){
-  if(f.q && !norm([b.title, b.author, (b.tags || []).join(' '), b.notes].join(' ')).includes(norm(f.q))) return false;
+  if(f.q && !norm([b.title, b.origTitle, b.esTitle, b.series && b.series.name, b.author, (b.tags || []).join(' '), b.notes].filter(Boolean).join(' ')).includes(norm(f.q))) return false; // también serie y título original
   if(f.status && (b.status || 'pendiente') !== f.status) return false;
   if(f.lang && langKind(b) !== f.lang) return false;
   if(f.tags && f.tags.length && !f.tags.every(t => (b.tags || []).includes(t))) return false;

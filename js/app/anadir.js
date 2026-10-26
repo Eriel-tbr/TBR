@@ -25,7 +25,7 @@ async function runSearch(q){
     drawResults(res, true);
   }catch(e){ if(e.name !== 'AbortError') suggestMsg('No se pudo consultar internet. Puedes añadirlo a mano.', true); }
 }
-addInput.addEventListener('input', () => { clearTimeout(sTimer); const q = addInput.value.trim(); if(q.length < 3){ hideSuggest(); return; } sTimer = setTimeout(() => runSearch(q), 350); });
+addInput.addEventListener('input', () => { clearTimeout(sTimer); const q = addInput.value.trim(); if(q.length < 3){ hideSuggest(); return; } sTimer = setTimeout(() => runSearch(q), 600); }); // espera a que termines de escribir
 addInput.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(sTimer); const q = addInput.value.trim(); if(q.length >= 2) runSearch(q); } });
 $('#suggest').addEventListener('click', async e => {
   const p = e.target.closest('[data-pick]'), m = e.target.closest('[data-manual]');
