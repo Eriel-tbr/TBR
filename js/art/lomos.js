@@ -48,9 +48,9 @@ function hillsP(T, h, top, bot, r, step){
   for(let i = 1; i < pts.length; i++){ const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; p += `Q${r1(x0)} ${r1(y0)} ${r1((x0 + x1) / 2)} ${r1((y0 + y1) / 2)}`; }
   const L = pts[pts.length - 1]; return p + `L${r1(L[0])} ${r1(L[1])}L${r1(L[0])} ${h}Z`;
 }
-/* Dragón volando hacia la derecha (caja de 0 a 114 × 0 a 61): cuerpo, cuello, cabeza con cuerno, cola con punta, dos alas de murciélago y patas.
+/* Dragón con las alas abiertas, visto desde abajo (caja de 0 a 139 × 12 a 108): alas de murciélago con espolón, cabeza con cuernos, patas con garras y cola enroscada.
    Cada pieza va en su propio <path> (si van juntas, donde se solapan con sentido contrario queda un hueco) */
-const DRAGON_P = 'M40 46C42 38 70 36 78 41C80 46 72 53 58 53C48 53 40 51 40 46ZM74 42C80 40 84 34 88 29C90 26 92 24 95 24L96 28C93 28 91 30 89 33C85 39 82 44 77 47ZM92 25C95 20 100 19 104 21L113 24L112 26.5L104 27.5C100 29 96 29 93 28ZM97 21L91 14L99 20ZM48 43C36 44 24 44 15 41C10 39 7 36 8 32C9 37 12 40 16 43C24 47 34 49 48 50ZM8 32L3 30L7 26L11 31ZM64 40C62 30 60 22 58 15L40 3Q42 9 38 13Q43 16 40 22Q46 24 45 30Q50 32 50 38ZM66 39C68 31 71 24 74 18L90 7Q87 12 89 16Q83 17 84 22Q78 23 78 28Q73 29 72 38ZM70 49C70 54 72 57 76 58L77 60L71 59C68 56 67 52 66 50ZM50 51C49 55 50 58 53 60L48 61C45 58 45 54 46 51Z';
+const DRAGON_P = 'M62 46C50 44 38 43 26 44L22 40L22.5 45C15 49 8 54 1 60Q6.6 54.5 13 59Q17.2 52.7 24 56Q29.6 50.5 36 55Q41.2 49.1 48 53Q55.7 49.1 62 55ZM64 43C77 35 91 25 104 18L105 12L108 17C117 18 127 19 139 21Q128.9 22.1 127 32Q117.6 29.5 113 38Q103.4 36.9 100 46Q91.0 44.3 88 53Q80.1 49.3 76 57ZM74 68C80 74 88 80 94 88C99 94 101 101 97 105C93 108 88 106 88 102C88 99 91 98 92 100C93 102 91 103 90 102C91 105 95 105 96 102C98 98 95 92 90 87C84 81 78 76 72 71ZM58 44C55 40 53 36 52 32L57 31C58 35 61 39 66 41C71 44 74 50 76 56C78 61 78 66 76 70C72 70 69 66 67 62C64 56 61 50 58 44ZM53 33C49 34 45 36 41 36L38 34.5L43 33L39 32C43 29 47 27 51 27L54 17L55.5 26L60 19.5L58 28C57 30 55 32 53 33ZM56 35L54 37L57 37ZM59 38L57.5 40.5L60.5 40ZM62 50C60 55 58 61 57 66L53 70L56 70L57 68.5L57.5 71.5L59 68.5L61 70.5L60.5 66.5C61 61 63 56 65 52ZM72 64C72 68 73 72 76 75L73 79L76 79L77 77L78 80L79 77L81 78L79 74C77 71 76 67 76 63Z';
 function sagaScene(o, T, h){
   const r = rng(o.cont.seed), sk = sid(), mg = sid(), mx = T * .68, my = h * .56;
   let s = `<defs><linearGradient id="${sk}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.base}"/><stop offset=".45" stop-color="${o.base}"/><stop offset=".76" stop-color="${o.accent}"/><stop offset="1" stop-color="${o.sky2}"/></linearGradient>
@@ -77,7 +77,7 @@ function sagaScene(o, T, h){
     s += wave(h * .84, 1.8, 7, o.sil, 1.2) + wave(h * .92, 2.4, 10, darken(o.sil, .3), 2.5);
   } else if(o.saga === 'dragon'){
     s += `<path d="${hillsP(T, h, h * .62, h * .76, r, 26)}" fill="${o.sil2}"/><path d="${hillsP(T, h, h * .79, h * .9, r, 18)}" fill="${o.sil}"/>`;
-    const k = Math.min(T * .0042, .8); s += `<g fill="${o.sil}" transform="translate(${r1(T * .08)} ${r1(h * .45)}) scale(${r1(k * 100) / 100})">${DRAGON_P.split('Z').filter(Boolean).map(d => `<path d="${d}Z"/>`).join('')}</g>`;
+    const k = Math.min(T * .0042, .66); s += `<g fill="${o.sil}" transform="translate(${r1(T * .1)} ${r1(h * .44 - 11 * k)}) scale(${r1(k * 100) / 100})">${DRAGON_P.split('Z').filter(Boolean).map(d => `<path d="${d}Z"/>`).join('')}</g>`;
   } else { // bosque
     s += `<path d="${ridgeP(T, h, h * .64, h * .74, r, 22)}" fill="${mix(o.sil2, o.sky2, .35)}"/>`;
     for(let x = -2; x < T + 4; x += 3 + r() * 4) s += `<path d="${pineP(x, h * .82, h * (.1 + r() * .08))}" fill="${o.sil2}"/>`;

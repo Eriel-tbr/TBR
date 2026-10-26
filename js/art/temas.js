@@ -10,7 +10,7 @@ Object.assign(FONT, {
   sans:"'Karla','Inter',system-ui,sans-serif",
   pop:"'Poppins','Inter',system-ui,sans-serif"
 });
-const APP_FONTS = ["700 20px 'Cormorant Garamond'", "600 20px 'Lora'", "700 20px 'Lora'", "400 20px 'Parisienne'", "700 20px 'Josefin Sans'", "600 20px 'Josefin Sans'", "700 20px 'Poppins'", "600 20px 'Poppins'", "700 20px 'Cinzel'", "600 20px 'Cinzel'"];
+const APP_FONTS = ["700 20px 'Cormorant Garamond'", "600 20px 'Lora'", "700 20px 'Lora'", "400 20px 'Parisienne'", "700 20px 'Josefin Sans'", "600 20px 'Josefin Sans'", "700 20px 'Poppins'", "600 20px 'Poppins'", "700 20px 'Cinzel'", "600 20px 'Cinzel'", "700 20px 'Dancing Script'"];
 function loadAppFonts(){ if(!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.all(APP_FONTS.map(f => document.fonts.load(f).catch(() => {}))).then(() => {}); }
 
 /* ---------- Colores auxiliares ---------- */
@@ -36,13 +36,13 @@ const DECO_NAMES = { vidriera:'Vidriera', linterna:'Farol', buho:'Búho', calder
   lupa:'Lupa', expediente:'Expediente' };
 const THEMES = {
   gotico:{ cls:'t-got', name:'Gótico', P:26, mullion:true, overCrown:true, motif:'leaf', crown:n => crownGothic2(n), colors:C => C.fan,
-    styles:['grimorio','vidriera','daga','marco','escamas','filigrana','jaspeado','celestial'],
+    styles:['grimorio','vidriera','daga','marco','escamas','filigrana','jaspeado','celestial','bosque'],
     decor:['vidriera','linterna','buho','caldero','lavanda','libroab','vela','calavera','pocion','huevo','libros'],
     range:{ s:[.15,.65], l:[.1,.4] },
     pal:[['#5b1f2b','#d9b25f','#2a0c12'],['#1f4a3c','#d9b25f','#8fb36a'],['#2d3a5e','#c9d4ea','#7a9ab8'],['#3a2418','#d9b25f','#2a8a6a'],['#2b1b35','#d6b8ff','#9a6aea'],
       ['#14404a','#f0d28a','#5fb8b0'],['#6b4a1f','#f0d28a','#c86a3a'],['#3b0f16','#e8c877','#a8452f'],['#1b2a5e','#fbeed0','#c25a7a'],['#4a3a2a','#e8c877','#7a2a3a']] },
   rococo:{ cls:'t-roc', name:'Rococó', P:24, corners:true, motif:'rose', crown:n => crownRococo2(n), colors:C => C.rom,
-    styles:['romantico','floral','filigrana','marco','damasco','degradado','holo','escamas'],
+    styles:['romantico','floral','filigrana','marco','degradado','holo','escamas'],
     decor:['flores','taza','marco','cristal','vela','libros','planta'], range:{ s:[.2,.8], l:[.2,.85] },
     pal:[['#7a2342','#f0d28a','#e08aa8'],['#f0c4ca','#8a2a48','#d9647f'],['#5a2a6e','#f0d28a','#b89ac8'],['#e8a9b3','#7a1f3a','#c9566f'],['#1f4a4a','#f0d28a','#8ac8b8'],
       ['#a8325b','#fbe8c0','#f0a0b8'],['#3a2a5e','#d9c6f0','#c9a2e6'],['#b8606f','#f3d9a4','#fff0f4'],['#2e3a72','#f6e7c4','#d9647f']] },
@@ -50,16 +50,16 @@ const THEMES = {
     styles:['holo','celestial','degradado','escamas','marco','daga'], decor:['mano','holoplaneta','holocubo','adn','planeta','cohete','matraz','robot','satelite'], range:{ s:[.6,1], l:[.35,.75] },
     pal:[['#c45cff','#ffd400','#ff2fb8'],['#7a3cff','#ffe066','#ff5fa8'],['#ff2fb8','#ffd400','#c45cff'],['#5a2aa0','#7ae0ff','#ff2fb8'],['#c45cff','#7ae0ff','#ffd400']] },
   academia:{ cls:'t-aca', name:'Dark academia', P:24, motif:'key', crown:n => crownAcademia(n), colors:C => C.aca,
-    styles:['jaspeado','tela','grimorio','damasco','marco','mapa','filigrana'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
+    styles:['jaspeado','tela','grimorio','bosque','marco','mapa','filigrana'], decor:['globo','vela','libros','libroab','marco','planta','buho'], range:{ s:[.1,.55], l:[.08,.35] },
     pal:[['#4a1a1a','#d9b25f','#2a0c0c'],['#1f3a4a','#d9b25f','#7a9ab8'],['#2a3a2f','#e9dcc0','#6a8a5a'],['#3a2a1a','#d9b25f','#7a2a2a'],['#5b1f2b','#e8c877','#2a3a2f']] },
   moderno:{ cls:'t-con', name:'Moderno', P:16, motif:'leaf', crown:n => crownModern(n), colors:C => C.con,
     styles:['tela','degradado','holo','floral','marco','mapa'], decor:['planta','taza','lupa','marco','libros','expediente','flores'], range:{ s:[0,.6], l:[.35,.9] },
     pal:[['#d9764a','#22201d','#f1e6d8'],['#6a8a7a','#22201d','#d9764a'],['#e6c46a','#22201d','#6a8a7a'],['#9ab8d8','#22201d','#e08aa0'],['#22201d','#f1e6d8','#d9764a']] },
   romance:{ cls:'t-rmc', name:'Romance', P:20, motif:'rose', crown:n => crownRomance(n), colors:C => C.rmc,
-    styles:['romantico','floral','holo','degradado','damasco','marco'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
+    styles:['romantico','floral','holo','degradado','marco','tela'], decor:['flores','vela','taza','marco','cristal','planta'], range:{ s:[.25,.85], l:[.35,.88] },
     pal:[['#e07a95','#fff2dc','#a83a5a'],['#f4c6d0','#7a2a3a','#e0526f'],['#b84a6a','#ffe0a8','#fff0e6'],['#f0b48a','#7a2a3a','#e0526f'],['#9ab8d8','#4a2a5a','#e0a0c0']] },
   generico:{ cls:'t-gen', name:'Clásico', P:22, motif:'diamond', crown:null, colors:null,
-    styles:['marco','tela','jaspeado','grimorio','damasco','filigrana'], decor:['libros','planta','vela','taza','globo','marco'], range:{ s:[.1,.7], l:[.1,.5] }, pal:null }
+    styles:['marco','tela','jaspeado','grimorio','bosque','filigrana'], decor:['libros','planta','vela','taza','globo','marco'], range:{ s:[.1,.7], l:[.1,.5] }, pal:null }
 };
 const PRESET_THEME = { fantasia:'gotico', romantasy:'rococo', cienciaficcion:'chip', darkacademia:'academia', contemporanea:'moderno', romance:'romance' };
 const DECO_C = {

@@ -10,6 +10,7 @@
    saga: true = solo para un modo de serie (no sale en la lista de diseños). */
 
 FONT.cinzel = "'Cinzel','Cormorant Garamond',Georgia,serif";
+FONT.dancing = "'Dancing Script','Parisienne',cursive";
 let svid = 0; const sid = () => 'sv' + (++svid); // id únicos (en la página puede haber el mismo lomo con colores distintos)
 const svgW = (w, h, s) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="position:absolute;inset:0;display:block" aria-hidden="true">${s}</svg>`;
 const r1 = v => Math.round(v * 10) / 10;
@@ -43,12 +44,18 @@ function starP(cx, cy, R, ri, n = 8, rot = -90){
 /* Hoja (punta en (L, 0), base en el origen) con su nervio */
 const leafG = (x, y, ang, L, col, vein) => `<g transform="translate(${r1(x)} ${r1(y)}) rotate(${Math.round(ang)})"><path d="M0 0C${r1(L * .3)} ${r1(-L * .34)} ${r1(L * .72)} ${r1(-L * .3)} ${r1(L)} 0C${r1(L * .72)} ${r1(L * .3)} ${r1(L * .3)} ${r1(L * .34)} 0 0Z" fill="${col}"/><path d="M.6 0H${r1(L * .82)}" stroke="${vein}" stroke-width=".35"/></g>`;
 const heartP = (cx, cy, s) => `M${r1(cx)} ${r1(cy + s * .42)}C${r1(cx - s * .9)} ${r1(cy - s * .1)} ${r1(cx - s * .55)} ${r1(cy - s * .62)} ${r1(cx)} ${r1(cy - s * .25)}C${r1(cx + s * .55)} ${r1(cy - s * .62)} ${r1(cx + s * .9)} ${r1(cy - s * .1)} ${r1(cx)} ${r1(cy + s * .42)}Z`;
-/* Rosa vista desde arriba: cinco pétalos de fuera, el centro y una espiral */
-function roseG(cx, cy, r, col){
-  const e = darken(col, .3); let s = '';
-  for(let i = 0; i < 5; i++){ const a = (i * 72 - 90) * Math.PI / 180; s += `<circle cx="${r1(cx + Math.cos(a) * r * .42)}" cy="${r1(cy + Math.sin(a) * r * .42)}" r="${r1(r * .58)}" fill="${col}" stroke="${e}" stroke-width=".35"/>`; }
-  return s + `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * .55)}" fill="${lighten(col, .15)}" stroke="${e}" stroke-width=".35"/><path d="M${r1(cx + r * .3)} ${r1(cy)}A${r1(r * .3)} ${r1(r * .3)} 0 1 0 ${r1(cx)} ${r1(cy - r * .3)}A${r1(r * .17)} ${r1(r * .17)} 0 1 0 ${r1(cx - r * .1)} ${r1(cy + r * .06)}" stroke="${e}" stroke-width=".45" fill="none"/>`;
+/* Flor de cinco pétalos con la punta en forma de corazón; big = centro grande (para llevar el número) */
+function flowerG(cx, cy, r, col, big){
+  const e = darken(col, .28), W = r * .95, L = r; let s = '';
+  const pet = `M0 0C${r1(-W * .7)} ${r1(-L * .25)} ${r1(-W * .66)} ${r1(-L * .95)} ${r1(-W * .22)} ${r1(-L)}L0 ${r1(-L * .85)}L${r1(W * .22)} ${r1(-L)}C${r1(W * .66)} ${r1(-L * .95)} ${r1(W * .7)} ${r1(-L * .25)} 0 0Z`;
+  for(let i = 0; i < 5; i++) s += `<g transform="translate(${r1(cx)} ${r1(cy)}) rotate(${i * 72})"><path d="${pet}" fill="${col}" stroke="${e}" stroke-width=".4"/><path d="M0 ${r1(-L * .3)}V${r1(-L * .72)}" stroke="${darken(col, .18)}" stroke-width=".35"/></g>`;
+  if(big) return s + `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(Math.max(5.8, r * .5))}" fill="${lighten(col, .62)}" stroke="${e}" stroke-width=".5"/>`;
+  s += `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * .3)}" fill="${lighten(col, .62)}" stroke="${e}" stroke-width=".35"/>`;
+  for(let i = 0; i < 5; i++){ const a = (i * 72 + 36 - 90) * Math.PI / 180; s += `<circle cx="${r1(cx + Math.cos(a) * r * .18)}" cy="${r1(cy + Math.sin(a) * r * .18)}" r="${r1(r * .05 + .2)}" fill="${e}"/>`; }
+  return s;
 }
+/* Capullo cerrado con su cáliz */
+const budG = (x, y, r, col, leaf) => `<ellipse cx="${r1(x)}" cy="${r1(y - r * .2)}" rx="${r1(r * .7)}" ry="${r1(r)}" fill="${col}" stroke="${darken(col, .28)}" stroke-width=".4"/><path d="M${r1(x - r * .8)} ${r1(y + r * .1)}Q${r1(x)} ${r1(y + r * 1.3)} ${r1(x + r * .8)} ${r1(y + r * .1)}L${r1(x)} ${r1(y + r * .5)}Z" fill="${leaf}"/>`;
 const ring = (cx, cy, r, fill, stroke, sw) => `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
 
 const SPINES = {
@@ -142,48 +149,39 @@ const SPINES = {
         + (o.num ? `<rect x="${r1(w / 2 - 7.5)}" y="${cy - 6}" width="15" height="12" rx="1" fill="${c.alt}" stroke="${darken(c.alt, .25)}" stroke-width=".6"/>` : '');
       return { svg, box:{ l:6, t:lt + 3, w:w - 12, h:lh - 6 }, tbg:[c.alt], tex:'tex-cloth', ink, num:{ cy, bg:c.alt, ink } }; } },
 
-  /* 9. Floral: un rosal que sube por los cantos y racimos de rosas arriba y abajo */
-  floral:{ name:'Floral', parts:[['base', 'Fondo'], ['accent', 'Rosas'], ['leaf', 'Hojas y tallos']], font:{ font:'pag', wt:700, max:16 },
+  /* 9. Floral: tallos con hojas por los dos cantos y flores de cinco pétalos arriba y abajo (en las sagas, el número va en el centro de la flor grande) */
+  floral:{ name:'Floral', parts:[['base', 'Fondo'], ['accent', 'Flores'], ['leaf', 'Hojas y tallos']], font:{ font:'pag', wt:700, max:16 },
     colors:([B, F, A]) => ({ base:B, accent:A, leaf:mix('#5f8a58', F, .2) }),
-    draw:(o, c, w, h) => { const cx = w / 2, R = clamp(w * .26, 6.5, 10), stem = darken(c.leaf, .2), vein = darken(c.leaf, .35), lf = (x, y, a, L, i) => leafG(x, y, a, L, i % 2 ? lighten(c.leaf, .12) : c.leaf, vein);
-      const top = R * 1.6 + 4, bot = h - R * 2.9, cyN = Math.round(bot - 10); let s = '';
-      // tallos por los dos cantos, con hojas hacia dentro y algún capullo
+    draw:(o, c, w, h) => { const cx = w / 2, R = o.num ? clamp(w * .32, 9, 11.5) : clamp(w * .28, 7.5, 10.5), stem = darken(c.leaf, .2), vein = darken(c.leaf, .35), lf = (x, y, a, L, i) => leafG(x, y, a, L, i % 2 ? lighten(c.leaf, .12) : c.leaf, vein);
+      const fy = h - R - 5, top = 19, bot = fy - R * 1.9; let s = '';
+      // tallos por los dos cantos, con hojas hacia dentro
       [-1, 1].forEach(sd => { const x0 = sd < 0 ? 3.2 : w - 3.2; let p = `M${x0} ${r1(top)}`, i = 0;
-        for(let y = top; y <= bot; y += 3) p += `L${r1(x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1)} ${r1(y)}`;
+        for(let y = top; y <= bot + 6; y += 3) p += `L${r1(x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1)} ${r1(y)}`;
         s += `<path d="${p}" stroke="${stem}" stroke-width=".7" fill="none"/>`;
-        for(let y = top + 6; y < bot - 4; y += 12, i++){ const x = x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1, a = (i % 2 ? -38 : 38) * (sd < 0 ? 1 : -1) + (sd < 0 ? 0 : 180);
-          s += lf(x, y, a, Math.min(4.6, w * .14), i); if(i % 3 === 1) s += `<circle cx="${r1(x)}" cy="${r1(y + 5)}" r="1.1" fill="${c.accent}"/>`; } });
-      // racimo de abajo
-      const by = h - R - 4;
-      s += lf(cx - R * .9, by - R * .9, -150, R * 1.15, 0) + lf(cx + R * .7, h - 4, 15, R, 1) + lf(cx - R * .2, by - R * 1.05, -96, R * .95, 1) + lf(cx + R * 1.1, by - R * .4, -30, R * .85, 0);
-      s += roseG(cx + R * 1.05, by - R * .95, R * .58, c.accent) + roseG(cx - R * 1.05, by + R * .3, R * .62, c.accent) + roseG(cx, by, R, c.accent);
-      // racimo de arriba
-      s += lf(cx - R * .25, R * 1.1 + 3, 165, R * .95, 1) + lf(cx + R * .55, R * .3 + 3, -10, R * .9, 0);
-      s += `<ellipse cx="${r1(cx - R * .95)}" cy="${r1(R * .55 + 2)}" rx="${r1(R * .3)}" ry="${r1(R * .42)}" fill="${c.accent}" stroke="${darken(c.accent, .3)}" stroke-width=".4"/>` + roseG(cx + R * .2, R * .72 + 2.5, R * .7, c.accent);
-      if(o.num) s += ring(cx, cyN, 6.5, c.base, c.leaf, .7);
-      const tt = Math.round(top + 4), tb = Math.round(o.num ? cyN - 9 : bot - 4);
-      return { svg:s, box:{ l:6.5, t:tt, w:w - 13, h:tb - tt }, tbg:[c.base], ink:lum(c.base) > .5 ? darken(c.leaf, .5) : lighten(c.accent, .7), num:{ cy:cyN, bg:c.base, ink:c.leaf } }; } },
+        for(let y = top + 6; y < bot; y += 12, i++){ const x = x0 + Math.sin(y / 9 + (sd > 0 ? 2 : 0)) * 1.1, a = (i % 2 ? -38 : 38) * (sd < 0 ? 1 : -1) + (sd < 0 ? 0 : 180); s += lf(x, y, a, Math.min(4.6, w * .14), i); } });
+      // abajo: flor grande con hojas, una flor pequeña y un capullo
+      s += lf(cx - R * .4, fy - R * .2, -158, R * 1.35, 0) + lf(cx + R * .4, fy - R * .1, -18, R * 1.3, 1) + lf(cx + R * .2, fy + R * .4, 40, R * 1.1, 0);
+      const sx = cx - R * .55, sy = fy - R * 1.45, br = R * .5;
+      s += `<path d="M${r1(cx)} ${r1(fy)}Q${r1(cx - R * .2)} ${r1(fy - R)} ${r1(sx)} ${r1(sy)}M${r1(cx)} ${r1(fy)}Q${r1(cx + R * .5)} ${r1(fy - R * .9)} ${r1(cx + R * .75)} ${r1(fy - R * 1.55)}" stroke="${stem}" stroke-width=".7" fill="none"/>`;
+      s += budG(cx + R * .75, fy - R * 1.55, R * .32, c.accent, c.leaf) + flowerG(sx, sy, br, c.accent, false) + flowerG(cx, fy, R, c.accent, !!o.num);
+      // arriba: una flor pequeña entre dos hojas
+      const ty = 9; s += lf(cx - 1, ty + 1, 170, Math.min(7, w * .2), 0) + lf(cx + 1, ty + 1, 10, Math.min(7, w * .2), 1) + flowerG(cx, ty, Math.min(5.5, w * .16), c.accent, false);
+      const tt = top + 3, tb = Math.round(bot - 3);
+      return { svg:s, box:{ l:6.5, t:tt, w:w - 13, h:tb - tt }, tbg:[c.base], ink:lum(c.base) > .5 ? darken(c.leaf, .5) : lighten(c.accent, .7), num:{ cy:fy, bg:lighten(c.accent, .62), ink:darken(c.accent, .6) } }; } },
 
-  /* 10. Celestial: cielo de noche con estrellas, luna creciente arriba y un astrolabio abajo */
-  celestial:{ name:'Celestial', parts:[['base', 'Cielo'], ['alt', 'Cielo abajo'], ['foil', 'Oro']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
+  /* 10. Celestial: cielo estrellado con una luna creciente */
+  celestial:{ name:'Celestial', parts:[['base', 'Cielo'], ['alt', 'Cielo abajo'], ['foil', 'Luna y estrellas']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
     colors:([B, F, A]) => ({ base:darken(B, .45), alt:mix(darken(B, .2), A, .35), foil:F }),
-    draw:(o, c, w, h) => { const cx = w / 2, g = sid(), R = Math.min(w / 2 - 3, 13), ay = h - R - 6, mr = clamp(w * .3, 7, 10), my = mr + 5, rr = rng(o.seed || 3);
-      const tt = Math.round(my + mr + 7), tb = Math.round(ay - R - 6), at = y => mix(c.base, c.alt, clamp(y / h, 0, 1));
+    draw:(o, c, w, h) => { const cx = w / 2, g = sid(), mr = clamp(w * .3, 7, 10), my = mr + 6, rr = rng(o.seed || 3), cy = h - 14;
+      const tt = Math.round(my + mr + 7), tb = Math.round(h - (o.num ? 26 : 12)), at = y => mix(c.base, c.alt, clamp(y / h, 0, 1));
       let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset="1" stop-color="${c.alt}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
-      // estrellas fuera de la zona del título (o en sus márgenes)
-      for(let i = 0; i < 46; i++){ const x = 1.5 + rr() * (w - 3), y = 2 + rr() * (h - 4), m = x < 4.5 || x > w - 4.5;
-        if((y > tt - 2 && y < tb + 2 && !m) || Math.hypot(x - cx, y - ay) < R + 1.5 || Math.hypot(x - cx, y - my) < mr + 1.5) continue;
-        s += rr() > .86 ? spark(x, y, 1.1 + rr() * .8, c.foil) : `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(.3 + rr() * .45)}" fill="${c.foil}" opacity="${r1(.55 + rr() * .45)}"/>`; }
-      // luna creciente con una estrella colgando en su hueco
+      // estrellas por todo el cielo menos detrás del título (en sus márgenes, sí)
+      for(let i = 0; i < 70; i++){ const x = 1.5 + rr() * (w - 3), y = 2 + rr() * (h - 4), m = x < 4.5 || x > w - 4.5;
+        if((y > tt - 2 && y < tb + 2 && !m) || Math.hypot(x - cx, y - my) < mr + 2 || (o.num && Math.hypot(x - cx, y - cy) < 9)) continue;
+        s += rr() > .85 ? spark(x, y, 1 + rr() * 1, c.foil) : `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(.3 + rr() * .5)}" fill="${c.foil}" opacity="${r1(.5 + rr() * .5)}"/>`; }
       s += `<path d="M${r1(cx)} ${r1(my - mr)}A${mr} ${mr} 0 0 0 ${r1(cx)} ${r1(my + mr)}A${r1(mr * 1.25)} ${r1(mr * 1.25)} 0 0 1 ${r1(cx)} ${r1(my - mr)}Z" fill="${c.foil}" transform="rotate(-24 ${r1(cx)} ${r1(my)}) translate(${r1(mr * .25)} 0)"/>`;
-      s += `<path d="M${r1(cx + mr * .3)} 0V${r1(my - 2)}" stroke="${c.foil}" stroke-width=".4" stroke-dasharray=".8 .8"/>` + spark(cx + mr * .3, my, 2.1, c.foil);
-      // astrolabio
-      const disc = mix(c.alt, c.base, .5); s += ring(cx, ay, R, disc, c.foil, 1) + ring(cx, ay, r1(R - 2.6), 'none', c.foil, .5);
-      for(let i = 0; i < 24; i++){ const a = i * 15 * Math.PI / 180, r0 = i % 3 ? R - 2.6 : R - 3.8; s += `<path d="M${r1(cx + Math.cos(a) * r0)} ${r1(ay + Math.sin(a) * r0)}L${r1(cx + Math.cos(a) * R)} ${r1(ay + Math.sin(a) * R)}" stroke="${c.foil}" stroke-width=".4"/>`; }
-      s += ring(cx, ay, r1(R * .52), 'none', c.foil, .45) + `<path d="M${r1(cx - R * .8)} ${r1(ay + R * .46)}L${r1(cx + R * .8)} ${r1(ay - R * .46)}" stroke="${c.foil}" stroke-width=".6"/>`;
-      if(o.num) s += ring(cx, ay, 6.2, darken(c.base, .15), c.foil, .6);
-      else s += `<path d="${starP(cx, ay, R * .78, R * .16, 4, -90)}" fill="${c.foil}"/>` + `<circle cx="${r1(cx)}" cy="${r1(ay)}" r="1.1" fill="${disc}"/>`;
-      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[at(tt), at(tb), at((tt + tb) / 2)], ink:c.foil, num:{ cy:ay, bg:darken(c.base, .15), ink:c.foil } }; } },
+      if(o.num) s += ring(cx, cy, 6.5, 'none', c.foil, .6) + spark(cx - 9.5, cy, 1.5, c.foil) + spark(cx + 9.5, cy, 1.5, c.foil);
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[at(tt), at(tb), at((tt + tb) / 2)], ink:c.foil, num:{ cy, bg:at(cy), ink:c.foil } }; } },
 
   /* 11. Vidriera: todo el lomo es un mosaico de vidrios y el título va en una ventana ojival de cristal claro */
   vidriera:{ name:'Vidriera', parts:[['lead', 'Plomo'], ['base', 'Cristal del título'], ['accent', 'Vidrio 1'], ['alt', 'Vidrio 2'], ['c3', 'Vidrio 3']], font:{ font:'cinzel', wt:700, up:1, ls:.04, max:14 },
@@ -204,7 +202,7 @@ const SPINES = {
   /* 12. Daga: el lomo entero es una daga y el título va grabado en la hoja */
   daga:{ name:'Daga', parts:[['base', 'Fondo'], ['foil', 'Hoja'], ['accent', 'Empuñadura'], ['alt', 'Gemas']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:15 },
     colors:([B, F, A]) => ({ base:B, foil:mix(F, '#e4e8ed', .6), accent:darken(A, .2), alt:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, gh = Math.min(3.6, w * .11), pr = Math.min(4.2, w * .14), py = pr + 3, g0 = py + pr + 1, gy = g0 + 13, bw = clamp(w - 10, 14, 30), hw = bw / 2, by = gy + 4.5, tip = h - 3, sh = tip - hw * 1.6;
+    draw:(o, c, w, h) => { const cx = w / 2, gh = Math.min(3.6, w * .11), pr = Math.min(4.2, w * .14), py = pr + 3, g0 = py + pr + 1, gy = g0 + 13, bw = clamp(w * .58, 15, 24), hw = bw / 2, by = gy + 4.5, tip = h - 3, sh = tip - hw * 1.6;
       const m = sid(), bl = sid(), gm = sid();
       let s = `<defs><linearGradient id="${m}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lighten(c.foil, .45)}"/><stop offset="1" stop-color="${darken(c.foil, .3)}"/></linearGradient>
         <linearGradient id="${bl}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${lighten(c.foil, .35)}"/><stop offset=".5" stop-color="${c.foil}"/><stop offset="1" stop-color="${darken(c.foil, .15)}"/></linearGradient>
@@ -224,17 +222,17 @@ const SPINES = {
       const tt = Math.round(by + 3), tb = Math.round(o.num ? cy - 9 : sh - 3);
       return { svg:s, box:{ l:r1(cx - hw + 2), t:tt, w:r1(bw - 4), h:tb - tt }, tbg:[lighten(c.foil, .35), c.foil, darken(c.foil, .15)], ink, num:{ cy, bg:c.foil, ink } }; } },
 
-  /* 13. Romántico: título en letra caligráfica, rúbricas arriba y abajo y corazones */
-  romantico:{ name:'Romántico', parts:[['base', 'Fondo'], ['foil', 'Rúbricas'], ['accent', 'Corazones']], font:{ font:'script', wt:400, ls:0, max:24 },
-    colors:([B, F, A]) => ({ base:B, foil:F, accent:A }),
-    draw:(o, c, w, h) => { const cx = w / 2, sw = Math.min(w / 2 - 2.5, 14);
-      const half = `<path d="M${cx} 14C${r1(cx - 2)} 9 ${r1(cx - sw * .5)} 5.5 ${r1(cx - sw * .8)} 8.5C${r1(cx - sw)} 10.5 ${r1(cx - sw * .88)} 14.5 ${r1(cx - sw * .62)} 14C${r1(cx - sw * .42)} 13.6 ${r1(cx - sw * .45)} 11.4 ${r1(cx - sw * .62)} 11.7" fill="none" stroke="${c.foil}" stroke-width=".8" stroke-linecap="round"/>
-        <path d="M${cx} 15C${r1(cx - sw * .35)} 18 ${r1(cx - sw * .9)} 17.5 ${r1(cx - sw)} 22.5" fill="none" stroke="${c.foil}" stroke-width=".6" stroke-linecap="round"/><circle cx="${r1(cx - sw)}" cy="23" r=".8" fill="${c.foil}"/><circle cx="${r1(cx - sw * .62)}" cy="5.5" r=".6" fill="${c.accent}"/>`;
-      const mir = x => `<g transform="translate(${w} 0) scale(-1 1)">${x}</g>`, both = half + mir(half);
-      let s = both + `<path d="${heartP(cx, 14.6, 6)}" fill="${c.accent}"/>` + `<g transform="translate(0 ${h}) scale(1 -1)">${both}</g>`;
-      s += o.num ? `<path d="${heartP(cx, h - 13.4, 15)}" fill="${c.accent}"/>` : `<path d="${heartP(cx, h - 13.4, 6)}" fill="${c.accent}"/>`;
-      const tb = h - 27 - (o.num ? 8 : 0);
-      return { svg:s, box:{ l:3, t:27, w:w - 6, h:tb - 27 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 14.5, bg:c.accent, ink:lighten(c.accent, .85) } }; } },
+  /* 13. Romántico: título grande en letra caligráfica sobre una cinta de raso, con corazoncitos en el fondo */
+  romantico:{ name:'Romántico', parts:[['base', 'Fondo'], ['alt', 'Cinta'], ['foil', 'Pespuntes'], ['accent', 'Corazones']], font:{ font:'dancing', wt:700, ls:0, max:24 },
+    colors:([B, F, A]) => ({ base:B, alt:darken(B, .28), foil:F, accent:A }),
+    draw:(o, c, w, h) => { const pt = sid(), sg = sid(), hc = mix(c.base, c.accent, .4), x0 = 4.5, x1 = w - 4.5, cy = h - 13;
+      let s = `<defs><pattern id="${pt}" width="10" height="12" patternUnits="userSpaceOnUse"><path d="${heartP(2.5, 3, 3.2)}" fill="${hc}"/><path d="${heartP(7.5, 9, 3.2)}" fill="${hc}"/></pattern>
+        <linearGradient id="${sg}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${darken(c.alt, .12)}"/><stop offset=".35" stop-color="${lighten(c.alt, .12)}"/><stop offset=".65" stop-color="${c.alt}"/><stop offset="1" stop-color="${darken(c.alt, .15)}"/></linearGradient></defs>
+        <rect width="${w}" height="${h}" fill="url(#${pt})"/><rect x="${x0}" y="0" width="${r1(x1 - x0)}" height="${h}" fill="url(#${sg})"/>
+        <path d="M${x0 + 1.4} 0V${h}M${x1 - 1.4} 0V${h}" stroke="${c.foil}" stroke-width=".5" stroke-dasharray="1.6 1.2"/>`;
+      if(o.num) s += `<path d="${heartP(w / 2, cy + .8, 15)}" fill="${c.accent}"/>`;
+      const ink = lighten(c.foil, .3);
+      return { svg:s, box:{ l:x0 + 2, t:9, w:r1(x1 - x0 - 4), h:h - 18 - (o.num ? 18 : 0) }, tbg:[c.alt, lighten(c.alt, .12), darken(c.alt, .12)], ink, num:{ cy, bg:c.accent, ink:lighten(c.accent, .85) } }; } },
 
   /* 14. Mapa: pergamino con montañas y costa arriba, la ruta marcada y una rosa de los vientos abajo */
   mapa:{ name:'Mapa', parts:[['base', 'Pergamino'], ['alt', 'Tinta'], ['accent', 'Ruta']], font:{ font:'serif', wt:700, max:17 },
@@ -261,17 +259,22 @@ const SPINES = {
       const tt = zt + 4, tb = Math.round(ay - R - 7);
       return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base], ink:c.alt, num:{ cy:ay, bg:c.base, ink:c.alt } }; } },
 
-  /* 15. Damasco: papel pintado de damasco en el fondo y el título en una cartela con las esquinas recortadas */
-  damasco:{ name:'Damasco', parts:[['base', 'Fondo'], ['foil', 'Damasco y bordes'], ['alt', 'Cartela']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
-    colors:([B, F, A]) => ({ base:B, foil:F, alt:darken(B, .35) }),
-    draw:(o, c, w, h) => { const pt = sid(), dm = mix(c.base, c.foil, .32), lh = Math.round(h * .56), lt = Math.round((h - lh) / 2), n = 3.2, x0 = 4, x1 = w - 4, cy = Math.round(lt + lh + (h - 7 - lt - lh) / 2);
-      const motif = (x, y) => `<path d="M${x} ${y - 7}C${x + 3} ${y - 4} ${x + 4.2} ${y - 1} ${x} ${y + 3}C${x - 4.2} ${y - 1} ${x - 3} ${y - 4} ${x} ${y - 7}Z M${x} ${y + 3}C${x + 1.6} ${y + 4.6} ${x + 4.6} ${y + 4.6} ${x + 5.4} ${y + 2.4} M${x} ${y + 3}C${x - 1.6} ${y + 4.6} ${x - 4.6} ${y + 4.6} ${x - 5.4} ${y + 2.4} M${x} ${y + 3}V${y + 6.5}" fill="${dm}" stroke="${dm}" stroke-width=".7" stroke-linecap="round"/><circle cx="${x}" cy="${y - 2}" r=".9" fill="${c.base}"/>`;
-      let s = `<defs><pattern id="${pt}" width="14" height="20" patternUnits="userSpaceOnUse" x="${r1(w / 2 - 7)}">${motif(7, 8)}${motif(0, 18)}${motif(14, 18)}</pattern></defs><rect width="${w}" height="${h}" fill="url(#${pt})"/>`;
-      s += `<rect y="4" width="${w}" height="1.2" fill="${c.foil}"/><rect y="${h - 5.2}" width="${w}" height="1.2" fill="${c.foil}"/>`;
-      const cart = i => `M${x0 + n + i} ${lt + i}H${x1 - n - i}A${n} ${n} 0 0 0 ${x1 - i} ${lt + n + i}V${lt + lh - n - i}A${n} ${n} 0 0 0 ${x1 - n - i} ${lt + lh - i}H${x0 + n + i}A${n} ${n} 0 0 0 ${x0 + i} ${lt + lh - n - i}V${lt + n + i}A${n} ${n} 0 0 0 ${x0 + n + i} ${lt + i}Z`;
-      s += `<path d="${cart(0)}" fill="${c.alt}" stroke="${c.foil}" stroke-width="1"/><path d="${cart(1.8)}" fill="none" stroke="${c.foil}" stroke-width=".4"/>`;
-      if(o.num) s += ring(w / 2, cy, 6.6, c.alt, c.foil, .8);
-      return { svg:s, box:{ l:x0 + 3, t:lt + 4, w:x1 - x0 - 6, h:lh - 8 }, tbg:[c.alt], ink:c.foil, num:{ cy, bg:c.alt, ink:c.foil } }; } },
+  /* 15. Bosque: cielo de noche con luna, pinos abajo y luciérnagas */
+  bosque:{ name:'Bosque', parts:[['base', 'Cielo'], ['alt', 'Bruma'], ['leaf', 'Pinos'], ['accent', 'Luna y luciérnagas']], font:{ font:'pag', wt:700, max:16 },
+    colors:([B, F, A]) => ({ base:darken(B, .5), alt:mix(lighten(B, .3), A, .45), leaf:darken(B, .75), accent:mix(lighten(F, .5), '#fff3c8', .4) }),
+    draw:(o, c, w, h) => { const g = sid(), mg = sid(), rr = rng(o.seed || 11), mx = w * .62, my = 13, gt = h * .7, cy = h - 12;
+      let s = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.base}"/><stop offset=".55" stop-color="${c.base}"/><stop offset=".86" stop-color="${c.alt}"/></linearGradient>
+        <radialGradient id="${mg}"><stop offset="0" stop-color="${c.accent}" stop-opacity=".45"/><stop offset="1" stop-color="${c.accent}" stop-opacity="0"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#${g})"/>`;
+      s += `<circle cx="${r1(mx)}" cy="${my}" r="12" fill="url(#${mg})"/><circle cx="${r1(mx)}" cy="${my}" r="${r1(Math.min(5.5, w * .16))}" fill="${c.accent}"/>`;
+      for(let i = 0; i < 8; i++){ const x = 2 + rr() * (w - 4), y = 3 + rr() * 20; if(Math.hypot(x - mx, y - my) > 8) s += `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(.3 + rr() * .4)}" fill="${c.accent}" opacity="${r1(.5 + rr() * .4)}"/>`; }
+      // dos filas de pinos: la de atrás con bruma, la de delante del color de los pinos
+      for(let x = -2; x < w + 4; x += 4 + rr() * 3) s += `<path d="${pineP(x, gt + 12, 12 + rr() * 8)}" fill="${mix(c.leaf, c.alt, .45)}"/>`;
+      s += `<rect y="${r1(gt + 9)}" width="${w}" height="${r1(h - gt)}" fill="${mix(c.leaf, c.alt, .45)}"/>`;
+      for(let x = 0; x < w + 4; x += 5 + rr() * 4) s += `<path d="${pineP(x, h - 4, 22 + rr() * 16)}" fill="${c.leaf}"/>`;
+      s += `<rect y="${h - 5}" width="${w}" height="5" fill="${c.leaf}"/>`;
+      for(let i = 0; i < 6; i++) s += `<circle cx="${r1(2 + rr() * (w - 4))}" cy="${r1(gt - 6 + rr() * 26)}" r=".75" fill="${c.accent}" opacity="${r1(.6 + rr() * .4)}"/>`;
+      const tt = 30, tb = Math.round(gt - 10);
+      return { svg:s, box:{ l:4, t:tt, w:w - 8, h:tb - tt }, tbg:[c.base, mix(c.base, c.alt, .35)], ink:lighten(c.accent, .4), num:{ cy, bg:c.leaf, ink:c.accent } }; } },
 
   /* Modo de serie «Fases de la luna»: la luna crece de un tomo a otro (no sale en la lista de diseños) */
   luna:{ name:'Fases de la luna', saga:true, parts:[['base', 'Cielo'], ['foil', 'Luna y estrellas'], ['alt', 'Sombra de la luna']], font:{ font:'cinzel', wt:700, up:1, ls:.05, max:14 },
@@ -285,10 +288,10 @@ const SPINES = {
       if(o.num) s += `<circle cx="${r1(cx - 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/><circle cx="${r1(cx + 9)}" cy="${h - 13}" r=".6" fill="${c.foil}"/>`;
       return { svg:s, box:{ l:4, t:10, w:w - 8, h:tb - 10 }, tbg:[c.base], ink:c.foil, num:{ cy:h - 13, bg:c.base, ink:c.foil } }; } }
 };
-const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'damasco'];
+const SPINE_ORDER = ['holo', 'marco', 'jaspeado', 'escamas', 'grimorio', 'filigrana', 'degradado', 'tela', 'floral', 'celestial', 'vidriera', 'daga', 'romantico', 'mapa', 'bosque'];
 /* Estilos antiguos → los nuevos (para colecciones guardadas antes) */
 const STYLE_ALIAS = { ilustrado:'celestial', estrellado:'celestial', planeta:'celestial', enredadera:'floral', botanico:'floral', synth:'holo', cristal:'holo',
-  nervios:'marco', bloque:'tela', deco:'damasco', rayas:'degradado', acuarela:'holo' };
+  nervios:'marco', bloque:'tela', deco:'filigrana', rayas:'degradado', acuarela:'holo' };
 const styleKey = s => SPINES[s] && !SPINES[s].saga ? s : STYLE_ALIAS[s] || '';
 
 /* Número de tomo: el tamaño depende de cuántas cifras tenga */
