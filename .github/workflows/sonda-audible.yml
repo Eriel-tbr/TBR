@@ -1,0 +1,26 @@
+name: Sonda Audible
+on:
+  push:
+    branches: [sonda-audible]
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    permissions: { deployments: read, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Desde GitHub
+        run: node -e "const h=require('./api/sonda-audible.js');h({}, {setHeader(){}, end(s){console.log(s)}})"
+      - name: Desde Vercel (vista previa de esta rama)
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          for i in $(seq 1 30); do
+            DEP=$(gh api "repos/${{ github.repository }}/deployments?sha=${{ github.sha }}" --jq '.[0].id' 2>/dev/null)
+            if [ -n "$DEP" ]; then
+              URL=$(gh api "repos/${{ github.repository }}/deployments/$DEP/statuses" --jq '[.[]|select(.state=="success")][0].environment_url' 2>/dev/null)
+              if [ -n "$URL" ] && [ "$URL" != "null" ]; then echo "URL $URL"; curl -sS -m 60 -w "\nHTTP %{http_code}\n" "$URL/api/sonda-audible" | head -c 20000; exit 0; fi
+            fi
+            sleep 10
+          done
+          echo "No apareció despliegue de Vercel"
