@@ -1,0 +1,1323 @@
+{
+ "wikidata": {
+  "The Final Empire": [],
+  "Shadow and Bone": "ERROR Unexpected token '<', \"<html>\r\n<h\"... is not valid JSON",
+  "Six of Crows": [
+   {
+    "book": "Q23763076",
+    "series": "Q109838463",
+    "ord": "1",
+    "uni": "Q102440297",
+    "seriesLabel": "Six of Crows",
+    "uniLabel": "Grishaverse"
+   }
+  ],
+  "universo Q102440297": [
+   {
+    "w": "Q7460625",
+    "ord": "1",
+    "wLabel": "Sombra y Hueso",
+    "sLabel": "The Grisha"
+   },
+   {
+    "w": "Q23763076",
+    "ord": "1",
+    "wLabel": "Seis de cuervos",
+    "sLabel": "Six of Crows"
+   },
+   {
+    "w": "Q60746982",
+    "ord": "2",
+    "wLabel": "Crooked Kingdom",
+    "sLabel": "Six of Crows"
+   },
+   {
+    "w": "Q102036200",
+    "ord": "1",
+    "wLabel": "King of Scars",
+    "sLabel": "The Nikolai Duology"
+   },
+   {
+    "w": "Q107299173",
+    "ord": "2",
+    "wLabel": "Rule of Wolves",
+    "sLabel": "The Nikolai Duology"
+   }
+  ],
+  "Fourth Wing": [
+   {
+    "book": "Q120798796",
+    "series": "Q124618108",
+    "ord": "1",
+    "seriesLabel": "Empíreo"
+   }
+  ],
+  "A Court of Thorns and Roses": [
+   {
+    "book": "Q60979203",
+    "series": "Q3822482",
+    "uni": "Q853499",
+    "seriesLabel": "El exilio",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q2410636",
+    "uni": "Q853499",
+    "seriesLabel": "La piedra de cristal",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q797916",
+    "uni": "Q797909",
+    "seriesLabel": "Babylon 5: Thirdspace",
+    "uniLabel": "Babylon 5 universe"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q797917",
+    "uni": "Q797909",
+    "seriesLabel": "Babylon 5: El Río de las Almas",
+    "uniLabel": "Babylon 5 universe"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q797922",
+    "uni": "Q797909",
+    "seriesLabel": "Babylon 5: In the Beginning",
+    "uniLabel": "Babylon 5 universe"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q20875553",
+    "uni": "Q853499",
+    "seriesLabel": "The Chaos Curse",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q112229984",
+    "uni": "Q853499",
+    "seriesLabel": "The Sentinel",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q3216706",
+    "uni": "Q853499",
+    "seriesLabel": "El estigma de Errtu",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q1644673",
+    "uni": "Q810983",
+    "seriesLabel": "MechCommander",
+    "uniLabel": "BattleTech"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q3998824",
+    "uni": "Q853499",
+    "seriesLabel": "The Elminster Series",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q3267110",
+    "uni": "Q839095",
+    "seriesLabel": "Alpha",
+    "uniLabel": "Multiverso (Magic: The Gathering)"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q105554572",
+    "uni": "Q853499",
+    "seriesLabel": "Dungeons & Dragons: Honor entre ladrones",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q1771325",
+    "uni": "Q810983",
+    "seriesLabel": "MechWarrior 4: Vengeance",
+    "uniLabel": "BattleTech"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q4043876",
+    "uni": "Q810983",
+    "seriesLabel": "MechWarrior",
+    "uniLabel": "BattleTech"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q7619075",
+    "uni": "Q853499",
+    "seriesLabel": "Stone of Tymora",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q3024287",
+    "uni": "Q853499",
+    "seriesLabel": "Descent to Undermountain",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q106611156",
+    "uni": "Q853499",
+    "seriesLabel": "Icewind Dale: Rime of the Frostmaiden",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q7776592",
+    "uni": "Q853499",
+    "seriesLabel": "The Year of Rogue Dragons",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q18149046",
+    "uni": "Q853499",
+    "seriesLabel": "Crown of Fire",
+    "uniLabel": "Reinos Olvidados"
+   },
+   {
+    "book": "Q60979203",
+    "series": "Q11315888",
+    "uni": "Q853499",
+    "seriesLabel": "Insurrection",
+    "uniLabel": "Reinos Olvidados"
+   }
+  ],
+  "universo Q853499": [
+   {
+    "w": "Q122258622",
+    "ord": "3",
+    "wLabel": "Vengeance of the Iron Dwarf",
+    "sLabel": "Companions Codex"
+   },
+   {
+    "w": "Q122258771",
+    "ord": "1",
+    "wLabel": "Archmage",
+    "sLabel": "Homecoming"
+   },
+   {
+    "w": "Q122258771",
+    "ord": "31",
+    "wLabel": "Archmage",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122258796",
+    "ord": "2",
+    "wLabel": "Maestro",
+    "sLabel": "Homecoming"
+   },
+   {
+    "w": "Q122258796",
+    "ord": "32",
+    "wLabel": "Maestro",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122258815",
+    "ord": "3",
+    "wLabel": "Hero",
+    "sLabel": "Homecoming"
+   },
+   {
+    "w": "Q122258815",
+    "ord": "33",
+    "wLabel": "Hero",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122259641",
+    "ord": "34",
+    "wLabel": "Timeless",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122259641",
+    "ord": "1",
+    "wLabel": "Timeless",
+    "sLabel": "Generations"
+   },
+   {
+    "w": "Q122259665",
+    "ord": "2",
+    "wLabel": "Boundless",
+    "sLabel": "Generations"
+   },
+   {
+    "w": "Q122259665",
+    "ord": "35",
+    "wLabel": "Boundless",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122259676",
+    "ord": "3",
+    "wLabel": "Relentless",
+    "sLabel": "Generations"
+   },
+   {
+    "w": "Q122259676",
+    "ord": "36",
+    "wLabel": "Relentless",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122260180",
+    "ord": "1",
+    "wLabel": "Starlight Enclave",
+    "sLabel": "The Way of the Drow"
+   },
+   {
+    "w": "Q122260180",
+    "ord": "37",
+    "wLabel": "Starlight Enclave",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122260204",
+    "ord": "2",
+    "wLabel": "Glacier's Edge",
+    "sLabel": "The Way of the Drow"
+   },
+   {
+    "w": "Q122260204",
+    "ord": "38",
+    "wLabel": "Glacier's Edge",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122260228",
+    "ord": "39",
+    "wLabel": "Lolth's Warrior",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q122260228",
+    "ord": "3",
+    "wLabel": "Lolth's Warrior",
+    "sLabel": "The Way of the Drow"
+   },
+   {
+    "w": "Q122307707",
+    "ord": "3",
+    "wLabel": "Hand of Fire",
+    "sLabel": "Shandril's Saga"
+   },
+   {
+    "w": "Q122368176",
+    "wLabel": "The First Notch"
+   },
+   {
+    "w": "Q128792724",
+    "wLabel": "Realms of Valor"
+   },
+   {
+    "w": "Q128792729",
+    "wLabel": "Dark Mirror"
+   },
+   {
+    "w": "Q128792763",
+    "wLabel": "Realms of Infamy"
+   },
+   {
+    "w": "Q128792793",
+    "wLabel": "The Third Level"
+   },
+   {
+    "w": "Q128792849",
+    "wLabel": "Realms of Magic"
+   },
+   {
+    "w": "Q128792931",
+    "wLabel": "Realms of the Underdark"
+   },
+   {
+    "w": "Q128792994",
+    "wLabel": "Realms of Mystery"
+   },
+   {
+    "w": "Q128793064",
+    "wLabel": "Realms of the Deep"
+   },
+   {
+    "w": "Q133389751",
+    "wLabel": "Sojourn"
+   },
+   {
+    "w": "Q133821565",
+    "wLabel": "Realms of Shadow"
+   },
+   {
+    "w": "Q133821571",
+    "wLabel": "Realms of the Dragons II"
+   },
+   {
+    "w": "Q133821569",
+    "wLabel": "Realms of the Dragons"
+   },
+   {
+    "w": "Q133821575",
+    "wLabel": "Realms of War"
+   },
+   {
+    "w": "Q133821573",
+    "wLabel": "Realms of the Elves"
+   },
+   {
+    "w": "Q133821577",
+    "wLabel": "Realms of the Dead"
+   },
+   {
+    "w": "Q1008549",
+    "ord": "1",
+    "wLabel": "Gauntlgrym",
+    "sLabel": "Neverwinter Saga"
+   },
+   {
+    "w": "Q1008549",
+    "ord": "23",
+    "wLabel": "Gauntlgrym",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q2410636",
+    "ord": "4",
+    "wLabel": "La piedra de cristal",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q2410636",
+    "ord": "1",
+    "wLabel": "La piedra de cristal",
+    "sLabel": "El valle del viento helado"
+   },
+   {
+    "w": "Q3205366",
+    "ord": "2",
+    "wLabel": "The Spine of the World",
+    "sLabel": "Paths of Darkness"
+   },
+   {
+    "w": "Q3205366",
+    "ord": "12",
+    "wLabel": "The Spine of the World",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3210672",
+    "ord": "13",
+    "wLabel": "El mar de las espadas",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3210672",
+    "ord": "4",
+    "wLabel": "El mar de las espadas",
+    "sLabel": "Paths of Darkness"
+   },
+   {
+    "w": "Q3216706",
+    "ord": "11",
+    "wLabel": "El estigma de Errtu",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3216706",
+    "ord": "1",
+    "wLabel": "El estigma de Errtu",
+    "sLabel": "Paths of Darkness"
+   },
+   {
+    "w": "Q3223782",
+    "ord": "3",
+    "wLabel": "La gema del halfling",
+    "sLabel": "El valle del viento helado"
+   },
+   {
+    "w": "Q3223782",
+    "ord": "3",
+    "wLabel": "La gema del halfling",
+    "sLabel": "El valle del viento helado"
+   },
+   {
+    "w": "Q3223782",
+    "ord": "6",
+    "wLabel": "La gema del halfling",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3223782",
+    "ord": "6",
+    "wLabel": "La gema del halfling",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3235771",
+    "ord": "5",
+    "wLabel": "Ríos de plata",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3235771",
+    "ord": "2",
+    "wLabel": "Ríos de plata",
+    "sLabel": "El valle del viento helado"
+   },
+   {
+    "w": "Q3276721",
+    "ord": "1",
+    "wLabel": "Spellfire",
+    "sLabel": "Shandril's Saga"
+   },
+   {
+    "w": "Q3793260",
+    "ord": "1",
+    "wLabel": "Canticle",
+    "sLabel": "Pentalogía del clérigo"
+   },
+   {
+    "w": "Q3822482",
+    "ord": "2",
+    "wLabel": "El exilio",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q3822482",
+    "ord": "2",
+    "wLabel": "El exilio",
+    "sLabel": "El elfo oscuro"
+   },
+   {
+    "w": "Q4769483",
+    "ord": "5",
+    "wLabel": "Annihilation",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q5086604",
+    "ord": "3",
+    "wLabel": "Charon's Claw",
+    "sLabel": "Neverwinter Saga"
+   },
+   {
+    "w": "Q5086604",
+    "ord": "25",
+    "wLabel": "Charon's Claw",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q5159153",
+    "ord": "3",
+    "wLabel": "Condemnation",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q5223802",
+    "wLabel": "Darkwalker on Moonshae",
+    "sLabel": "The Moonshae Trilogy"
+   },
+   {
+    "w": "Q5282799",
+    "ord": "1",
+    "wLabel": "Dissolution",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q5422076",
+    "ord": "4",
+    "wLabel": "Extinction",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q5469754",
+    "wLabel": "Forgotten Realms"
+   },
+   {
+    "w": "Q5645993",
+    "ord": "3",
+    "wLabel": "El refugio",
+    "sLabel": "El elfo oscuro"
+   },
+   {
+    "w": "Q5645993",
+    "ord": "3",
+    "wLabel": "El refugio",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q5811613",
+    "ord": "1",
+    "wLabel": "La morada",
+    "sLabel": "El elfo oscuro"
+   },
+   {
+    "w": "Q5811613",
+    "ord": "1",
+    "wLabel": "La morada",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q7004483",
+    "ord": "24",
+    "wLabel": "Neverwinter",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q7004483",
+    "ord": "2",
+    "wLabel": "Neverwinter",
+    "sLabel": "Neverwinter Saga"
+   },
+   {
+    "w": "Q7316511",
+    "ord": "6",
+    "wLabel": "Resurrection",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q7718263",
+    "ord": "2",
+    "wLabel": "The Black Bouquet",
+    "sLabel": "The Rogues"
+   },
+   {
+    "w": "Q7746113",
+    "ord": "26",
+    "wLabel": "The Last Threshold",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q7746113",
+    "ord": "4",
+    "wLabel": "The Last Threshold",
+    "sLabel": "Neverwinter Saga"
+   },
+   {
+    "w": "Q7756097",
+    "ord": "1",
+    "wLabel": "The Parched Sea",
+    "sLabel": "Forgotten Realms: The Harpers"
+   },
+   {
+    "w": "Q11315888",
+    "ord": "2",
+    "wLabel": "Insurrection",
+    "sLabel": "La Guerra de la Reina Araña"
+   },
+   {
+    "w": "Q16947547",
+    "wLabel": "The Shattered Mask"
+   },
+   {
+    "w": "Q17024063",
+    "ord": "20",
+    "wLabel": "The Orc King",
+    "sLabel": "La leyenda de Drizzt"
+   },
+   {
+    "w": "Q17024063",
+    "ord": "1",
+    "wLabel": "The Orc King",
+    "sLabel": "Transitions"
+   },
+   {
+    "w": "Q17024064",
+    "ord": "2",
+    "wLabel": "The Pirate King",
+    "sLabel": "Transitions"
+   }
+  ],
+  "universo Q797909": [],
+  "universo Q810983": [],
+  "universo Q839095": [
+   {
+    "w": "Q7201035",
+    "wLabel": "Planeswalker"
+   },
+   {
+    "w": "Q138302684",
+    "wLabel": "Whispering Woods"
+   }
+  ],
+  "Throne of Glass": [
+   {
+    "book": "Q21160951",
+    "series": "Q7798359",
+    "ord": "1",
+    "seriesLabel": "Trono de cristal"
+   }
+  ],
+  "The Cruel Prince": [
+   {
+    "book": "Q47008389",
+    "series": "Q110929608",
+    "ord": "1",
+    "seriesLabel": "The Folk of the Air"
+   }
+  ],
+  "From Blood and Ash": [
+   {
+    "book": "Q134481037",
+    "series": "Q3790719",
+    "uni": "Q746244",
+    "seriesLabel": "Dragons of Summer Flame",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q5305435",
+    "uni": "Q746244",
+    "seriesLabel": "Dragons of the Dwarven Depths",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q29862312",
+    "uni": "Q736464",
+    "seriesLabel": "Hanna-Barbera Educational Filmstrips",
+    "uniLabel": "Hanna-Barbera"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q21079093",
+    "uni": "Q746244",
+    "seriesLabel": "The Lake of Death",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q6410652",
+    "uni": "Q746244",
+    "seriesLabel": "Qualinost",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q3866187",
+    "uni": "Q681918",
+    "seriesLabel": "Monsters vs. Aliens",
+    "uniLabel": "Monsters vs Aliens"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q18450174",
+    "uni": "Q746244",
+    "seriesLabel": "El reino de Istar",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q2662191",
+    "uni": "Q746244",
+    "seriesLabel": "La Reina de la Oscuridad",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q2898061",
+    "uni": "Q746244",
+    "seriesLabel": "The Second Generation",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q4741335",
+    "uni": "Q746244",
+    "seriesLabel": "Amber and Iron",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q4741333",
+    "uni": "Q746244",
+    "seriesLabel": "Amber and Blood",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q4741336",
+    "uni": "Q746244",
+    "seriesLabel": "Amber and Ashes",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q7316518",
+    "uni": "Q674612",
+    "seriesLabel": "Resurrection",
+    "uniLabel": "Universo Espejo"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q7798467",
+    "uni": "Q674612",
+    "seriesLabel": "Through the Looking Glass",
+    "uniLabel": "Universo Espejo"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q6388975",
+    "uni": "Q746244",
+    "seriesLabel": "Kenders, enanos y gnomos",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q7967231",
+    "uni": "Q746244",
+    "seriesLabel": "El incorregible Tas",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q7490705",
+    "uni": "Q674612",
+    "seriesLabel": "Shattered Mirror",
+    "uniLabel": "Universo Espejo"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q19364532",
+    "uni": "Q746244",
+    "seriesLabel": "A Warrior's Journey",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q19364535",
+    "uni": "Q746244",
+    "seriesLabel": "Winterheim",
+    "uniLabel": "Dragonlance"
+   },
+   {
+    "book": "Q134481037",
+    "series": "Q21079064",
+    "uni": "Q746244",
+    "seriesLabel": "Dalamar the Dark",
+    "uniLabel": "Dragonlance"
+   }
+  ],
+  "universo Q746244": [
+   {
+    "w": "Q7735934",
+    "wLabel": "Las puertas de Thorbardin",
+    "sLabel": "Héroes de la Dragonlance II"
+   },
+   {
+    "w": "Q7742029",
+    "wLabel": "The Inheritance",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q7742029",
+    "wLabel": "The Inheritance",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q7742029",
+    "wLabel": "The Inheritance",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q7742029",
+    "wLabel": "The Inheritance",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q7747513",
+    "wLabel": "The Lioness",
+    "sLabel": "The Age of Mortals",
+    "ord": "2"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance I",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7749500",
+    "wLabel": "La magia de Krynn",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "1"
+   },
+   {
+    "w": "Q7832757",
+    "wLabel": "Trail of the Black Wyrm"
+   },
+   {
+    "w": "Q7967231",
+    "wLabel": "El incorregible Tas",
+    "sLabel": "Los compañeros de la Dragonlance",
+    "ord": "2"
+   },
+   {
+    "w": "Q7967231",
+    "wLabel": "El incorregible Tas",
+    "sLabel": "Los compañeros de la Dragonlance",
+    "ord": "2"
+   },
+   {
+    "w": "Q7967231",
+    "wLabel": "El incorregible Tas",
+    "sLabel": "Los compañeros de la Dragonlance",
+    "ord": "2"
+   },
+   {
+    "w": "Q7967231",
+    "wLabel": "El incorregible Tas",
+    "sLabel": "Los compañeros de la Dragonlance",
+    "ord": "2"
+   },
+   {
+    "w": "Q16829507",
+    "wLabel": "Chosen of the Gods",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q16829507",
+    "wLabel": "Chosen of the Gods",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q16829507",
+    "wLabel": "Chosen of the Gods",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q16829507",
+    "wLabel": "Chosen of the Gods",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q16834539",
+    "wLabel": "Dark Thane",
+    "sLabel": "The Age of Mortals",
+    "ord": "3"
+   },
+   {
+    "w": "Q16992041",
+    "wLabel": "Dragons in the Archives: The Best of Weis and Hickman Anthology",
+    "sLabel": "Dragonlance"
+   },
+   {
+    "w": "Q17020052",
+    "wLabel": "Apéndices"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "1"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q18450174",
+    "wLabel": "El reino de Istar",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "4"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "2"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q116470742",
+    "wLabel": "El Cataclismo",
+    "sLabel": "Cuentos de la Dragonlance",
+    "ord": "5"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   },
+   {
+    "w": "Q124540034",
+    "wLabel": "La guerra de la Lanza",
+    "sLabel": "Cuentos de la Dragonlance II",
+    "ord": "3"
+   }
+  ],
+  "universo Q736464": [],
+  "universo Q681918": [],
+  "universo Q674612": [],
+  "The Name of the Wind": [
+   {
+    "book": "Q1195989",
+    "series": "Q2585559",
+    "ord": "1",
+    "seriesLabel": "Crónica del asesino de reyes"
+   }
+  ],
+  "Iron Flame": [
+   {
+    "book": "Q123452043",
+    "series": "Q124618108",
+    "ord": "2",
+    "seriesLabel": "Empíreo"
+   }
+  ]
+ },
+ "isfdb": {
+  "robots": "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\n#      use.\n# (b)  If a Content-Signal = no, you may not collect content for the\n#      corresponding use.\n# (c)  If the website operator does not include a Content-Signal for a\n#      corresponding use, the website operator neither grants nor restricts\n#      permission via Content-Signal with respect to the corresponding use.\n\n# The content signals and their meanings are:\n\n# search:   building a search index and providing search results (e.g., returning\n#           hyperlinks and short excerpts from your website's contents). Search does not\n#           include providing AI-generated search summaries.\n# ai-input: inputting content into one or more AI models (e.g., retrieval\n#           augmented generation, grounding, or other real-time taking of content for\n#           generative AI search answers).\n# ai-train: training or fine-tuning AI models.\n# use:      how AI systems may consume the content (immediate, reference, or full).\n\n# ANY RESTRICTIONS EXPRESSED VIA CONTENT SIGNALS ARE EXPRESS RESERVATIONS OF\n# RIGHTS UNDER ARTICLE 4 OF THE EUROPEAN UNION DIRECTIVE 2019/790 ON COPYRIGHT\n# AND RELATED RIGHTS IN THE DIGITAL SINGLE MARKET.\n\n# BEGIN Cloudflare Managed content\n\n\nUser-agent: *\nContent-Signal: search=yes,ai-train=no,use=reference\nAllow: /\n\n# Training crawlers\nUser-agent: Amazonbot\nDisallow: /",
+  "Cosmere": {
+   "status": 403,
+   "url": "https://www.isfdb.org/cgi-bin/se.cgi?type=Series&arg=Cosmere",
+   "text": "Just a moment... *{box-sizing:border-box;margin:0;padding:0}html{line-height:1.15;-webkit-text-size-adjust:100%;color:#313131;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"}body{display:flex;flex-direction:column;height:100vh;min-height:100vh}.main-content{margin:8rem auto;padding-left:1.5rem;max-width:60rem}@media (width Enable JavaScript and cookies to continue"
+  },
+  "Grishaverse": {
+   "status": 200,
+   "url": "https://www.isfdb.org/cgi-bin/se.cgi?type=Series&arg=Grishaverse",
+   "text": "ISFDB Series search ISFDB Series search You are not logged in. If you create a free account and sign in, you will be able to customize what is displayed. Name Fiction Titles All Titles Year of Title Month of Title Month of Publication Series Publication Series Magazine Publisher ISBN Tag Award Advanced Search Search Help Not Logged In Log In Help Navigating Other Pages: Home Page ISFDB Wiki ISFDB FAQ SF Calendar Author Directory Award Directory Publisher Directory Magazine Directory Statistics/Top Lists Recent Activity Cleanup Reports Add New Data: Add New Anthology Add New Chapbook Add New Collection Add New Fanzine Add New Magazine Add New Nonfiction Add New Novel Add New Omnibus Add Untitled Award Policies: Disclaimer Privacy Policy Banner Art Credits License: This work is licensed under a Creative Commons Attribution 4.0 International License . A search for 'Grishaverse' found 0 matches. You can also try: exact series search approximate series search on Copyright &copy; 1995-2025 Al von Ruff and the ISFDB team . ISFDB Engine - Version 4.00 (2006-04-24)"
+  },
+  "Empyrean": {
+   "status": 200,
+   "url": "https://www.isfdb.org/cgi-bin/se.cgi?type=Series&arg=Empyrean",
+   "text": "ISFDB Series search ISFDB Series search You are not logged in. If you create a free account and sign in, you will be able to customize what is displayed. Name Fiction Titles All Titles Year of Title Month of Title Month of Publication Series Publication Series Magazine Publisher ISBN Tag Award Advanced Search Search Help Not Logged In Log In Help Navigating Other Pages: Home Page ISFDB Wiki ISFDB FAQ SF Calendar Author Directory Award Directory Publisher Directory Magazine Directory Statistics/Top Lists Recent Activity Cleanup Reports Add New Data: Add New Anthology Add New Chapbook Add New Collection Add New Fanzine Add New Magazine Add New Nonfiction Add New Novel Add New Omnibus Add Untitled Award Policies: Disclaimer Privacy Policy Banner Art Credits License: This work is licensed under a Creative Commons Attribution 4.0 International License . A search for 'Empyrean' found 3 matches. Series Parent Series Position Within Parent Series Empyrean Chronicles The World of Empyrea &nbsp; The Empyrean &nbsp; &nbsp; The Empyrean Odyssey Forgotten Realms Universe &nbsp; Copyright &copy; 1995-2025 Al von Ruff and the ISFDB team . ISFDB Engine - Version 4.00 (2006-04-24)"
+  },
+  "A Court of Thorns and Roses": {
+   "status": 200,
+   "url": "https://www.isfdb.org/cgi-bin/pe.cgi?38867",
+   "text": "Series: A Court of Thorns and Roses Series: A Court of Thorns and Roses You are not logged in. If you create a free account and sign in, you will be able to customize what is displayed. Name Fiction Titles All Titles Year of Title Month of Title Month of Publication Series Publication Series Magazine Publisher ISBN Tag Award Advanced Search Search Help Not Logged In Log In Help Navigating Other Pages: Home Page ISFDB Wiki ISFDB FAQ SF Calendar Author Directory Award Directory Publisher Directory Magazine Directory Statistics/Top Lists Recent Activity Cleanup Reports Editing Tools: Edit Series Delete Series Add New Data: Add New Anthology Add New Chapbook Add New Collection Add New Fanzine Add New Magazine Add New Nonfiction Add New Novel Add New Omnibus Add Untitled Award Policies: Disclaimer Privacy Policy Banner Art Credits License: This work is licensed under a Creative Commons Attribution 4.0 International License . Series: A Court of Thorns and Roses Series Record # 38867 Series Tags: young-adult fantasy (6), Beauty and the Beast (1), fantasy (1) Showing all translations. Never display translations Registered users can choose which translations are shown. A Court of Thorns and Roses 1 A Court of Thorns and Roses ( 2015 ) by Sarah J. Maas also appeared as: Translation: Corte de espinhos e rosas [Portuguese] ( 2015 ) Translation: Hof van doorns en rozen [Dutch] ( 2016 ) Translation: Dornen und Rosen [German] ( 2017 ) Variant: A Court of Thorns and Roses (1 of 2) ( 2022 ) Variant: A Court of Thorns and Roses (2 of 2) ( 2022 ) Translation: Una corte de rosas y espinas [Spanish] ( 2022 ) 2 A Court of Mist and Fury ( 2016 ) by Sarah J. Maas also appeared as: Translation: Corte de n�voa e f�ria [Portuguese] ( 2016 ) Translation: Hof van mist en woede [Dutch] ( 2016 ) Translation: Una corte de niebla y furia [Spanish] ( 2022 ) Translation: Dvor magle i bijesa [Croatian] ( 2025 ) 3 A Court of Wings and Ruin ( 2017 ) by Sarah J. Maas also appeared as: Translation: Regatul aripilor &#537;i al pieirii ? Regatul aripilor si al pieirii [Romanian] ( 2015 ) Translation: Corte de asas e ru�na [Portuguese] ( 2017 ) Translation: Hof van vleugels en verwoesting [Dutch] ( 2017 ) Translation: Una corte de alas y ruina [Spanish] ( 2022 ) 4 A Court of Frost and Starlight ( 2018 ) by Sarah J. Maas also appeared as: Translation: Corte de Gelo e Estrelas [Portuguese] ( 2018 ) Translation: Hof van ijs en sterren [Dutch] ( 2018 ) Translation: Una corte de hielo y estrellas [Spanish] ( 2022 ) 5 A Court of Silver Flames ( 2021 ) by Sarah J. Maas also appeared as: Translation: Hof van zilveren vlammen [Dutch] ( 2021 ) Translation: Corte de chamas prateadas [Portuguese] ( 2021 ) Translation: Una corte de llamas plateadas [Spanish] ( 2021 ) A Court of Thorns and Roses (excerpt) ( 2013 ) [SF] by Sarah J. Maas A Court of Thorns and Roses (excerpt) ( 2014 ) [SF] by Sarah J. Maas A Court of Thorns and Roses (excerpt) ( 2014 ) [SF] by Sarah J. Maas A Court of Thorns and Roses ( 2"
+  }
+ }
+}
