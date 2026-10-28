@@ -5,9 +5,10 @@
 ui.view = 'shelves';
 function showView(v){
   ui.view = v;
-  $('#view-shelves').hidden = v !== 'shelves'; $('#view-reading').hidden = v !== 'reading';
+  $('#view-shelves').hidden = v !== 'shelves'; $('#view-reading').hidden = v !== 'reading'; $('#view-universes').hidden = v !== 'universes';
+  $('#stats').setAttribute('aria-pressed', v === 'reading');
   $$('.bottombar [data-view]').forEach(b => b.dataset.view === v ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
-  if(v === 'reading') renderReading();
+  if(v === 'reading') renderReading(); if(v === 'universes') renderUniverses();
   scrollTo({ top:0 });
 }
 

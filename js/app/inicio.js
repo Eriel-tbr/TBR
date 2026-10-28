@@ -22,6 +22,8 @@ $('#btnRandom').addEventListener('click', openRandom);
 $('#btnSettings').addEventListener('click', openSettings);
 $('#navAdd').addEventListener('click', openAdd);
 $$('.bottombar [data-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+$('#stats').addEventListener('click', () => showView('reading'));
+setInterval(() => { const s = $$('#stats .st'); if(s.length < 2 || document.hidden) return; ui.hdrI = ((ui.hdrI || 0) + 1) % s.length; s.forEach((x, i) => x.classList.toggle('on', i === ui.hdrI)); }, 4000);
 
 /* ---------- Inicio ---------- */
 applyTheme(); renderAll();

@@ -94,7 +94,12 @@ function cabinetHtml(u, i){
 function renderHeader(){
   const yr = new Date().getFullYear(), pend = state.books.filter(b => (b.status || 'pendiente') === 'pendiente').length; // igual que en Estadísticas
   const read = state.books.filter(b => b.status === 'leido' && b.readAt && new Date(b.readAt).getFullYear() === yr).length;
-  $('#stats').innerHTML = `<b>${pend}</b> pendientes · <b>${read}</b> leídos en ${yr}`;
+  // Cabecera que va rotando (toca → Lectura): pendientes, leídos este año y lo que estás leyendo
+  const now = state.books.filter(b => b.status === 'leyendo');
+  const items = [`<b>${pend}</b> pendientes`, `<b>${read}</b> leídos en ${yr}`];
+  if(now.length) items.push(`Leyendo: <b>${esc(now[0].title)}</b>${now.length > 1 ? ` +${now.length - 1}` : ''}`);
+  ui.hdrI = (ui.hdrI || 0) % items.length;
+  $('#stats').innerHTML = items.map((h, i) => `<span class="st${i === ui.hdrI ? ' on' : ''}">${h}</span>`).join('');
   $('#btnFilter').setAttribute('aria-pressed', filtersActive() ? 'true' : 'false');
   const fb = $('#filterbar');
   if(filtersActive()){
@@ -139,7 +144,7 @@ function goToFirstHit(){
 }
 function renderAll(){
   ui.active = clamp(ui.active, 0, state.units.length - 1);
-  renderHeader(); renderTabs(); renderCarousel(); setAccent(); if(typeof renderReading === 'function') renderReading();
+  renderHeader(); renderTabs(); renderCarousel(); setAccent(); if(typeof renderReading === 'function') renderReading(); if(typeof renderUniverses === 'function') renderUniverses();
 }
 /* Se desliza entre estanterías (una en una); goTo lleva a una concreta */
 function markActive(i){

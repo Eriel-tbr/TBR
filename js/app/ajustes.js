@@ -135,16 +135,36 @@ function openFilters(){
 }
 
 /* ---------- Libro aleatorio ---------- */
+/* Botón de etiquetas de la ruleta (mismo aspecto que un selector) y hoja para elegir varias */
+const tagsLabel = f => !f.tags.length ? 'Cualquiera' : f.tags.length <= 2 ? f.tags.join(' y ') : `${f.tags.slice(0, 2).join(' y ')} +${f.tags.length - 2}`;
+const tagsBtnHtml = f => `<button class="field pick" type="button" id="r-tags" aria-haspopup="dialog" data-multi><span class="pick-t"><small>Etiquetas</small><span class="pick-v">${esc(tagsLabel(f))}</span></span>${CHEVRON}</button>`;
+function pickTags(f, done){
+  const sel = new Set(f.tags); let q = '';
+  const list = () => allTags().filter(([t]) => !q || norm(t).includes(norm(q))).map(([t, n]) => `<button class="chip" type="button" data-rt="${esc(t)}" aria-pressed="${sel.has(t)}">${esc(t)} <small>${n}</small></button>`).join('') || '<span class="note">Ninguna coincide.</span>';
+  const body = `${lineHtml('class="field" id="rt-q" placeholder="Buscar etiqueta…" aria-label="Buscar etiqueta"')}
+    <div class="chips" id="rt-list">${list()}</div>`;
+  const sh = openSheet(sheetT('Etiquetas', body, '<button class="btn" type="button" id="rt-none">Ninguna</button><button class="btn primary" type="button" id="rt-ok">Listo</button>'), () => { f.tags = [...sel]; done(); });
+  sh.classList.add('pick-sheet');
+  sh.addEventListener('input', e => { if(e.target.id === 'rt-q'){ q = e.target.value; $('#rt-list', sh).innerHTML = list(); } });
+  sh.addEventListener('click', e => {
+    const g = s => e.target.closest(s);
+    if(g('[data-rt]')){ const t = g('[data-rt]').dataset.rt; sel.has(t) ? sel.delete(t) : sel.add(t); g('[data-rt]').setAttribute('aria-pressed', sel.has(t)); }
+    else if(g('#rt-none')){ sel.clear(); $$('[data-rt]', sh).forEach(c => c.setAttribute('aria-pressed', 'false')); }
+    else if(g('#rt-ok')) closeSheet();
+  });
+}
 function openRandom(){
-  const f = { unit:'', lang:'', tag:'', len:'', kind:'', next:true }; let cur = null;
+  const f = { unit:'', lang:'', tags:[], len:'', kind:'', next:true }; let cur = null;
   // De una saga solo sale el tomo que te toca: el de número más bajo sin leer (si estás leyendo uno, ninguno más de esa saga)
   const turn = b => { const k = serKey(b); if(!k || !f.next) return true; const n = +b.series.n || 99;
     return !state.books.some(x => x.id !== b.id && serKey(x) === k && x.status !== 'leido' && (+x.series.n || 99) < n); };
-  const pool = () => state.books.filter(b => (b.status || 'pendiente') === 'pendiente' && turn(b) && (!f.unit || b.unitId === f.unit) && (!f.kind || seriesKind(state, b) === f.kind) && matches(b, { q:'', status:'', lang:f.lang, tags:f.tag ? [f.tag] : [], len:f.len }));
+  const pool = () => state.books.filter(b => (b.status || 'pendiente') === 'pendiente' && turn(b) && (!f.unit || b.unitId === f.unit) && (!f.kind || seriesKind(state, b) === f.kind) && tagsOk(b) && matches(b, { q:'', status:'', lang:f.lang, tags:[], len:f.len }));
+  // Varias etiquetas: el libro tiene que tenerlas todas (decisión de Leyre)
+  const tagsOk = b => f.tags.every(t => (b.tags || []).includes(t));
   const body = `<div id="r-card" class="random-card"></div>
     <div class="sec"><span class="lbl">Condiciones</span>
     <div class="two">${pickHtml('r-unit', 'Estantería', [['', 'Cualquiera'], ...state.units.map(u => [u.id, u.name])], '')}
-    ${pickHtml('r-tag', 'Etiqueta', [['', 'Cualquiera'], ...allTags().map(([t]) => [t, t])], '')}</div>
+    ${tagsBtnHtml(f)}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier idioma'], ['es', 'Solo español'], ['en', 'Solo inglés'], ['both', 'Ambos']], '', 'data-lg')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier longitud'], ['corto', 'Corto'], ['medio', 'Medio'], ['largo', 'Largo']], '', 'data-ln')}</div>
     <div class="chips">${chipsHtml([['', 'Cualquier tipo'], ['ind', 'Individual'], ['bitri', 'Duología / trilogía'], ['saga', 'Saga']], '', 'data-kd')}</div>
@@ -159,12 +179,13 @@ function openRandom(){
       ${b.synopsis ? `<p class="note" style="max-height:6.5em;overflow:hidden">${esc(b.synopsis.slice(0, 260))}${b.synopsis.length > 260 ? '…' : ''}</p>` : ''}<div class="note">${esc(locName(b))}</div>`;
   };
   roll();
-  sh.addEventListener('change', e => { if(e.target.id === 'r-unit'){ f.unit = e.target.value; roll(); } if(e.target.id === 'r-tag'){ f.tag = e.target.value; roll(); } if(e.target.id === 'r-next'){ f.next = e.target.checked; roll(); } });
+  sh.addEventListener('change', e => { if(e.target.id === 'r-unit'){ f.unit = e.target.value; roll(); } if(e.target.id === 'r-next'){ f.next = e.target.checked; roll(); } });
   sh.addEventListener('click', async e => {
     const g = s => e.target.closest(s);
     if(g('[data-lg]')){ f.lang = g('[data-lg]').dataset.lg; $$('[data-lg]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-lg]'))); roll(); }
     else if(g('[data-ln]')){ f.len = g('[data-ln]').dataset.ln; $$('[data-ln]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-ln]'))); roll(); }
     else if(g('[data-kd]')){ f.kind = g('[data-kd]').dataset.kd; $$('[data-kd]', sh).forEach(c => c.setAttribute('aria-pressed', c === g('[data-kd]'))); roll(); }
+    else if(g('#r-tags')) pickTags(f, () => { $('#r-tags', sh).outerHTML = tagsBtnHtml(f); roll(); });
     else if(g('#r-roll')) roll();
     else if(g('#r-open') && cur){ const id = cur.id; await closeSheet(); openDetail(id); }
   });
