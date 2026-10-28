@@ -35,21 +35,23 @@ function ownHtml(b){
 }
 /* ---------- Audiolibro ---------- */
 const AUDIO_TTL = 30 * 86400000;
+const AUD_STORE = { audible:'Audible', apple:'Apple Books', hardcover:'Hardcover' };
 const hms = s => { const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };
 function audioHtml(b, st){
   const a = b.audio || {}, items = a.items || [], drama = !!b.audioDrama;
-  const row = i => `<li class="aud"><div><b>${esc(i.title)}</b> <span class="badge ${i.lang || ''}">${i.lang === 'es' ? 'ES' : i.lang === 'en' ? 'EN' : '¿idioma?'}</span>${i.drama ? ' <span class="badge">¿dramatizado?</span>' : ''}</div>
+  const row = i => `<li class="aud"><div><b>${esc(i.title)}</b> <span class="badge ${i.lang || ''}">${i.lang === 'es' ? 'ES' : i.lang === 'en' ? 'EN' : '¿idioma?'}</span>${i.dramaSure ? ' <span class="badge">dramatizado</span>' : i.drama ? ' <span class="badge">¿dramatizado?</span>' : ''}${i.abridged ? ' <span class="badge">abreviado</span>' : ''}</div>
     <div class="note">${esc([i.store, i.seconds ? hms(i.seconds) : '', (i.narrators || []).length ? 'narra ' + i.narrators.join(', ') : '', i.publisher, i.year, i.price].filter(Boolean).join(' · '))}</div>
-    ${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${i.src === 'apple' ? 'Ver en Apple Books' : 'Ver en Hardcover'} ↗</a>` : ''}</li>`;
+    ${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">Ver en ${AUD_STORE[i.src] || 'Hardcover'} ↗</a>` : ''}</li>`;
   const { t, es } = titlesOf(b), q = `${es || t} ${lastName(b.author)}`.trim();
   return `<div class="sec" id="d-audio"><span class="lbl">Audiolibro</span>
     ${st === 'busy' ? '<p class="note">Buscando audiolibros…</p>' : st === 'error' ? '<p class="note">No se pudo consultar ahora. Prueba más tarde.</p>'
-      : a.at ? (items.length ? `<ul class="auds">${items.slice(0, 6).map(row).join('')}</ul>` : '<p class="note">No he encontrado audiolibro en Apple Books ni en Hardcover.</p>') : ''}
+      : a.at ? (items.length ? `<ul class="auds">${items.slice(0, 6).map(row).join('')}</ul>` : '<p class="note">No he encontrado audiolibro en Audible, Apple Books ni Hardcover.</p>') : ''}
     <label class="switch">Lo tengo o quiero en versión dramatizada<input type="checkbox" data-adrama ${drama ? 'checked' : ''}></label>
     <div class="chips"><button class="chip" type="button" data-xdo="audio">${a.at ? 'Volver a buscar' : 'Buscar audiolibro'}</button>
       <a class="chip" href="https://www.audible.es/search?keywords=${enc(q)}" target="_blank" rel="noopener">Audible ↗</a>
-      <a class="chip" href="https://www.google.com/search?q=${enc('site:storytel.com ' + q)}" target="_blank" rel="noopener">Storytel ↗</a></div>
-    <p class="note">«¿Dramatizado?» es solo una sospecha por el título: márcalo tú.</p></div>`;
+      <a class="chip" href="https://www.google.com/search?q=${enc('site:storytel.com ' + q)}" target="_blank" rel="noopener">Storytel ↗</a>
+      <a class="chip" href="https://open.spotify.com/search/${enc(q)}/audiobooks" target="_blank" rel="noopener">Spotify ↗</a></div>
+    ${items.some(i => i.drama && !i.dramaSure) ? '<p class="note">«¿Dramatizado?» es solo una sospecha por el título.</p>' : ''}</div>`;
 }
 const audioBusy = new Set(), seriesBusy = new Set(), xSt = {}; // xSt[id] = { a, s }: estado de la búsqueda de audiolibro y de serie
 async function loadAudio(id, paint){

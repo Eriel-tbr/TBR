@@ -33,6 +33,7 @@ function fakeOwnApi(route){
     { title:'Quicksilver', full:'Quicksilver by Callie Hart - Special Edition Sprayed Edges', price:'£22.00', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/qs', isbn:'', fmt:'especial', author:'Callie Hart' },
     { title:'Quicksilver', full:'Quicksilver by Callie Hart', price:'£9.99', available:true, publisher:'Hodder', url:'https://www.books2door.com/products/9781399741',  isbn:'', fmt:'', author:'Callie Hart' }] : [] }) });
   if(u.pathname === '/api/audio') return new Promise(r => setTimeout(r, audioDelay)).then(() => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ items:[
+    { id:'uB1', src:'audible', store:'Audible', title:'El rey malvado (Versión dramatizada)', lang:'es', url:'https://www.audible.es/pd/B1', seconds:30000, narrators:['Carla López'], publisher:'BookaVivo', year:'2026', drama:true, dramaSure:true },
     { id:'a1', src:'apple', store:'Apple Books', country:'es', title:'El rey malvado', lang:'es', url:'https://books.apple.com/x', price:'18.99 EUR' },
     { id:'h1', src:'hardcover', store:'Hardcover', title:'The Wicked King', lang:'en', seconds:36000, narrators:['Caitlin Kelly'], drama:true }] }) }));
   if(u.pathname === '/api/serie') return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ name:'The Folk of the Air', total:4, url:'https://hardcover.app/series/x',
@@ -566,7 +567,9 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await tab('comprar'); await page.waitForSelector('#d-audio .aud', { timeout:5000 });
     assert(await ev(() => [...document.querySelectorAll('.sheet .tabbar [data-tab]')].map(x => x.textContent).join()) === 'Resumen,Detalles,Serie,Ediciones', 'pestañas de la ficha');
     const a = await ev(() => ({ n:document.querySelectorAll('#d-audio .aud').length, t:document.querySelector('#d-audio').innerText, shops:[...document.querySelectorAll('a.chip')].map(x => x.textContent) }));
-    assert(a.n === 2 && /10 h 0 min/.test(a.t) && /Caitlin Kelly/.test(a.t), JSON.stringify(a)); assert(['Amazon', 'Buscalibre', 'Casa del Libro', 'Books2Door', 'Come In'].every(n => a.shops.some(s => s.includes(n))), a.shops.join());
+    assert(a.n === 3 && /10 h 0 min/.test(a.t) && /Caitlin Kelly/.test(a.t), JSON.stringify(a));
+    assert(/8 h 20 min · narra Carla López/.test(a.t) && /Ver en Audible/.test(a.t) && /\bdramatizado\b/.test(a.t) && /¿dramatizado\?/.test(a.t), 'Audible en la ficha: ' + a.t);
+    assert(a.shops.some(s => s.includes('Spotify')), 'enlace a Spotify'); assert(['Amazon', 'Buscalibre', 'Casa del Libro', 'Books2Door', 'Come In'].every(n => a.shops.some(s => s.includes(n))), a.shops.join());
     assert(await ev(() => [...document.querySelectorAll('a.chip')].find(x => /Come In/.test(x.textContent)).href.includes('libreriainglesa.com/producto/listadobuscar?buscar=The%20Cruel%20Prince')), 'enlace de Come In');
     assert(!(await ev(() => document.querySelector('.sheet').innerText)).includes('Ediciones en español encontradas'), 'la ficha aún enseña la lista de ediciones');
     await page.click('[data-adrama]'); assert(await ev(id => bookOf(id).audioDrama, id) === true, 'dramatizado');
@@ -686,7 +689,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     audioDelay = 900; const id = await ev(() => { const b = state.books.find(x => x.title === 'Dune'); delete b.audio; b.status = 'pendiente'; return b.id; });
     await ev(id => openDetail(id), id); await page.click('.sheet [data-do="start"]'); await tab('comprar');
     await page.waitForSelector('#d-audio .aud', { timeout:5000 }); audioDelay = 0;
-    assert(await page.locator('#d-audio .aud').count() === 2, 'sin resultados');
+    assert(await page.locator('#d-audio .aud').count() === 3, 'sin resultados');
     await ev(id => { bookOf(id).status = 'pendiente'; save(); }, id); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
   await test('formulario con cambios: pregunta antes de descartarlos (X, fondo y gesto atrás); sin cambios o al guardar, no', async () => {

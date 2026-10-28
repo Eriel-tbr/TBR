@@ -1,7 +1,9 @@
 /* Mi TBR · /api/audio?t=<título>&es=<título en español>&a=<autor/a>
-   Audiolibros de un libro: Apple Books (tiendas de España y de EE. UU., buscador público sin clave)
+   Audiolibros de un libro: Audible (catálogo público de audible.es y audible.com, sin clave; no oficial:
+   lo usan Audiobookshelf y otros), Apple Books (tiendas de España y de EE. UU., buscador público sin clave)
    y ediciones en audio de Hardcover (duración, narradores, idioma).
-   Ninguna fuente dice si es dramatizado: se marca como «posible» si el título o la editorial lo sugieren.
+   Audible sí dice idioma, narradores, duración, si es abreviado y si es una interpretación con reparto
+   (dramatizado: `drama` + `dramaSure`). En Apple y Hardcover «dramatizado» es solo una sospecha por el texto.
    ?diag=1 devuelve también los datos en bruto para depurar. */
 const { gql, findBook, norm, lastName } = require('./_lib/hardcover');
 const DRAMA = /dramati[sz]|full[- ]cast|reparto completo|audioserie|audio drama|graphic ?audio|radio play/i;
@@ -11,6 +13,17 @@ const WORDS = { es:'el la los las una que del por para con como sus pero novela 
   fr:'le les des une du est pour roman tome dans', pt:'os das dos uma com não livro sombra', nd:'og det som til af første del bind' };
 const RX = Object.fromEntries(Object.entries(WORDS).map(([k, w]) => [k, new RegExp(`(^|[^\\p{L}])(${w.split(' ').join('|')})(?=$|[^\\p{L}])`, 'giu')]));
 function guessLang(text){ let best = '', n = 0; for(const [k, rx] of Object.entries(RX)){ const c = (String(text).match(rx) || []).length; if(c > n){ n = c; best = k; } } return best; }
+/* Audible: misma búsqueda que Audiobookshelf (title + author). tld 'es' o 'com'. */
+const AUD_LANG = { spanish:'es', english:'en' };
+async function audible(tld, title, author){
+  const p = new URLSearchParams({ num_results:'10', products_sort_by:'Relevance', title, response_groups:'contributors,product_attrs,media,series' });
+  if(author) p.set('author', author);
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
+  try{
+    const r = await fetch(`https://api.audible.${tld}/1.0/catalog/products?${p}`, { signal:ac.signal, headers:{ accept:'application/json' } });
+    if(!r.ok) throw new Error('Audible ' + r.status); return (await r.json()).products || [];
+  }finally{ clearTimeout(t); }
+}
 async function apple(term, country){
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
   try{
@@ -29,15 +42,20 @@ async function main(req, res){
   const sameBook = name => { const n = norm(name); return titles.some(x => x && (n.includes(x) || x.includes(n.split(' ').slice(0, 4).join(' ')))); };
   // Apple Books: tienda española con el título en español (si lo hay) y tienda de EE. UU. con el original
   const jobs = [['es', (es || t) + (last ? ' ' + last : '')], ['us', t + (last ? ' ' + last : '')]];
-  const appleRes = {};
+  const appleRes = {}, audRes = {};
+  const audJobs = [['es', es || t], ['com', t]];
   const work = Promise.all([
-    ...(only === 'hc' ? [] : jobs).map(async ([c, term]) => {
+    ...(only && only !== 'audible' ? [] : audJobs).map(async ([tld, title]) => {
+      try{ const list = await audible(tld, title, a.split(',')[0].trim().split(/\s+/).pop() || ''); if(diag) raw['audible_' + tld] = list; audRes[tld] = list; }
+      catch(e){ errors['audible_' + tld] = e.message; }
+    }),
+    ...(only && only !== 'apple' ? [] : jobs).map(async ([c, term]) => {
       try{
         const list = await apple(term, c); if(diag) raw['apple_' + c] = list;
         appleRes[c] = list;
       }catch(e){ errors['apple_' + c] = e.message; }
     }),
-    (async () => { if(only === 'apple') return;
+    (async () => { if(only && only !== 'hc') return;
       try{
         const book = await findBook(t, a); if(diag) raw.hardcoverBook = book; if(!book || !book.id) return;
         let d;
@@ -58,6 +76,16 @@ async function main(req, res){
   ]);
   // Vercel corta a los 10 s: se responde con lo que haya a los 8,5 s
   let timer; await Promise.race([work, new Promise(r => { timer = setTimeout(() => { errors.tiempo = 'respuesta parcial'; r(); }, 6500); })]); clearTimeout(timer);
+  // Audible: idioma, narradores y formato de la propia ficha; un mismo audiolibro (ASIN) solo una vez
+  ['es', 'com'].forEach(tld => (audRes[tld] || []).filter(x => (!last || (x.authors || []).some(a => norm(a.name).includes(last))) && sameBook(x.title || '')).forEach(x => {
+    if(items.some(i => i.id === 'u' + x.asin)) return;
+    const lang = AUD_LANG[String(x.language || '').toLowerCase()]; if(!lang) return; // solo español e inglés
+    const narr = (x.narrators || []).map(n => n.name).filter(Boolean), text = `${x.title || ''} ${x.subtitle || ''}`;
+    const sure = x.content_type === 'Performance' || x.format_type === 'original_recording' || narr.some(n => /full cast|reparto/i.test(n)) || DRAMA.test(text);
+    items.push({ id:'u' + x.asin, src:'audible', store:'Audible', title:[x.title, x.subtitle].filter(Boolean).join(' · '), author:(x.authors || []).map(a => a.name).join(', '),
+      url:`https://www.audible.${tld}/pd/${x.asin}`, lang, seconds:(x.runtime_length_min || 0) * 60, narrators:narr.filter(n => !/full cast/i.test(n)).slice(0, 4),
+      publisher:x.publisher_name || '', year:String(x.release_date || '').slice(0, 4), drama:sure, dramaSure:sure, abridged:x.format_type === 'abridged' });
+  }));
   // Apple: primero la tienda española (precios en euros), luego la de EE. UU.; un mismo audiolibro solo una vez
   ['es', 'us'].forEach(c => (appleRes[c] || []).filter(x => (!last || norm(x.artistName).includes(last)) && sameBook(x.collectionName || '')).forEach(x => {
     if(items.some(i => i.id === 'a' + x.collectionId)) return;
@@ -66,10 +94,11 @@ async function main(req, res){
       cover:x.artworkUrl100 || '', year:String(x.releaseDate || '').slice(0, 4), price:x.collectionPrice != null ? `${x.collectionPrice} ${x.currency || ''}`.trim() : '',
       lang:es && norm(x.collectionName).includes(norm(es)) && norm(es) !== norm(t) ? 'es' : guessLang(text), drama:DRAMA.test(text) });
   }));
-  // Solo español e inglés (los de idioma desconocido de Hardcover, solo si no hay otros); primero español; Apple antes (tiene enlace de compra)
-  const rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 2 + (i.src === 'apple' ? 0 : 1);
+  // Solo español e inglés (los de idioma desconocido de Hardcover, solo si no hay otros); primero español;
+  // dentro de cada idioma, Audible (datos más completos), luego Apple (enlace de compra), luego Hardcover
+  const SRC = { audible:0, apple:1, hardcover:2 }, rank = i => (i.lang === 'es' ? 0 : i.lang === 'en' ? 1 : 2) * 3 + (SRC[i.src] ?? 2);
   const keep = items.filter(i => i.lang === 'es' || i.lang === 'en'), list = (keep.length ? keep : items.filter(i => !i.lang)).sort((x, y) => rank(x) - rank(y));
-  const dup = new Set(); const seen = {}; const out = list.filter(i => { const d = [i.src, i.lang, i.seconds, (i.narrators || []).join()].join('|'); if(i.src === 'hardcover' && dup.has(d)) return false; dup.add(d); const k = i.src + i.lang; seen[k] = (seen[k] || 0) + 1; return seen[k] <= 2; });
+  const dup = new Set(); const seen = {}; const out = list.filter(i => { const d = [i.src, i.lang, i.seconds, (i.narrators || []).join()].join('|'); if(i.src === 'hardcover' && dup.has(d)) return false; dup.add(d); const k = i.src + i.lang; seen[k] = (seen[k] || 0) + 1; return seen[k] <= (i.src === 'audible' ? 3 : 2); });
   items.length = 0; items.push(...out);
   res.setHeader('cache-control', 'public, s-maxage=604800, stale-while-revalidate=2592000');
   res.end(JSON.stringify(diag ? { items, errors, raw } : { items, errors:Object.keys(errors).length ? errors : undefined }));

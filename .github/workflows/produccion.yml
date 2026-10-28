@@ -1,0 +1,21 @@
+name: Producción
+# Tras cada subida a main: espera a que Vercel sirva la versión nueva y comprueba que /api/audio trae resultados de Audible.
+# El resultado sale como aviso (annotation) en la ejecución; no bloquea nada.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Esperar a la versión nueva y probar api/audio
+        run: |
+          V=$(jq -r .version version.json); B=https://tbr-sage.vercel.app
+          for i in $(seq 1 36); do [ "$(curl -sS -m 10 $B/version.json | jq -r .version 2>/dev/null)" = "$V" ] && break; sleep 10; done
+          R=$(curl -sS -m 30 "$B/api/audio?t=Fourth%20Wing&es=Alas%20de%20sangre&a=Rebecca%20Yarros")
+          S=$(echo "$R" | jq -c '[.items[].src] | group_by(.) | map({(.[0]):length}) | add')
+          E=$(echo "$R" | jq -c '.errors // {}')
+          echo "::notice title=api/audio ($V)::fuentes $S · errores $E"
+          echo "$R" | jq -e '[.items[] | select(.src=="audible")] | length > 0' > /dev/null || echo "::warning title=Audible::sin resultados de Audible desde Vercel: $E"
