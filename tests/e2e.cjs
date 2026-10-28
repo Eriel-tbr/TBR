@@ -683,6 +683,11 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     if(await ev(() => UNI_BOARD)){
       assert(await page.locator('details[data-uni="cosmere"] .board .bd-card').count() >= 17, 'faltan fichas en el tablero');
       await page.click('details[data-uni="cosmere"] [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar una ficha no enseña sus datos');
+      await page.click('details[data-uni="cosmere"] [data-bc="hoid"]');
+      const ph = await page.locator('details[data-uni="cosmere"] .bd-panel').innerText();
+      assert(/Hoid/.test(ph) && /Toca para ver/.test(ph) && await page.locator('details[data-uni="cosmere"] .bd-pol svg').count() >= 5, 'la foto de Hoid no enseña sus conexiones tapadas: ' + ph.slice(0, 120));
+      assert(await page.locator('details[data-uni="cosmere"] .bd-note').count() >= 5, 'faltan notas en el tablero');
+      await page.click('details[data-uni="cosmere"] [data-bz="-1"]'); assert(await ev(() => ui.uniZoom.cosmere) === .85, 'el zoom no cambia');
       await page.click('details[data-uni="cosmere"] [data-um="lista"]');
     }
     assert(await page.locator('details[data-uni="cosmere"] .uni-order li').count() >= 17, 'sin lista de orden');
