@@ -34,7 +34,7 @@ function ownHtml(b){
   return `<div class="sec" id="d-own"><span class="lbl">Mis ediciones</span><div class="chips">${FORMATS.map(([k, l]) => `<button class="chip own" type="button" data-own="${k}" data-st="${f[k] || ''}" aria-pressed="${f[k] === 'tengo'}">${esc(l)}${f[k] ? ` · <b>${OWN_TXT[f[k]]}</b>` : ''}${av[k] ? ` <small>${av[k]}</small>` : ''}</button>`).join('')}</div></div>`;
 }
 /* ---------- Audiolibro ---------- */
-const AUDIO_TTL = 30 * 86400000;
+const AUDIO_TTL = 30 * 86400000, AUDIO_V = 2; // AUDIO_V sube cuando cambian las fuentes (2 = con Audible): lo guardado antes se vuelve a buscar
 const AUD_STORE = { audible:'Audible', apple:'Apple Books', hardcover:'Hardcover' };
 const hms = s => { const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; };
 function audioHtml(b, st){
@@ -64,7 +64,7 @@ async function loadAudio(id, paint){
     if(!r || r.status >= 500) r = await fetchTimeout(url, null, 15000);
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json(), cur = bookOf(id); if(!cur) return;
-    cur.audio = { at:Date.now(), items:(j.items || []).slice(0, 8) };
+    cur.audio = { v:AUDIO_V, at:Date.now(), items:(j.items || []).slice(0, 8) };
     save(); paint('');
   }catch(e){ paint('error'); }
   finally{ audioBusy.delete(id); }
@@ -144,7 +144,7 @@ function fichaExtras(sh, id){
   st.paint = paint; // la ficha abierta más reciente es la que recibe los resultados
   const setA = v => { st.a = v; st.paint(); }, setS = v => { st.s = v; st.paint(); };
   paint();
-  if((!b.audio || Date.now() - (b.audio.at || 0) > AUDIO_TTL) && !audioBusy.has(id)) loadAudio(id, setA);
+  if((!b.audio || b.audio.v !== AUDIO_V || Date.now() - (b.audio.at || 0) > AUDIO_TTL) && !audioBusy.has(id)) loadAudio(id, setA);
   const sc = b.series && seriesCache[serKey(b)]; if(sc && Date.now() - sc.at > SERIES_TTL) loadSeries(id, setS);
   const box = $('#dextra', sh), shop = $('#dshop', sh); if(!shop) return;
   const onClick = async e => {
