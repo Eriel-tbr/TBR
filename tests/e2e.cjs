@@ -655,17 +655,17 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await page.locator('.slide[data-i="0"] .dcm').first().click(); await page.waitForSelector('[data-do="drm"]'); await page.click('[data-do="drm"]'); await page.waitForTimeout(400);
     assert(await page.locator('.slide[data-i="0"] .dcm').count() === n - 1, 'no se quitó');
   });
-  await test('ruleta: varias etiquetas (basta con una o todas a la vez)', async () => {
+  await test('ruleta: varias etiquetas, tienen que cumplirse todas', async () => {
     const ids = await ev(() => { const [a, b] = state.books.filter(x => (x.status || 'pendiente') === 'pendiente' && !serKey(x)); a.tags = [...(a.tags || []), 'zzuno']; b.tags = [...(b.tags || []), 'zzdos', 'zzuno']; save(); return [a.id, b.id]; });
     await page.click('#btnRandom'); await page.click('#r-tags'); await page.waitForSelector('#rt-list');
     await page.fill('#rt-q', 'zz'); assert(await page.locator('#rt-list [data-rt]').count() === 2, 'el buscador de etiquetas no filtra');
-    await page.click('[data-rt="zzuno"]'); await page.click('[data-rt="zzdos"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    await page.click('[data-rt="zzuno"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
     const seen = new Set(); for(let i = 0; i < 12; i++){ seen.add(await ev(() => document.querySelector('#r-card h2').textContent)); await page.click('#r-roll'); }
     const names = await ev(ids => ids.map(id => bookOf(id).title), ids);
-    assert(names.every(n => seen.has(n)) && seen.size === 2, 'con «basta con una» deben salir los dos: ' + [...seen]);
-    assert(/zzuno o zzdos/.test(await page.locator('#r-tags').innerText()), 'el botón no enseña las etiquetas');
-    await page.click('#r-tags'); await page.click('[data-rm="all"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
-    for(let i = 0; i < 5; i++){ assert(await ev(() => document.querySelector('#r-card h2').textContent) === names[1], 'con «todas» solo vale el que tiene las dos'); await page.click('#r-roll'); }
+    assert(seen.size === 2 && names.every(n => seen.has(n)), 'con una etiqueta salen los dos: ' + [...seen]);
+    await page.click('#r-tags'); await page.click('[data-rt="zzdos"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    assert(/zzuno y zzdos/.test(await page.locator('#r-tags').innerText()), 'el botón no enseña las etiquetas');
+    for(let i = 0; i < 5; i++){ assert(await ev(() => document.querySelector('#r-card h2').textContent) === names[1], 'con dos etiquetas solo vale el que tiene las dos'); await page.click('#r-roll'); }
     await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     await ev(ids => { ids.forEach(id => { const x = bookOf(id); x.tags = x.tags.filter(t => !t.startsWith('zz')); }); save(); }, ids);
   });
@@ -675,15 +675,24 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(await ev(() => document.querySelector('#navUni').getAttribute('aria-current')) === 'page', 'pestaña no marcada');
     const sum = await page.locator('details[data-uni="cosmere"] summary').innerText(); assert(/0 de \d+ leídos · 1 en tu TBR/.test(sum), sum);
     await page.click('details[data-uni="cosmere"] summary');
-    assert(await page.locator(`details[data-uni="cosmere"] [data-open="${id}"]`).count() === 1, 'no enlaza con tu libro');
+    assert(await page.locator('details[data-uni="cosmere"] .bd-card.tbr[data-bb="mb1"]').count() === 1, 'el tablero no marca tu libro');
     assert(await page.locator('details[data-uni="cosmere"] [data-ul="cosmere:0"]').count() === 1, 'el spoiler de El imperio final debería estar tapado');
     await ev(id => { bookOf(id).status = 'leido'; save(); renderAll(); }, id);
     assert(await page.locator('details[data-uni="cosmere"][open] [data-ul="cosmere:0"]').count() === 0 && /Hoid/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'leído el libro, la conexión debería verse: ' + JSON.stringify(await ev(id => ({ open:document.querySelector('details[data-uni="cosmere"]').open, st:bookOf(id).status, f:uniFind(UNIVERSES[1], UNIVERSES[1].series[0].books[0]).id, id, lock:!!document.querySelector('[data-ul="cosmere:0"]') }), id)));
     await page.click('[data-ul="cosmere:1"]'); assert(/Armonía/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'tocar no destapa');
-    await page.click('details[data-uni="maas"] summary'); await page.click('[data-ur="maas:tog7"]');
+    // tablero: hilos y números; el de un spoiler tapado sale con «?»
+    assert(await page.locator('details[data-uni="cosmere"] .board .bd-card').count() >= 17, 'faltan fichas en el tablero');
+    assert(await ev(() => document.querySelector('details[data-uni="cosmere"] [data-bl="2"]').textContent) === '?', 'el hilo de un spoiler tapado debería llevar «?»');
+    await page.click('details[data-uni="cosmere"] [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar una ficha no enseña sus datos');
+    await page.click('details[data-uni="cosmere"] [data-um="lista"]'); assert(await page.locator('details[data-uni="cosmere"] .uni-order li').count() >= 17, 'sin lista de orden');
+    await page.click('details[data-uni="maas"] summary'); await page.click('details[data-uni="maas"] [data-um="lista"]'); await page.click('[data-ur="maas:tog7"]');
     assert(await ev(() => !!state.settings.uniRead['maas:tog7']), 'no guarda el leído'); assert(/Lunathion/.test(await page.locator('details[data-uni="maas"]').innerText()), 'con Reino de cenizas leído, el guiño se ve');
     await page.click(`details[data-uni="cosmere"] [data-open="${id}"]`); await page.waitForSelector('.sheet .tabbar'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
-    await ev(id => { const b = bookOf(id); [b.title, b.author, b.status] = b._t; delete b._t; delete state.settings.uniRead; save(); renderAll(); }, id);
+    // quitar un universo (dos toques, con Deshacer) y volver a ponerlo
+    await page.click('details[data-uni="grisha"] summary'); await page.click('[data-uh="grisha"]'); await page.click('[data-uh="grisha"]');
+    assert(await page.locator('details[data-uni="grisha"]').count() === 0 && await ev(() => !!state.settings.uniHidden.grisha), 'no se quitó');
+    await page.click('[data-ush="grisha"]'); assert(await page.locator('details[data-uni="grisha"]').count() === 1, 'no se recupera');
+    await ev(id => { const b = bookOf(id); [b.title, b.author, b.status] = b._t; delete b._t; delete state.settings.uniRead; delete state.settings.uniHidden; save(); renderAll(); }, id);
     await page.click('#navShelves');
   });
   await test('libro al azar con filtro de saga', async () => {

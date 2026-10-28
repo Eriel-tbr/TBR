@@ -8,17 +8,17 @@ const UNIVERSES = [
   { id:'maas', name:'Maasverse', author:'Sarah J. Maas',
     note:'Orden de publicación. Lee Una corte de llamas plateadas antes de Casa de cielo y aliento: el final de esta y Casa de llama y sombra dan por sabido lo que pasa en ACOTAR.',
     series:[
-      { name:'Trono de cristal', books:[
+      { name:'Trono de cristal', world:'Erilea', books:[
         { k:'tog0', t:'La espada de la asesina', o:'The Assassin\'s Blade', y:2014, opt:true, note:'relatos precuela' },
         { k:'tog1', t:'Trono de cristal', o:'Throne of Glass', y:2012 }, { k:'tog2', t:'Corona de medianoche', o:'Crown of Midnight', y:2013 },
         { k:'tog3', t:'Heredera de fuego', o:'Heir of Fire', y:2014 }, { k:'tog4', t:'Reina de sombras', o:'Queen of Shadows', y:2015 },
         { k:'tog5', t:'Imperio de tormentas', o:'Empire of Storms', y:2016 }, { k:'tog6', t:'Torre del alba', o:'Tower of Dawn', y:2017 },
         { k:'tog7', t:'Reino de cenizas', o:'Kingdom of Ash', y:2018 }] },
-      { name:'Una corte de rosas y espinas (ACOTAR)', books:[
+      { name:'Una corte de rosas y espinas (ACOTAR)', world:'Prythian', books:[
         { k:'a1', t:'Una corte de rosas y espinas', o:'A Court of Thorns and Roses', y:2015 }, { k:'a2', t:'Una corte de niebla y furia', o:'A Court of Mist and Fury', y:2016 },
         { k:'a3', t:'Una corte de alas y ruina', o:'A Court of Wings and Ruin', y:2017 }, { k:'a4', t:'Una corte de hielo y estrellas', o:'A Court of Frost and Starlight', y:2018 },
         { k:'a5', t:'Una corte de llamas plateadas', o:'A Court of Silver Flames', y:2021 }] },
-      { name:'Ciudad Medialuna (Crescent City)', books:[
+      { name:'Ciudad Medialuna (Crescent City)', world:'Midgard', books:[
         { k:'c1', t:'Casa de tierra y sangre', o:'House of Earth and Blood', y:2020 }, { k:'c2', t:'Casa de cielo y aliento', o:'House of Sky and Breath', y:2022 },
         { k:'c3', t:'Casa de llama y sombra', o:'House of Flame and Shadow', y:2024 }] }],
     order:['tog1', 'tog2', 'tog0', 'tog3', 'tog4', 'tog5', 'tog6', 'tog7', 'a1', 'a2', 'a3', 'a4', 'c1', 'a5', 'c2', 'c3'],
@@ -37,10 +37,10 @@ const UNIVERSES = [
   { id:'cosmere', name:'Cosmere', author:'Brandon Sanderson',
     note:'Cada saga se entiende sola. Para pillar las conexiones: la era 1 de Nacidos de la bruma antes que la era 2, y El aliento de los dioses antes de Palabras radiantes.',
     series:[
-      { name:'Nacidos de la bruma · era 1', books:[
+      { name:'Nacidos de la bruma · era 1', world:'Scadrial', books:[
         { k:'mb1', t:'El imperio final', o:'The Final Empire', alt:['Nacidos de la bruma', 'Mistborn', 'Mistborn: The Final Empire', 'Nacidos de la bruma: El imperio final'], y:2006 },
         { k:'mb2', t:'El Pozo de la Ascensión', o:'The Well of Ascension', y:2007 }, { k:'mb3', t:'El Héroe de las Eras', o:'The Hero of Ages', y:2008 }] },
-      { name:'Nacidos de la bruma · era 2', books:[
+      { name:'Nacidos de la bruma · era 2', world:'Scadrial', books:[
         { k:'mb4', t:'Aleación de ley', o:'The Alloy of Law', y:2011 }, { k:'mb5', t:'Sombras de identidad', o:'Shadows of Self', y:2015 },
         { k:'mb6', t:'Brazales de duelo', o:'The Bands of Mourning', y:2016 }, { k:'mbs', t:'Historia secreta', o:'Mistborn: Secret History', y:2016, opt:true, note:'novela corta; mejor tras Brazales de duelo' },
         { k:'mb7', t:'El metal perdido', o:'The Lost Metal', y:2022 }] },
@@ -49,7 +49,7 @@ const UNIVERSES = [
         { k:'ark', t:'Arcanum ilimitado', o:'Arcanum Unbounded', y:2016, opt:true, note:'relatos' },
         { k:'tress', t:'Trenza del mar Esmeralda', o:'Tress of the Emerald Sea', y:2023 }, { k:'yumi', t:'Yumi y el pintor de pesadillas', o:'Yumi and the Nightmare Painter', y:2023 },
         { k:'sun', t:'El hombre iluminado', o:'The Sunlit Man', y:2023 }] },
-      { name:'El archivo de las tormentas', books:[
+      { name:'El archivo de las tormentas', world:'Roshar', books:[
         { k:'s1', t:'El camino de los reyes', o:'The Way of Kings', y:2010 }, { k:'s2', t:'Palabras radiantes', o:'Words of Radiance', y:2014 },
         { k:'s3', t:'Juramentada', o:'Oathbringer', y:2017 }, { k:'s4', t:'El ritmo de la guerra', o:'Rhythm of War', y:2020 }, { k:'s5', t:'Viento y verdad', o:'Wind and Truth', y:2024 }] }],
     order:['mb1', 'mb2', 'mb3', 'el', 'wb', 's1', 's2', 'mb4', 'mb5', 'mb6', 'mbs', 's3', 'ark', 's4', 'mb7', 'tress', 'yumi', 'sun', 's5'],
