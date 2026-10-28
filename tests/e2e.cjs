@@ -689,6 +689,10 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     audioDelay = 900; const id = await ev(() => { const b = state.books.find(x => x.title === 'Dune'); delete b.audio; b.status = 'pendiente'; return b.id; });
     await ev(id => openDetail(id), id); await page.click('.sheet [data-do="start"]'); await tab('comprar');
     await page.waitForSelector('#d-audio .aud', { timeout:5000 }); audioDelay = 0;
+    // lo guardado con la versión anterior de las fuentes (sin Audible) se vuelve a buscar al abrir la ficha
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(id => { bookOf(id).audio = { at:Date.now(), items:[{ id:'x', src:'apple', store:'Apple Books', title:'Viejo', lang:'es' }] }; save(); openDetail(id); }, id); await tab('comprar');
+    await page.waitForFunction(id => bookOf(id).audio.v === 2 && bookOf(id).audio.items.some(i => i.src === 'audible'), id, { timeout:5000 });
     assert(await page.locator('#d-audio .aud').count() === 3, 'sin resultados');
     await ev(id => { bookOf(id).status = 'pendiente'; save(); }, id); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });

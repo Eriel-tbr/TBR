@@ -1,7 +1,7 @@
 /* Mi TBR · service worker: la app abre al momento, también sin conexión o con mala cobertura.
    Los archivos propios se sirven de lo guardado para esta versión (antes se esperaba a la red cada vez).
    version.json y la API (api/) van siempre a la red. La versión la escribe tools/version.py; no hace falta tocarla a mano. */
-const VERSION = '2026.10.28-3';
+const VERSION = '2026.10.28-4';
 const CACHE = 'mi-tbr-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'css/styles.css', 'css/furniture.css',
   'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/disenos.js', 'js/art/muebles.js', 'js/art/temas.js',
