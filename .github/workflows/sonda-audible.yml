@@ -11,19 +11,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Desde GitHub
-        run: node -e "const h=require('./api/sonda-audible.js');h({}, {setHeader(){}, end(s){require('fs').writeFileSync('sonda-github.json', s)}})"
-      - name: Desde Vercel (vista previa de esta rama)
-        env: { GH_TOKEN: '${{ github.token }}' }
-        run: |
-          for i in $(seq 1 40); do
-            DEP=$(gh api "repos/${{ github.repository }}/deployments?sha=${{ github.sha }}" --jq '.[0].id' 2>/dev/null)
-            if [ -n "$DEP" ]; then
-              URL=$(gh api "repos/${{ github.repository }}/deployments/$DEP/statuses" --jq '[.[]|select(.state=="success")][0].environment_url' 2>/dev/null)
-              if [ -n "$URL" ] && [ "$URL" != "null" ]; then echo "URL $URL"; curl -sS -m 60 -w "\nHTTP %{http_code}\n" "$URL/api/sonda-audible" > sonda-vercel.txt 2>&1; echo "$URL" >> sonda-vercel.txt; break; fi
-            fi
-            sleep 10
-          done
-          [ -f sonda-vercel.txt ] || gh api "repos/${{ github.repository }}/deployments?sha=${{ github.sha }}" > sonda-vercel.txt 2>&1
+        run: true || node -e "const h=require('./api/sonda-audible.js');h({}, {setHeader(){}, end(s){require('fs').writeFileSync('sonda-github.json', s)}})"
+      - name: Universos
+        run: node tools/sonda-universos.cjs
       - name: Guardar resultados
         if: ${{ github.event.head_commit.author.name != 'sonda' }}
         run: |
