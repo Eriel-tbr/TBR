@@ -1,0 +1,977 @@
+{
+ "desde": "otro",
+ "out": [
+  {
+   "tld": "es",
+   "q": {
+    "title": "Alas de sangre",
+    "author": "Yarros"
+   },
+   "status": 200,
+   "ms": 554,
+   "total": 3,
+   "items": [
+    {
+     "asin": "B0H8Q9NJFJ",
+     "title": "Alas de sangre (The Fourth Wing) (Versión dramatizada)",
+     "subtitle": "Parte 2",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Carla López",
+      "Marc Lobato",
+      "Irene Miras",
+      "Lluis Torrelle",
+      "Merçe Montala",
+      "Alfons Vallés",
+      "Marta Moreno",
+      "Francesc Belda",
+      "Angels Ribalta",
+      "Juanmi Diez",
+      "Sergi Olmo",
+      "Mario Encinas",
+      "Xavi Fernandez",
+      "Nuria Samsó",
+      "Mario Otero"
+     ],
+     "lang": "spanish",
+     "min": 557,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "Empíreo #2"
+     ],
+     "pub": "BookaVivo",
+     "date": "2026-07-21"
+    },
+    {
+     "asin": "B0GY9M4ZW3",
+     "title": "Alas de sangre (The Fourth Wing) (Versión dramatizada)",
+     "subtitle": "Parte 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Carla López",
+      "Marc Lobato",
+      "Irene Miras",
+      "Lluis Torrelle",
+      "Merçe Montala",
+      "Alfons Vallés",
+      "Marta Moreno",
+      "Angels Ribalta",
+      "Juanmi Diez",
+      "Sergi Olmo",
+      "Mario Encinas",
+      "Xavi Fernandez",
+      "Nuria Samsó",
+      "Mario Otero",
+      "Carme Calvell"
+     ],
+     "lang": "spanish",
+     "min": 466,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [],
+     "pub": "BookaVivo",
+     "date": "2026-06-30"
+    },
+    {
+     "asin": "B0C9NS8SP3",
+     "title": "Alas de sangre",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "María Carolina Yarussi",
+      "Diego Longstaff"
+     ],
+     "lang": "spanish",
+     "min": 1267,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "BookaVivo",
+     "date": "2023-08-18"
+    }
+   ]
+  },
+  {
+   "tld": "es",
+   "q": {
+    "title": "Una corte de rosas y espinas",
+    "author": "Maas"
+   },
+   "status": 200,
+   "ms": 317,
+   "total": 5,
+   "items": [
+    {
+     "asin": "B0HB9972JZ",
+     "title": "Una corte de hielo y estrellas",
+     "subtitle": "Una corte de rosas y espinas 4",
+     "authors": [
+      "Sarah J. Maas",
+      "Gastón Eduardo Navarro - translator",
+      "Mirta Rosenberg - translator"
+     ],
+     "narrators": [
+      "Cristina Puertas",
+      "Alejandro Famos",
+      "Elena Silva"
+     ],
+     "lang": "spanish",
+     "min": 434,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "Una corte #4"
+     ],
+     "pub": "Planeta Audio",
+     "date": "2026-07-24"
+    },
+    {
+     "asin": "B0BN2J47LN",
+     "title": "Una corte de niebla y furia",
+     "subtitle": "Una corte de rosas y espinas 2",
+     "authors": [
+      "Sarah J. Maas",
+      "Márgara Averbach - translator"
+     ],
+     "narrators": [
+      "Cristina Puertas"
+     ],
+     "lang": "spanish",
+     "min": 1360,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Una corte #2"
+     ],
+     "pub": "Planeta Audio",
+     "date": "2022-11-22"
+    },
+    {
+     "asin": "B0B7CNCVVR",
+     "title": "Una corte de rosas y espinas",
+     "subtitle": "Una corte de rosas y espinas 1",
+     "authors": [
+      "Sarah J. Maas",
+      "Márgara Averbach - translator"
+     ],
+     "narrators": [
+      "Cristina Puertas"
+     ],
+     "lang": "spanish",
+     "min": 1002,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Una corte #1"
+     ],
+     "pub": "Planeta Audio",
+     "date": "2022-07-25"
+    },
+    {
+     "asin": "B0BW9QQ74Y",
+     "title": "Una corte de alas y ruina",
+     "subtitle": "Una corte de rosas y espinas 3",
+     "authors": [
+      "Sarah J. Maas",
+      "Julio Sierra - translator"
+     ],
+     "narrators": [
+      "Alejandro Famos",
+      "Cristina Puertas"
+     ],
+     "lang": "spanish",
+     "min": 1554,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Una corte #3"
+     ],
+     "pub": "Planeta Audio",
+     "date": "2023-02-28"
+    },
+    {
+     "asin": "B0HPDZZX6C",
+     "title": "Una corte de rosas y espinas",
+     "authors": [
+      "Sarah J. Maas"
+     ],
+     "narrators": [
+      "Jessica Flores"
+     ],
+     "lang": "spanish",
+     "min": 1120,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "Planeta Audio",
+     "date": "2026-10-27"
+    }
+   ]
+  },
+  {
+   "tld": "es",
+   "q": {
+    "title": "El imperio final",
+    "author": "Sanderson"
+   },
+   "status": 200,
+   "ms": 179,
+   "total": 1,
+   "items": [
+    {
+     "asin": "8417347631",
+     "title": "El imperio final",
+     "subtitle": "Nacidos de la bruma 1",
+     "authors": [
+      "Brandon Sanderson",
+      "Rafael Marín Trechera"
+     ],
+     "narrators": [
+      "Francesc Belda"
+     ],
+     "lang": "spanish",
+     "min": 1461,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Trilogía Original Mistborn #1",
+      "The Cosmere (Spanish Edition) #"
+     ],
+     "pub": "Penguin Random House Grupo Editorial",
+     "date": "2020-07-23"
+    }
+   ]
+  },
+  {
+   "tld": "es",
+   "q": {
+    "title": "Seis de cuervos",
+    "author": "Bardugo"
+   },
+   "status": 200,
+   "ms": 172,
+   "total": 2,
+   "items": [
+    {
+     "asin": "B0D6WY1V23",
+     "title": "Reino de ladrones [Kingdom of Thieves]",
+     "subtitle": "Six of Crows, Book 2",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Estela Benito",
+      "Albert Cortés",
+      "Chema Agulló",
+      "Sharon Lopez",
+      "Pedro M. Sánchez",
+      "Juanma Martínez",
+      "Fernando Cea"
+     ],
+     "lang": "spanish",
+     "min": 1233,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "BookaVivo",
+     "date": "2024-06-20"
+    },
+    {
+     "asin": "B0D8M5Q6ZG",
+     "title": "Seis de cuervos [Six of Crows]",
+     "subtitle": "Six of Crows 1",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Sharon López",
+      "Albert Cortés",
+      "Estela Benita",
+      "Chema Agulló",
+      "Pedro M. Sánchez",
+      "Carlos Urrutia",
+      "Juanma Martínez",
+      "Fernando Cea"
+     ],
+     "lang": "spanish",
+     "min": 1045,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "BookaVivo",
+     "date": "2024-07-16"
+    }
+   ]
+  },
+  {
+   "tld": "es",
+   "q": {
+    "title": "La sombra del viento",
+    "author": "Ruiz Zafón"
+   },
+   "status": 200,
+   "ms": 317,
+   "total": 1,
+   "items": [
+    {
+     "asin": "B0844GRWNW",
+     "title": "La Sombra del Viento",
+     "authors": [
+      "Carlos Ruiz Zafón"
+     ],
+     "narrators": [
+      "Jordi Boixaderas"
+     ],
+     "lang": "spanish",
+     "min": 1064,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "El cementerio de los libros olvidados #1"
+     ],
+     "pub": "Random House Audio",
+     "date": "2020-01-28"
+    }
+   ]
+  },
+  {
+   "tld": "es",
+   "q": {
+    "keywords": "Fourth Wing Yarros"
+   },
+   "status": 200,
+   "ms": 193,
+   "total": 27,
+   "items": [
+    {
+     "asin": "B0CKS5TCSF",
+     "title": "Fourth Wing (Part 1 of 2) (Dramatized Adaptation)",
+     "subtitle": "The Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "full cast",
+      "Scott McCormick",
+      "Troy Allan",
+      "Jessica Lauren Ball",
+      "Khaya Fraites",
+      "Gabriel Michael",
+      "Torian Brackett",
+      "Taylor Coan",
+      "LaMont Ridgell",
+      "Robb Moreira",
+      "Laura C. Harris",
+      "David Cui Cui"
+     ],
+     "lang": "english",
+     "min": 472,
+     "fmt": "unabridged",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [],
+     "pub": "Graphic Audio LLC",
+     "date": "2023-12-27"
+    },
+    {
+     "asin": "B0CQPMCXZY",
+     "title": "Fourth Wing (Part 2 of 2) (Dramatized Adaptation)",
+     "subtitle": "The Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "full cast",
+      "Robb Moreira",
+      "Megan Poppy",
+      "James Konicek",
+      "Khaya Fraites",
+      "Gabriel Michael",
+      "LaMont Ridgell",
+      "Taylor Coan",
+      "Torian Brackett",
+      "Rob McFadyen",
+      "Laura C. Harris",
+      "Jessica Lauren Ball"
+     ],
+     "lang": "english",
+     "min": 640,
+     "fmt": "unabridged",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [],
+     "pub": "Graphic Audio LLC",
+     "date": "2024-02-09"
+    },
+    {
+     "asin": "B0BVD2NXV3",
+     "title": "Fourth Wing",
+     "subtitle": "Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Rebecca Soler",
+      "Teddy Hamilton"
+     ],
+     "lang": "english",
+     "min": 1322,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "Recorded Books",
+     "date": "2023-05-02"
+    },
+    {
+     "asin": "B0GYQ5Y3SF",
+     "title": "Threshing Day (Wing and Claw Collection)",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Justis Bolding",
+      "Jake Bordeaux",
+      "Chase Brown",
+      "Frankie Corzo",
+      "Giordan Diaz",
+      "Teddy Hamilton",
+      "Laura Knight Keating",
+      "Zion Jang",
+      "Nick Mills",
+      "Robb Moreira",
+      "James Aaron Oh",
+      "Anthony Palmini",
+      "John Skelley",
+      "Jasmin Walker"
+     ],
+     "lang": "english",
+     "min": 352,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [],
+     "pub": "Recorded Books",
+     "date": "2026-09-29"
+    },
+    {
+     "asin": "B0H8Q9NJFJ",
+     "title": "Alas de sangre (The Fourth Wing) (Versión dramatizada)",
+     "subtitle": "Parte 2",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Carla López",
+      "Marc Lobato",
+      "Irene Miras",
+      "Lluis Torrelle",
+      "Merçe Montala",
+      "Alfons Vallés",
+      "Marta Moreno",
+      "Francesc Belda",
+      "Angels Ribalta",
+      "Juanmi Diez",
+      "Sergi Olmo",
+      "Mario Encinas",
+      "Xavi Fernandez",
+      "Nuria Samsó",
+      "Mario Otero"
+     ],
+     "lang": "spanish",
+     "min": 557,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "Empíreo #2"
+     ],
+     "pub": "BookaVivo",
+     "date": "2026-07-21"
+    }
+   ]
+  },
+  {
+   "tld": "com",
+   "q": {
+    "title": "Fourth Wing",
+    "author": "Yarros"
+   },
+   "status": 200,
+   "ms": 250,
+   "total": 15,
+   "items": [
+    {
+     "asin": "B0CKS42KQH",
+     "title": "Fourth Wing (Part 1 of 2) (Dramatized Adaptation)",
+     "subtitle": "The Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "full cast",
+      "Scott McCormick",
+      "Troy Allan",
+      "Jessica Lauren Ball",
+      "Khaya Fraites",
+      "Gabriel Michael",
+      "Torian Brackett",
+      "Taylor Coan",
+      "LaMont Ridgell",
+      "Robb Moreira",
+      "Laura C. Harris",
+      "David Cui Cui"
+     ],
+     "lang": "english",
+     "min": 472,
+     "fmt": "unabridged",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [
+      "The Empyrean #1"
+     ],
+     "pub": "Graphic Audio LLC",
+     "date": "2023-12-27"
+    },
+    {
+     "asin": "B0BVD25SYT",
+     "title": "Fourth Wing",
+     "subtitle": "Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Rebecca Soler",
+      "Teddy Hamilton"
+     ],
+     "lang": "english",
+     "min": 1322,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "The Empyrean #1"
+     ],
+     "pub": "Recorded Books",
+     "date": "2023-05-02"
+    },
+    {
+     "asin": "B0CQQ6ZV5J",
+     "title": "Fourth Wing (Part 2 of 2) (Dramatized Adaptation)",
+     "subtitle": "The Empyrean, Book 1",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "full cast",
+      "Robb Moreira",
+      "Megan Poppy",
+      "James Konicek",
+      "Khaya Fraites",
+      "Gabriel Michael",
+      "LaMont Ridgell",
+      "Taylor Coan",
+      "Torian Brackett",
+      "Rob McFadyen",
+      "Laura C. Harris",
+      "Jessica Lauren Ball"
+     ],
+     "lang": "english",
+     "min": 640,
+     "fmt": "unabridged",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [
+      "The Empyrean #1"
+     ],
+     "pub": "Graphic Audio LLC",
+     "date": "2024-02-09"
+    },
+    {
+     "asin": "B0H8QHQGN3",
+     "title": "Alas de sangre (The Fourth Wing) (Versión dramatizada)",
+     "subtitle": "Parte 2",
+     "authors": [
+      "Rebecca Yarros"
+     ],
+     "narrators": [
+      "Carla López",
+      "Marc Lobato",
+      "Irene Miras",
+      "Lluis Torrelle",
+      "Merçe Montala",
+      "Alfons Vallés",
+      "Marta Moreno",
+      "Francesc Belda",
+      "Angels Ribalta",
+      "Juanmi Diez",
+      "Sergi Olmo",
+      "Mario Encinas",
+      "Xavi Fernandez",
+      "Nuria Samsó",
+      "Mario Otero"
+     ],
+     "lang": "spanish",
+     "min": 557,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "Empíreo #2"
+     ],
+     "pub": "BookaVivo",
+     "date": "2026-07-21"
+    },
+    {
+     "asin": "B0HB26L9L8",
+     "title": "Threshing Day – Flammengeküsst (Flammengeküsst-Reihe)",
+     "subtitle": "13 Geschichten aus der Welt des Empyrean",
+     "authors": [
+      "Rebecca Yarros",
+      "Michelle Gyo — Translator"
+     ],
+     "narrators": [
+      "Sandra Voss",
+      "Vincent Fallow",
+      "Sebastian Fischer",
+      "Louis Friedemann Thiele",
+      "Michael Borgard",
+      "Lucas Sánchez",
+      "Bernd Kohlhepp",
+      "Mona Fischer",
+      "Dagmar Bittner",
+      "Diana Gantner",
+      "Max Hoffmann",
+      "Julian Tennstedt",
+      "Tim Schwarzmaier",
+      "Lana Ghafoor",
+      "Leonard Hohm"
+     ],
+     "lang": "german",
+     "min": 399,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "Fourth Wing (German Edition) #"
+     ],
+     "pub": "Hörbuch Hamburg",
+     "date": "2026-09-29"
+    }
+   ]
+  },
+  {
+   "tld": "com",
+   "q": {
+    "title": "The Sandman",
+    "author": "Gaiman"
+   },
+   "status": 200,
+   "ms": 75,
+   "total": 18,
+   "items": [
+    {
+     "asin": "B086WP794Z",
+     "title": "The Sandman",
+     "authors": [
+      "Neil Gaiman",
+      "Dirk Maggs"
+     ],
+     "narrators": [
+      "Riz Ahmed",
+      "Kat Dennings",
+      "Taron Egerton",
+      "Neil Gaiman",
+      "James McAvoy",
+      "Samantha Morton",
+      "Bebe Neuwirth",
+      "Andy Serkis",
+      "Michael Sheen"
+     ],
+     "lang": "english",
+     "min": 662,
+     "fmt": "original_recording",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [
+      "The Sandman #1"
+     ],
+     "pub": "Audible Originals",
+     "date": "2020-07-15"
+    },
+    {
+     "asin": "B098TWVZVD",
+     "title": "The Sandman: Act II",
+     "authors": [
+      "Neil Gaiman",
+      "Dirk Maggs"
+     ],
+     "narrators": [
+      "Neil Gaiman",
+      "James McAvoy",
+      "Emma Corrin",
+      "Brian Cox",
+      "Kat Dennings",
+      "John Lithgow",
+      "Bill Nighy"
+     ],
+     "lang": "english",
+     "min": 827,
+     "fmt": "original_recording",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "The Sandman #2"
+     ],
+     "pub": "Audible Originals",
+     "date": "2021-09-22"
+    },
+    {
+     "asin": "B0BFK1K36D",
+     "title": "The Sandman: Act III",
+     "authors": [
+      "Neil Gaiman",
+      "Dirk Maggs"
+     ],
+     "narrators": [
+      "Neil Gaiman",
+      "James McAvoy",
+      "K.J. Apa",
+      "Kat Dennings",
+      "Shruti Haasan",
+      "David Harewood",
+      "Regé-Jean Page",
+      "Kristen Schaal",
+      "Wil Wheaton"
+     ],
+     "lang": "english",
+     "min": 691,
+     "fmt": "original_recording",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "The Sandman #3"
+     ],
+     "pub": "Audible Originals",
+     "date": "2022-09-28"
+    },
+    {
+     "asin": "B0BCR1WL7G",
+     "title": "The Sandman: Tercer Acto [The Sandman: Act Three]",
+     "authors": [
+      "Neil Gaiman",
+      "Dirk Maggs"
+     ],
+     "narrators": [
+      "Carlos Segundo",
+      "Raúl Anaya",
+      "Galo Balcazar",
+      "Alejandra Delint",
+      "Rene Garcia",
+      "Carla Castañeda",
+      "José Gilberto Vilchis",
+      "Magda Giner",
+      "Alan Bravo",
+      "Dafnis Fernandez",
+      "Regina Blandón",
+      "full cast"
+     ],
+     "lang": "spanish",
+     "min": 703,
+     "fmt": "original_recording",
+     "type": "Product",
+     "deliv": "SinglePartBook",
+     "series": [
+      "The Sandman [Spanish Edition] #3"
+     ],
+     "pub": "Audible Originals",
+     "date": "2022-09-28"
+    },
+    {
+     "asin": "3748039824",
+     "title": "The Sandman (Italian Edition)",
+     "subtitle": "La serie completa",
+     "authors": [
+      "Neil Gaiman",
+      "Dirk Maggs"
+     ],
+     "narrators": [
+      "Riccardo Rossi",
+      "Stefano Crescentini",
+      "Martina Felli",
+      "Ilaria Stagni",
+      "Luca Biagini",
+      "Alessandro Campaiola",
+      "Nanni Baldini",
+      "Alessia Amendola"
+     ],
+     "lang": "italian",
+     "min": 652,
+     "fmt": "original_recording",
+     "type": "Performance",
+     "deliv": "SinglePartBook",
+     "series": [],
+     "pub": "Audible Originals",
+     "date": "2020-11-09"
+    }
+   ]
+  },
+  {
+   "tld": "co.uk",
+   "q": {
+    "title": "Six of Crows",
+    "author": "Bardugo"
+   },
+   "status": 200,
+   "ms": 430,
+   "total": 6,
+   "items": [
+    {
+     "asin": "B012BONGLW",
+     "title": "Six of Crows",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Jay Snyder",
+      "Brandon Rubin",
+      "Fred Berman",
+      "Lauren Fortgang",
+      "Roger Clark",
+      "Elizabeth Evans",
+      "Tristan Morris"
+     ],
+     "lang": "english",
+     "min": 904,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Six of Crows #1"
+     ],
+     "pub": "Audible Studios",
+     "date": "2015-09-29"
+    },
+    {
+     "asin": "B01LXUS5WW",
+     "title": "Crooked Kingdom",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Roger Clark",
+      "Jay Snyder",
+      "Elizabeth Evans",
+      "Fred Berman",
+      "Brandon Rubin",
+      "Kevin T. Collins",
+      "Lauren Fortgang",
+      "Peter Ganim"
+     ],
+     "lang": "english",
+     "min": 1078,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Six of Crows #2"
+     ],
+     "pub": "Audible Studios",
+     "date": "2016-09-27"
+    },
+    {
+     "asin": "B0D8M2L9JJ",
+     "title": "Seis de cuervos [Six of Crows]",
+     "subtitle": "Six of Crows 1",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Sharon López",
+      "Albert Cortés",
+      "Estela Benita",
+      "Chema Agulló",
+      "Pedro M. Sánchez",
+      "Carlos Urrutia",
+      "Juanma Martínez",
+      "Fernando Cea"
+     ],
+     "lang": "spanish",
+     "min": 1045,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Seis de Cuervos [Six of Crows] #1"
+     ],
+     "pub": "BookaVivo",
+     "date": "2024-07-16"
+    },
+    {
+     "asin": "B0D6X31XCC",
+     "title": "Reino de ladrones [Kingdom of Thieves]",
+     "subtitle": "Six of Crows, Book 2",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Estela Benito",
+      "Albert Cortés",
+      "Chema Agulló",
+      "Sharon Lopez",
+      "Pedro M. Sánchez",
+      "Juanma Martínez",
+      "Fernando Cea"
+     ],
+     "lang": "spanish",
+     "min": 1233,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [
+      "Seis de Cuervos [Six of Crows] #2"
+     ],
+     "pub": "BookaVivo",
+     "date": "2024-06-20"
+    },
+    {
+     "asin": "8726069016",
+     "title": "Det korrupte rige",
+     "subtitle": "Six of Crows 2",
+     "authors": [
+      "Leigh Bardugo"
+     ],
+     "narrators": [
+      "Thomas Jacob Clausen"
+     ],
+     "lang": "danish",
+     "min": 1253,
+     "fmt": "unabridged",
+     "type": "Product",
+     "deliv": "MultiPartBook",
+     "series": [],
+     "pub": "CarlsenPuls",
+     "date": "2019-10-07"
+    }
+   ]
+  }
+ ]
+}
