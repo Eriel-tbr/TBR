@@ -98,7 +98,7 @@ function openPick(btn){
     e.preventDefault(); const n = all[(j + all.length) % all.length]; all.forEach(x => x.tabIndex = x === n ? 0 : -1); n.focus();
   });
 }
-document.addEventListener('click', e => { const b = e.target.closest('.pick'); if(b && !b.disabled) openPick(b); });
+document.addEventListener('click', e => { const b = e.target.closest('.pick'); if(b && !b.disabled && !('multi' in b.dataset)) openPick(b); });
 const langBadges = b => { const k = langKind(b); return k === 'both' ? '<span class="badge both">ES · EN</span>' : k === 'es' ? '<span class="badge es">ES</span>' : k === 'en' ? '<span class="badge en">EN</span>' : ''; };
 const locName = b => { const l = shelfOf(b.shelfId); return l ? `${l.u.name} › ${l.s.name}` : ''; };
 /* Ediciones encontradas: en español (fichas con datos de las editoriales) y en inglés (Books2Door) */

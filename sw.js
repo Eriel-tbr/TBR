@@ -4,8 +4,8 @@
 const VERSION = '2026.10.28-3';
 const CACHE = 'mi-tbr-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'css/styles.css', 'css/furniture.css',
-  'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/disenos.js', 'js/art/muebles.js', 'js/art/temas.js',
-  'js/app/estado.js', 'js/app/hojas.js', 'js/app/colores.js', 'js/app/estanterias.js', 'js/app/ficha.js', 'js/app/ficha-extra.js', 'js/app/formulario.js', 'js/app/anadir.js', 'js/app/ajustes.js', 'js/app/arrastrar.js', 'js/app/nube.js', 'js/app/lectura.js', 'js/app/inicio.js',
+  'js/lib/util.js', 'js/lib/busqueda.js', 'js/lib/etiquetas.js', 'js/lib/universos.js', 'js/art/decoracion.js', 'js/art/lomos.js', 'js/art/disenos.js', 'js/art/muebles.js', 'js/art/temas.js',
+  'js/app/estado.js', 'js/app/hojas.js', 'js/app/colores.js', 'js/app/estanterias.js', 'js/app/ficha.js', 'js/app/ficha-extra.js', 'js/app/formulario.js', 'js/app/anadir.js', 'js/app/ajustes.js', 'js/app/arrastrar.js', 'js/app/nube.js', 'js/app/lectura.js', 'js/app/universos.js', 'js/app/inicio.js',
   'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache:'reload' })))).then(() => self.skipWaiting()));

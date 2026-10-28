@@ -237,7 +237,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const r = await ev(() => ({ v:document.querySelector('#r-unit').value, u0:state.units[0].id, name:state.units[0].name, f:document.activeElement.id,
       exp:document.querySelector('#r-unit').getAttribute('aria-expanded'), card:document.querySelector('#r-card').innerText }));
     assert(r.v === r.u0 && r.f === 'r-unit' && r.exp === 'false', JSON.stringify(r)); assert(r.card.includes(r.name) || /Ningún libro/.test(r.card), 'la tarjeta no filtra: ' + r.card);
-    await page.click('#r-tag'); await page.keyboard.press('Escape'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    await page.click('#r-tags'); await page.waitForSelector('.pick-sheet #rt-list'); await page.keyboard.press('Escape'); await page.waitForSelector('.pick-sheet', { state:'detached' });
     assert(await page.locator('.sheet').count() === 1, 'Escape cerró más de una hoja'); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
   });
   await test('selector propio: al eliminar una estantería, sus libros van a la elegida', async () => {
@@ -364,9 +364,11 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(await ev(() => ui.active) === 1, 'al deslizar no cambia la estantería activa');
     await ev(() => goTo(0));
     const b = await ev(() => { const x = state.books[0]; x.status = 'leyendo'; const y = state.books[1]; y.status = 'leido'; y.readAt = Date.now(); y.rating = 4; save(); renderAll(); return [x.id, y.id]; });
-    await page.click('#navReading'); await page.waitForSelector('#view-reading:not([hidden]) .rd');
-    const t = await ev(() => ({ txt:document.querySelector('#view-reading').innerText, shelves:document.querySelector('#view-shelves').hidden, cur:document.querySelector('#navReading').getAttribute('aria-current') }));
-    assert(/Leyendo ahora/.test(t.txt) && /Leídos/.test(t.txt) && /★★★★☆/.test(t.txt) && t.shelves && t.cur === 'page', JSON.stringify(t));
+    const hd = await ev(() => [...document.querySelectorAll('#stats .st')].map(x => x.textContent));
+    assert(hd.length === 3 && /pendientes/.test(hd[0]) && /leídos en/.test(hd[1]) && hd[2].startsWith('Leyendo: '), 'cabecera: ' + JSON.stringify(hd));
+    await page.click('#stats'); await page.waitForSelector('#view-reading:not([hidden]) .rd');
+    const t = await ev(() => ({ txt:document.querySelector('#view-reading').innerText, shelves:document.querySelector('#view-shelves').hidden, cur:document.querySelector('#stats').getAttribute('aria-pressed') }));
+    assert(/Leyendo ahora/.test(t.txt) && /Leídos/.test(t.txt) && /★★★★☆/.test(t.txt) && t.shelves && t.cur === 'true', JSON.stringify(t));
     await page.click(`#view-reading [data-open="${b[0]}"]`); await page.waitForSelector('.sheet .tabbar'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     await ev(ids => { ids.forEach(id => { const x = bookOf(id); x.status = 'pendiente'; x.readAt = null; x.rating = 0; }); save(); }, b);
     await page.click('#navAdd'); await page.waitForSelector('.sheet .addbar #addInput');
@@ -447,7 +449,7 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
   await test('Ajustes sin plegables, estadísticas en Lectura y menos diseños de mueble', async () => {
     await page.click('#btnSettings'); const n = await page.locator('.sheet details').count(); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     assert(n === 0, 'plegables en Ajustes: ' + n);
-    await page.click('#navReading'); assert(/Estadísticas/.test(await page.locator('#view-reading').innerText()), 'sin estadísticas en Lectura'); await page.click('#navShelves');
+    await page.click('#stats'); assert(/Estadísticas/.test(await page.locator('#view-reading').innerText()), 'sin estadísticas en Lectura'); await page.click('#navShelves');
     await ev(() => openUnitForm(state.units[0].id)); await page.waitForSelector('#u-save'); await unfold();
     const p = await ev(() => [...document.querySelectorAll('[data-preset]')].map(x => x.dataset.preset));
     assert(['auto', 'fantasia', 'romantasy', 'cienciaficcion', 'darkacademia', 'contemporanea', 'romance'].every(k => p.includes(k)) && !p.includes('terror') && !p.includes('psicologia'), p.join());
@@ -653,6 +655,37 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     await page.locator('.slide[data-i="0"] .dcm').first().click(); await page.waitForSelector('[data-do="drm"]'); await page.click('[data-do="drm"]'); await page.waitForTimeout(400);
     assert(await page.locator('.slide[data-i="0"] .dcm').count() === n - 1, 'no se quitó');
   });
+  await test('ruleta: varias etiquetas (basta con una o todas a la vez)', async () => {
+    const ids = await ev(() => { const [a, b] = state.books.filter(x => (x.status || 'pendiente') === 'pendiente' && !serKey(x)); a.tags = [...(a.tags || []), 'zzuno']; b.tags = [...(b.tags || []), 'zzdos', 'zzuno']; save(); return [a.id, b.id]; });
+    await page.click('#btnRandom'); await page.click('#r-tags'); await page.waitForSelector('#rt-list');
+    await page.fill('#rt-q', 'zz'); assert(await page.locator('#rt-list [data-rt]').count() === 2, 'el buscador de etiquetas no filtra');
+    await page.click('[data-rt="zzuno"]'); await page.click('[data-rt="zzdos"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    const seen = new Set(); for(let i = 0; i < 12; i++){ seen.add(await ev(() => document.querySelector('#r-card h2').textContent)); await page.click('#r-roll'); }
+    const names = await ev(ids => ids.map(id => bookOf(id).title), ids);
+    assert(names.every(n => seen.has(n)) && seen.size === 2, 'con «basta con una» deben salir los dos: ' + [...seen]);
+    assert(/zzuno o zzdos/.test(await page.locator('#r-tags').innerText()), 'el botón no enseña las etiquetas');
+    await page.click('#r-tags'); await page.click('[data-rm="all"]'); await page.click('#rt-ok'); await page.waitForSelector('.pick-sheet', { state:'detached' });
+    for(let i = 0; i < 5; i++){ assert(await ev(() => document.querySelector('#r-card h2').textContent) === names[1], 'con «todas» solo vale el que tiene las dos'); await page.click('#r-roll'); }
+    await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(ids => { ids.forEach(id => { const x = bookOf(id); x.tags = x.tags.filter(t => !t.startsWith('zz')); }); save(); }, ids);
+  });
+  await test('universos: reconoce tus libros, marca leídos y tapa los spoilers', async () => {
+    const id = await ev(() => { const b = state.books[0]; b._t = [b.title, b.author, b.status]; b.title = 'Nacidos de la bruma'; b.author = 'Brandon Sanderson'; b.status = 'pendiente'; save(); renderAll(); return b.id; });
+    await page.click('#navUni'); await page.waitForSelector('#view-universes:not([hidden]) details.uni');
+    assert(await ev(() => document.querySelector('#navUni').getAttribute('aria-current')) === 'page', 'pestaña no marcada');
+    const sum = await page.locator('details[data-uni="cosmere"] summary').innerText(); assert(/0 de \d+ leídos · 1 en tu TBR/.test(sum), sum);
+    await page.click('details[data-uni="cosmere"] summary');
+    assert(await page.locator(`details[data-uni="cosmere"] [data-open="${id}"]`).count() === 1, 'no enlaza con tu libro');
+    assert(await page.locator('details[data-uni="cosmere"] [data-ul="cosmere:0"]').count() === 1, 'el spoiler de El imperio final debería estar tapado');
+    await ev(id => { bookOf(id).status = 'leido'; save(); renderAll(); }, id);
+    assert(await page.locator('details[data-uni="cosmere"][open] [data-ul="cosmere:0"]').count() === 0 && /Hoid/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'leído el libro, la conexión debería verse: ' + JSON.stringify(await ev(id => ({ open:document.querySelector('details[data-uni="cosmere"]').open, st:bookOf(id).status, f:uniFind(UNIVERSES[1], UNIVERSES[1].series[0].books[0]).id, id, lock:!!document.querySelector('[data-ul="cosmere:0"]') }), id)));
+    await page.click('[data-ul="cosmere:1"]'); assert(/Armonía/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'tocar no destapa');
+    await page.click('details[data-uni="maas"] summary'); await page.click('[data-ur="maas:tog7"]');
+    assert(await ev(() => !!state.settings.uniRead['maas:tog7']), 'no guarda el leído'); assert(/Lunathion/.test(await page.locator('details[data-uni="maas"]').innerText()), 'con Reino de cenizas leído, el guiño se ve');
+    await page.click(`details[data-uni="cosmere"] [data-open="${id}"]`); await page.waitForSelector('.sheet .tabbar'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(id => { const b = bookOf(id); [b.title, b.author, b.status] = b._t; delete b._t; delete state.settings.uniRead; save(); renderAll(); }, id);
+    await page.click('#navShelves');
+  });
   await test('libro al azar con filtro de saga', async () => {
     await page.click('#btnRandom'); await page.click('[data-kd="saga"]'); await page.waitForTimeout(200);
     const t = await page.locator('#r-card').innerText(); assert(t.length > 0, 'vacío'); await page.click('[data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
@@ -732,13 +765,13 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const id = await ev(() => { const b = state.books.find(x => x.status !== 'leido'); b.status = 'leido'; b.readAt = Date.now(); save(); renderAll(); return b.id; });
     await ev(id => openDetail(id), id); await tab('detalles'); await page.fill('#d-readat', '2025-03-14'); await ev(() => document.querySelector('#d-readat').dispatchEvent(new Event('change', { bubbles:true })));
     assert(await ev(id => new Date(bookOf(id).readAt).getFullYear() === 2025 && new Date(bookOf(id).readAt).getMonth() === 2, id), 'fecha');
-    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' }); await page.click('#navReading');
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' }); await page.click('#stats');
     assert(/2025/.test(await page.locator('#view-reading').innerText()), 'Lectura sin 2025');
     await page.click('#navShelves');
   });
   await test('Lectura: «Terminado» y «Empezar» sin abrir la ficha, con Deshacer', async () => {
     const id = await ev(() => { state.books.forEach(b => { if(b.status === 'leyendo') b.status = 'pendiente'; }); const b = state.books.find(x => x.status === 'pendiente'); b.status = 'leyendo'; save(); renderAll(); return b.id; });
-    await page.click('#navReading'); await page.click(`[data-quick="finish"][data-id="${id}"]`);
+    await page.click('#stats'); await page.click(`[data-quick="finish"][data-id="${id}"]`);
     assert(await ev(id => bookOf(id).status === 'leido' && !!bookOf(id).readAt, id), 'no se terminó');
     await page.click('#toast button'); assert(await ev(id => bookOf(id).status === 'leyendo', id), 'no se deshizo');
     const nx = await ev(() => { const b = state.books.find(x => x.status === 'pendiente'); state.books.forEach(x => x.next = false); b.next = true; save(); renderAll(); return b.id; });
