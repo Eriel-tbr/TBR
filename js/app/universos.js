@@ -3,6 +3,7 @@
    Cada libro del universo se busca en la colección (título, original o alternativo + autor/a). Si está, manda su estado;
    si no, se puede marcar como leído aquí (state.settings.uniRead['universo:clave'], se sincroniza con los ajustes).
    Una conexión se ve tal cual si has leído todos sus libros; si falta alguno, sale tapada y se destapa al tocarla. */
+const UNI_BOARD = false; // tablero en preparación: hasta que Leyre lo apruebe solo se ve la lista
 ui.uniOpen = ui.uniOpen || new Set(); ui.uniShown = ui.uniShown || new Set(); ui.uniMode = ui.uniMode || {}; ui.uniSel = ui.uniSel || {};
 const uniNorm = s => norm(String(s || '').replace(/\([^)]*\)/g, ' '));
 const uniAuthOk = (b, u) => { const a = norm(b.author || ''); return norm(u.author).split(' ').some(w => w.length > 3 && a.includes(w)); };
@@ -80,14 +81,14 @@ function uniCardHtml(u){
     return open ? `<li class="uni-l${selLink === i ? ' on' : ''}" id="ul-${id.replace(':', '-')}">${n}<span class="badge k-${uniKindCls(l.kind)}">${UNI_KIND[l.kind] || l.kind}</span> ${esc(l.text)}${src}</li>`
       : `<li class="uni-l${selLink === i ? ' on' : ''}" id="ul-${id.replace(':', '-')}"><button class="uni-lock" type="button" data-ul="${id}">${n}<span class="badge k-${uniKindCls(l.kind)}">${UNI_KIND[l.kind] || l.kind}</span> Spoiler de ${esc(miss.map(k => uniTitle(byK[k])).join(', '))} · <u>Toca para ver</u></button></li>`;
   };
-  const mode = ui.uniMode[u.id] || 'tablero', selBook = sel.startsWith('b:') ? byK[sel.slice(2)] : null;
+  const mode = UNI_BOARD ? ui.uniMode[u.id] || 'tablero' : 'lista', selBook = sel.startsWith('b:') ? byK[sel.slice(2)] : null;
   const order = u.order.map(k => byK[k]).filter(Boolean);
   const view = mode === 'tablero' ? uniBoardHtml(u, byK) + (selBook ? uniBookPanel(u, selBook) : '<p class="note bd-hint">Toca un libro o un número.</p>')
     : `<h3>Orden de lectura</h3><ol class="uni-order">${order.map(row).join('')}</ol>`;
   return `<details class="uni" data-uni="${u.id}"${ui.uniOpen.has(u.id) ? ' open' : ''}><summary><span class="tx"><b>${esc(u.name)}</b><span>${esc(u.author)} · ${nRead} de ${main.length} leídos${inTbr ? ` · ${inTbr} en tu TBR` : ''}</span></span>
       <span class="uni-bar" aria-hidden="true"><i style="width:${Math.round(nRead / (main.length || 1) * 100)}%"></i></span></summary>
     <div class="uni-body"><p class="note">${esc(u.note)}</p>
-      <div class="chips uni-mode">${chipsHtml([['tablero', 'Tablero'], ['lista', 'Orden de lectura']], mode, 'data-um')}</div>
+      ${UNI_BOARD ? `<div class="chips uni-mode">${chipsHtml([['tablero', 'Tablero'], ['lista', 'Orden de lectura']], mode, 'data-um')}</div>` : ''}
       ${view}
       ${u.links.length ? `<h3>Conexiones y teorías</h3><ul class="uni-links">${u.links.map(link).join('')}</ul>` : ''}
       <button class="btn sm danger-l uni-hide" type="button" data-uh="${u.id}">Quitar este universo</button></div></details>`;

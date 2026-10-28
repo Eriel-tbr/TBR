@@ -675,17 +675,18 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(await ev(() => document.querySelector('#navUni').getAttribute('aria-current')) === 'page', 'pestaña no marcada');
     const sum = await page.locator('details[data-uni="cosmere"] summary').innerText(); assert(/0 de \d+ leídos · 1 en tu TBR/.test(sum), sum);
     await page.click('details[data-uni="cosmere"] summary');
-    assert(await page.locator('details[data-uni="cosmere"] .bd-card.tbr[data-bb="mb1"]').count() === 1, 'el tablero no marca tu libro');
+    assert(await page.locator(`details[data-uni="cosmere"] ${await ev(() => UNI_BOARD) ? '.bd-card.tbr[data-bb="mb1"]' : `[data-open="${id}"]`}`).count() === 1, 'no enlaza con tu libro');
     assert(await page.locator('details[data-uni="cosmere"] [data-ul="cosmere:0"]').count() === 1, 'el spoiler de El imperio final debería estar tapado');
     await ev(id => { bookOf(id).status = 'leido'; save(); renderAll(); }, id);
     assert(await page.locator('details[data-uni="cosmere"][open] [data-ul="cosmere:0"]').count() === 0 && /Hoid/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'leído el libro, la conexión debería verse: ' + JSON.stringify(await ev(id => ({ open:document.querySelector('details[data-uni="cosmere"]').open, st:bookOf(id).status, f:uniFind(UNIVERSES[1], UNIVERSES[1].series[0].books[0]).id, id, lock:!!document.querySelector('[data-ul="cosmere:0"]') }), id)));
     await page.click('[data-ul="cosmere:1"]'); assert(/Armonía/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'tocar no destapa');
-    // tablero: hilos y números; el de un spoiler tapado sale con «?»
-    assert(await page.locator('details[data-uni="cosmere"] .board .bd-card').count() >= 17, 'faltan fichas en el tablero');
-    assert(await ev(() => document.querySelector('details[data-uni="cosmere"] [data-bl="2"]').textContent) === '?', 'el hilo de un spoiler tapado debería llevar «?»');
-    await page.click('details[data-uni="cosmere"] [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar una ficha no enseña sus datos');
-    await page.click('details[data-uni="cosmere"] [data-um="lista"]'); assert(await page.locator('details[data-uni="cosmere"] .uni-order li').count() >= 17, 'sin lista de orden');
-    await page.click('details[data-uni="maas"] summary'); await page.click('details[data-uni="maas"] [data-um="lista"]'); await page.click('[data-ur="maas:tog7"]');
+    if(await ev(() => UNI_BOARD)){
+      assert(await page.locator('details[data-uni="cosmere"] .board .bd-card').count() >= 17, 'faltan fichas en el tablero');
+      await page.click('details[data-uni="cosmere"] [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar una ficha no enseña sus datos');
+      await page.click('details[data-uni="cosmere"] [data-um="lista"]');
+    }
+    assert(await page.locator('details[data-uni="cosmere"] .uni-order li').count() >= 17, 'sin lista de orden');
+    await page.click('details[data-uni="maas"] summary'); if(await ev(() => UNI_BOARD)) await page.click('details[data-uni="maas"] [data-um="lista"]'); await page.click('[data-ur="maas:tog7"]');
     assert(await ev(() => !!state.settings.uniRead['maas:tog7']), 'no guarda el leído'); assert(/Lunathion/.test(await page.locator('details[data-uni="maas"]').innerText()), 'con Reino de cenizas leído, el guiño se ve');
     await page.click(`details[data-uni="cosmere"] [data-open="${id}"]`); await page.waitForSelector('.sheet .tabbar'); await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
     // quitar un universo (dos toques, con Deshacer) y volver a ponerlo
