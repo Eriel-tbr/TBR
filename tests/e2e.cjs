@@ -194,6 +194,22 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     const sp = await ev(() => { const b = state.books[state.books.length - 1]; return { ...b.spine, serie:((state.seriesStyle || {})[serKey(b)] || {}).style }; });
     assert(sp && (sp.style === 'grimorio' || sp.serie === 'grimorio') && sp.parts && isHexT(sp.parts.base), 'lomo ' + JSON.stringify(sp));
   });
+  await test('etiquetas: todas las que ya usas se pueden añadir, se filtran al escribir y no se duplican por mayúsculas', async () => {
+    await ev(() => { const b = state.books[0]; b.tags = [...(b.tags || []), 'Etiqueta Rara', 'LGBTQ+']; for(let i = 0; i < 14; i++) state.books[1].tags = [...(state.books[1].tags || []), 'extra ' + i]; save(); });
+    await addSheet(); await page.click('#btnAddManual');
+    // sin escribir: las más usadas y «Ver todas», que enseña todas
+    await page.click('#ftagsug [data-tagsall]');
+    const r = await ev(() => ({ shown:[...document.querySelectorAll('#ftagsug [data-addtag]')].map(b => b.dataset.addtag), all:allTags().map(x => x[0]) }));
+    assert(r.all.every(t => r.shown.includes(t)), 'faltan: ' + r.all.filter(t => !r.shown.includes(t)).join(', '));
+    await page.fill('#ftagin', 'rara'); await page.waitForSelector('#ftagsug [data-addtag="Etiqueta Rara"]');
+    assert(await page.locator('#ftagsug [data-addtag]').count() <= 2, 'al escribir deben salir solo las que coinciden');
+    await page.click('#ftagsug [data-addtag="Etiqueta Rara"]');
+    await page.fill('#ftagin', 'lgbtq+'); await page.keyboard.press('Enter');
+    const tags = await ev(() => [...document.querySelectorAll('.sheet')].pop().draft.tags);
+    assert(tags.includes('Etiqueta Rara') && tags.includes('LGBTQ+') && !tags.includes('lgbtq+'), JSON.stringify(tags));
+    await page.click('.sheet [data-close]'); await page.waitForSelector('.sheet', { state:'detached' });
+    await ev(() => { state.books[0].tags = state.books[0].tags.filter(t => t !== 'Etiqueta Rara' && t !== 'LGBTQ+'); state.books[1].tags = state.books[1].tags.filter(t => !/^extra /.test(t)); save(); });
+  });
   await test('añadir a mano un libro', async () => {
     await addSheet(); await page.click('#btnAddManual'); await page.fill('#f-title', 'Libro de prueba'); await page.fill('#f-pages', '250');
     await page.click('[data-do="save"]'); await page.waitForSelector('.sheet', { state:'detached' });

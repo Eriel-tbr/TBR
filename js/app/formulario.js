@@ -72,14 +72,28 @@ function openBookForm({ book, item }){
   const q = s => $(s, sh);
   let drawCover = () => { q('#fcover').innerHTML = coverHtml(d.title || d.author ? { ...d, title:d.title || 'Sin título' } : { ...d, title:'Sin título' }); };
   const drawLangs = () => { q('#flangs').innerHTML = [['es', 'Español'], ['en', 'Inglés']].map(([k, l]) => `<button class="chip" type="button" data-lang="${k}" aria-pressed="${d.langs.includes(k)}">${l}</button>`).join(''); };
+  /* Etiquetas: todas las que ya usas se pueden añadir (antes solo salían las 10 más usadas).
+     Sin escribir: sugeridas + las más usadas y «Ver todas»; al escribir, las que coinciden de toda la colección. */
+  let tagsAll = false;
+  const drawTagSug = () => {
+    const typed = norm((q('#ftagin') || {}).value || ''), has = t => d.tags.some(x => norm(x) === norm(t));
+    const sug = sugTags.filter(t => !has(t)), used = allTags().map(x => x[0]).filter(t => !has(t) && !sug.some(s2 => norm(s2) === norm(t)));
+    const chip = (t, extra = '') => `<button class="chip${extra ? ' sug' : ''}" type="button" data-addtag="${esc(t)}">+ ${esc(t)}${extra}</button>`;
+    if(typed){ const hit = [...sug, ...used].filter(t => norm(t).includes(typed));
+      q('#ftagsug').innerHTML = hit.map(t => chip(t)).join('') + (hit.some(t => norm(t) === typed) ? '' : `<button class="chip sug" type="button" data-addtag="${esc(q('#ftagin').value.trim())}">+ Nueva: ${esc(q('#ftagin').value.trim())}</button>`); return; }
+    const show = tagsAll ? used : used.slice(0, 12);
+    q('#ftagsug').innerHTML = sug.map(t => chip(t, ' (sugerida)')).join('') + show.map(t => chip(t)).join('')
+      + (used.length > 12 ? `<button class="chip" type="button" data-tagsall>${tagsAll ? 'Ver menos' : `Ver todas (${used.length})`}</button>` : '');
+  };
   const drawTags = () => {
     q('#ftags').innerHTML = d.tags.map(t => `<span class="chip on">${esc(t)} <button type="button" class="x" data-rt="${esc(t)}" aria-label="Quitar ${esc(t)}" style="all:unset;cursor:pointer">×</button></span>`).join('') + lineHtml('id="ftagin" placeholder="Añadir etiqueta…" enterkeyhint="done" aria-label="Nueva etiqueta"');
-    const used = allTags().map(x => x[0]).filter(t => !d.tags.includes(t)).slice(0, 10), sug = sugTags.filter(t => !d.tags.includes(t));
-    q('#ftagsug').innerHTML = sug.map(t => `<button class="chip sug" type="button" data-addtag="${esc(t)}">+ ${esc(t)} (sugerida)</button>`).join('') + used.filter(t => !sug.includes(t)).map(t => `<button class="chip" type="button" data-addtag="${esc(t)}">+ ${esc(t)}</button>`).join('');
+    drawTagSug();
   };
   const drawStatus = () => { q('#fstatus').innerHTML = chipsHtml(Object.entries(STATUS), d.status, 'data-status');
     const r = q('#frating'); r.hidden = d.status !== 'leido'; r.innerHTML = [1,2,3,4,5].map(n => `<button class="star ${n <= d.rating ? 'on' : ''}" type="button" data-star="${n}" aria-label="${n} de 5">${ICON.star}</button>`).join(''); };
-  const addTag = t => { t = t.trim().toLowerCase(); if(t && !d.tags.includes(t)){ d.tags.push(t); } drawTags(); const i = q('#ftagin'); i && i.focus(); };
+  // Se respeta cómo está escrita (antes se pasaba a minúsculas y «LGBTQ+» se duplicaba como «lgbtq+»); si ya existe otra igual, se usa esa
+  const addTag = t => { t = t.trim(); const ex = allTags().map(x => x[0]).find(x => norm(x) === norm(t)); if(ex) t = ex;
+    if(t && !d.tags.some(x => norm(x) === norm(t))) d.tags.push(t); drawTags(); const i = q('#ftagin'); i && i.focus(); };
   const unitNow = () => unitOf(d.unitId) || state.units[0];
   function previewCtx(){
     if(!d.series || !d.series.name) return null;
@@ -166,6 +180,7 @@ function openBookForm({ book, item }){
   sh.addEventListener('input', e => {
     const f = e.target.dataset && e.target.dataset.f; if(f){ d[f] = (f === 'pages' || f === 'year') ? (e.target.value ? +e.target.value : '') : e.target.value; if(f === 'title' || f === 'pages') drawSpine({ editor:false }); }
     const id = e.target.id;
+    if(id === 'ftagin') drawTagSug();
     if(id === 'f-sname' || id === 'f-sn' || id === 'f-st'){ if(id === 'f-sname') volsTyping = true;
       const name = q('#f-sname').value.trim();
       if(!name){ d.series = null; serStyle = {}; }
@@ -179,7 +194,10 @@ function openBookForm({ book, item }){
 
   });
   sh.addEventListener('keydown', e => { if(e.target.id === 'ftagin' && (e.key === 'Enter' || e.key === ',')){ e.preventDefault(); addTag(e.target.value.replace(',', '')); } });
-  sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()) addTag(e.target.value); });
+  // Al salir del campo se añade lo escrito, salvo que se haya tocado una etiqueta de la lista (entonces se añade esa)
+  let tagOut = 0;
+  sh.addEventListener('focusout', e => { if(e.target.id === 'ftagin' && e.target.value.trim()){ const v = e.target.value, rel = e.relatedTarget;
+    if(rel && rel.closest && rel.closest('[data-addtag]')) return; clearTimeout(tagOut); tagOut = setTimeout(() => addTag(v), 200); } });
   sh.addEventListener('change', async e => {
     if(e.target.id === 'f-unit'){ d.unitId = e.target.value; const u = unitOf(d.unitId); d.shelfId = u.shelves[0].id; setPick(q('#f-shelf'), shelfOpts(d.unitId), d.shelfId); drawSpine(); }
     else if(e.target.id === 'f-shelf'){ d.shelfId = e.target.value; }
@@ -191,7 +209,8 @@ function openBookForm({ book, item }){
     else if(g('[data-status]')){ d.status = g('[data-status]').dataset.status; if(d.status === 'leido' && !d.readAt) d.readAt = Date.now(); if(d.status !== 'leido'){ d.rating = 0; d.readAt = null; } drawStatus(); }
     else if(g('[data-star]')){ const n = +g('[data-star]').dataset.star; d.rating = d.rating === n ? 0 : n; drawStatus(); }
     else if(g('[data-rt]')){ d.tags = d.tags.filter(x => x !== g('[data-rt]').dataset.rt); drawTags(); }
-    else if(g('[data-addtag]')){ addTag(g('[data-addtag]').dataset.addtag); }
+    else if(g('[data-addtag]')){ clearTimeout(tagOut); addTag(g('[data-addtag]').dataset.addtag); }
+    else if(g('[data-tagsall]')){ tagsAll = !tagsAll; drawTagSug(); }
     else if(g('[data-do="upload"]')){ q('#fupload').click(); }
     else if(g('[data-do="nocover"]')){ d.coverData = ''; d.cover = ''; d.cover2 = ''; drawCover(); }
     else if(g('[data-do="refill"]')){ refill(g('[data-do="refill"]')); }
