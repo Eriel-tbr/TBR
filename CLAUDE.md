@@ -88,5 +88,5 @@ Responder en español, directo, con apartados. Explicar decisiones técnicas y a
 ## Pendiente (plan del 26/10/2026, en este orden)
 - Fases 1 (datos a salvo), 2 (fallos, búsqueda, Completar fichas), 3 (colocar a mano) 4 (interfaz, interno y funciones nuevas) y 5 (15 lomos nuevos, pestaña Lomo y editor de color) hechas. Las etiquetas de balda y los puntos no hace falta agrandarlos (Leyre).
 - `migrate()` también pone `adjust:false` a los colores de lomo elegidos a mano antes (`settings.migAdjust`).
-- Tanda 3: informe hecho (doc «Mi TBR · Tanda 3: informe»). Audible en audiolibros, publicado (2026.10.28-3; en -4 lo guardado sin Audible se vuelve a buscar: `b.audio.v`, `AUDIO_V`). Universos, cabecera y ruleta con varias etiquetas: rama `universos`, pendiente de aprobación.
+- Tanda 3: informe hecho (doc «Mi TBR · Tanda 3: informe»). Audible en audiolibros, publicado (2026.10.28-3; en -4 lo guardado sin Audible se vuelve a buscar: `b.audio.v`, `AUDIO_V`). Universos (lista), cabecera, barra y ruleta (todas las etiquetas) publicados en 2026.10.28-5. El tablero (`UNI_BOARD` en universos.js) está oculto: Leyre pidió muchas más conexiones (también dentro de una saga: referencias, cameos, personajes en común, teorías) y mejor estética antes de aprobarlo.
 - Descartado por decisión de Leyre: gastos, estadísticas nuevas y avisos.
