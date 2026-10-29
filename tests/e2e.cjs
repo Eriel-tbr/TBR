@@ -675,19 +675,21 @@ const draft = () => ev(() => { const d = [...document.querySelectorAll('.sheet')
     assert(await ev(() => document.querySelector('#navUni').getAttribute('aria-current')) === 'page', 'pestaña no marcada');
     const sum = await page.locator('details[data-uni="cosmere"] summary').innerText(); assert(/0 de \d+ leídos · 1 en tu TBR/.test(sum), sum);
     await page.click('details[data-uni="cosmere"] summary');
-    assert(await page.locator(`details[data-uni="cosmere"] ${await ev(() => UNI_BOARD) ? '.bd-card.tbr[data-bb="mb1"]' : `[data-open="${id}"]`}`).count() === 1, 'no enlaza con tu libro');
+    assert(await page.locator(`details[data-uni="cosmere"] ${await ev(() => UNI_BOARD) ? 'svg.bd .bn.tb[data-bb="mb1"]' : `[data-open="${id}"]`}`).count() === 1, 'no enlaza con tu libro');
     assert(await page.locator('details[data-uni="cosmere"] [data-ul="cosmere:0"]').count() === 1, 'el spoiler de El imperio final debería estar tapado');
     await ev(id => { bookOf(id).status = 'leido'; save(); renderAll(); }, id);
     assert(await page.locator('details[data-uni="cosmere"][open] [data-ul="cosmere:0"]').count() === 0 && /Hoid/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'leído el libro, la conexión debería verse: ' + JSON.stringify(await ev(id => ({ open:document.querySelector('details[data-uni="cosmere"]').open, st:bookOf(id).status, f:uniFind(UNIVERSES[1], UNIVERSES[1].series[0].books[0]).id, id, lock:!!document.querySelector('[data-ul="cosmere:0"]') }), id)));
     await page.click('[data-ul="cosmere:1"]'); assert(/Armonía/.test(await page.locator('details[data-uni="cosmere"]').innerText()), 'tocar no destapa');
     if(await ev(() => UNI_BOARD)){
-      assert(await page.locator('details[data-uni="cosmere"] .board .bd-card').count() >= 17, 'faltan fichas en el tablero');
-      await page.click('details[data-uni="cosmere"] [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar una ficha no enseña sus datos');
-      await page.click('details[data-uni="cosmere"] [data-bc="hoid"]');
+      assert(await page.locator('details[data-uni="cosmere"] svg.bd [data-bb]').count() >= 17, 'faltan libros en el tablero');
+      await page.click('details[data-uni="cosmere"] svg.bd [data-bb="mb2"]'); assert(/El Pozo de la Ascensión/.test(await page.locator('details[data-uni="cosmere"] .bd-panel').innerText()), 'tocar un libro no enseña sus datos');
+      await page.click('details[data-uni="cosmere"] svg.bd [data-bc="vin"]');
       const ph = await page.locator('details[data-uni="cosmere"] .bd-panel').innerText();
-      assert(/Hoid/.test(ph) && /Toca para ver/.test(ph) && await page.locator('details[data-uni="cosmere"] .bd-pol svg').count() >= 5, 'la foto de Hoid no enseña sus conexiones tapadas: ' + ph.slice(0, 120));
-      assert(await page.locator('details[data-uni="cosmere"] .bd-note').count() >= 5, 'faltan notas en el tablero');
-      await page.click('details[data-uni="cosmere"] [data-bz="-1"]'); assert(await ev(() => ui.uniZoom.cosmere) === .85, 'el zoom no cambia');
+      assert(/Vin/.test(ph) && /Toca para ver/.test(ph), 'la relación de Vin debería salir tapada: ' + ph.slice(0, 160));
+      assert(await page.locator('details[data-uni="cosmere"] svg.bd [data-br]').count() >= 5 && await page.locator('details[data-uni="cosmere"] svg.bd .mk').count() >= 5, 'faltan relaciones o números');
+      await page.click('details[data-uni="cosmere"] [data-bz="1"]'); assert(await ev(() => ui.uniView.cosmere.w) < 1000, 'el zoom no cambia');
+      await page.click('details[data-uni="cosmere"] [data-bf="1"]'); assert(await page.locator('.bd-box.full').count() === 1, 'no abre la pantalla completa');
+      await page.click('.bd-box.full [data-bf="0"]'); assert(await page.locator('.bd-box.full').count() === 0, 'no cierra la pantalla completa');
       await page.click('details[data-uni="cosmere"] [data-um="lista"]');
     }
     assert(await page.locator('details[data-uni="cosmere"] .uni-order li').count() >= 17, 'sin lista de orden');

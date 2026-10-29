@@ -305,3 +305,150 @@ const UNI_EXTRA = {
       { kind:'guiño', short:'El linaje Berethnet', books:['p0', 'p1'], text:'Glorian carga con la creencia de que la línea Berethnet mantiene encadenado al Innominado: la misma carga que pesa sobre Sabran en El priorato del naranjo.', src:'https://booksthatslay.com/a-day-of-fallen-night-summary-characters-and-themes/' }] }
 };
 UNIVERSES.forEach(u => { const x = UNI_EXTRA[u.id]; if(!x) return; u.chars = x.chars || []; u.links = [...u.links, ...(x.links || [])]; });
+
+/* ---------- Relaciones entre personajes (29/10/2026) ----------
+   t: 'pareja' | 'familia' | 'amistad' | 'mentor' | 'vinculo' (mágico: dragón, Don, vida…) | 'ex' | 'rival'.
+   `label` = lo que se lee sobre el hilo; `books` = libros que hay que haber leído para verla (si no, sale tapada). */
+const UNI_RELS = {
+  maas:{ chars:[
+      { id:'rowan', name:'Rowan', sym:'storm', hair:'#e6e6e6', skin:'#d9b08c', coat:'#30414f', look:'short' },
+      { id:'aedion', name:'Aedion', sym:'sword', hair:'#d9a441', skin:'#e7c09c', coat:'#5a4a2a', look:'short' },
+      { id:'chaol', name:'Chaol', sym:'sword', hair:'#3a2a1c', skin:'#d9b08c', coat:'#20283a', look:'short' },
+      { id:'dorian', name:'Dorian', sym:'crown', hair:'#1a1612', skin:'#efcfae', coat:'#2a3f7a', look:'short' },
+      { id:'manon', name:'Manon', sym:'moon', hair:'#ecebe6', skin:'#efe3d2', coat:'#3a1a1a', look:'long' },
+      { id:'feyre', name:'Feyre', sym:'star', hair:'#b38a5a', skin:'#efcfae', coat:'#3a2f5a', look:'long' },
+      { id:'cassian', name:'Cassian', sym:'sword', hair:'#2a1f18', skin:'#c48d63', coat:'#5a2020', look:'long' },
+      { id:'elain', name:'Elain', sym:'leaf', hair:'#d6b36a', skin:'#f3d9c0', coat:'#c9a0b4', look:'long' },
+      { id:'lucien', name:'Lucien', sym:'eye', hair:'#b8432a', skin:'#efcfae', coat:'#8a5a1a', look:'long' },
+      { id:'tamlin', name:'Tamlin', sym:'paw', hair:'#d9b56a', skin:'#efcfae', coat:'#3f6a3a', look:'short' },
+      { id:'hunt', name:'Hunt', sym:'storm', hair:'#1a1612', skin:'#c79a74', coat:'#2a2a2a', look:'short' },
+      { id:'ruhn', name:'Ruhn', sym:'star', hair:'#121018', skin:'#efcfae', coat:'#2a2a3a', look:'long' },
+      { id:'danika', name:'Danika', sym:'paw', hair:'#e6dccb', skin:'#efcfae', coat:'#7a5aa8', look:'long' },
+      { id:'lidia', name:'Lidia', sym:'flame', hair:'#e0b24a', skin:'#f1d6bc', coat:'#3a3a3a', look:'long' }],
+    rels:[
+      { a:'feyre', b:'nesta', t:'familia', label:'hermanas', books:['a1'], src:'https://www.litcharts.com/lit/a-court-of-thorns-and-roses/characters' },
+      { a:'feyre', b:'elain', t:'familia', label:'hermanas', books:['a1'], src:'https://www.litcharts.com/lit/a-court-of-thorns-and-roses/characters' },
+      { a:'nesta', b:'elain', t:'familia', label:'hermanas', books:['a1'], src:'https://www.litcharts.com/lit/a-court-of-thorns-and-roses/characters' },
+      { a:'tamlin', b:'lucien', t:'amistad', label:'amigos', books:['a1'], src:'https://www.litcharts.com/lit/a-court-of-thorns-and-roses/characters' },
+      { a:'feyre', b:'tamlin', t:'ex', label:'antiguo prometido', books:['a2'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'feyre', b:'rhysand', t:'pareja', label:'compañeros', books:['a2'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'rhysand', b:'cassian', t:'amistad', label:'círculo íntimo', books:['a2'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'rhysand', b:'azriel', t:'amistad', label:'círculo íntimo', books:['a2'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'cassian', b:'azriel', t:'amistad', label:'hermanos de armas', books:['a2'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'elain', b:'lucien', t:'vinculo', label:'vínculo de pareja', books:['a2'], src:'https://inkandimaginings.com/elain-archeron-who-she-is-her-powers-and-the-elriel-vs-elucien-debate-explained/' },
+      { a:'nesta', b:'cassian', t:'pareja', label:'compañeros', books:['a4'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'elain', b:'azriel', t:'rival', label:'¿Elriel? (teoría)', books:['a4'], src:'https://www.sparknotes.com/lit/court-of-frost-and-starlight/characters' },
+      { a:'aelin', b:'chaol', t:'ex', label:'antiguo amor', books:['tog2'], src:'https://reactormag.com/through-the-looking-glass-reading-sarah-j-maass-throne-of-glass-empire-of-storms/' },
+      { a:'aelin', b:'dorian', t:'amistad', label:'amigos', books:['tog1'], src:'https://reactormag.com/through-the-looking-glass-reading-sarah-j-maass-throne-of-glass-empire-of-storms/' },
+      { a:'aelin', b:'aedion', t:'familia', label:'primos', books:['tog4'], src:'https://bookishgoblin.com/throne-of-glass-family-trees' },
+      { a:'aelin', b:'rowan', t:'pareja', label:'compañeros, casados', books:['tog5'], src:'https://bookishgoblin.com/throne-of-glass-family-trees' },
+      { a:'aelin', b:'lysandra', t:'amistad', label:'amigas', books:['tog4'], src:'https://reactormag.com/through-the-looking-glass-reading-sarah-j-maass-throne-of-glass-empire-of-storms/' },
+      { a:'aedion', b:'lysandra', t:'pareja', label:'compañeros, casados', books:['tog7'], src:'https://bookishgoblin.com/throne-of-glass-family-trees' },
+      { a:'chaol', b:'yrene', t:'pareja', label:'pareja', books:['tog6'], src:'https://recaptains.co.uk/2023/10/tower-of-dawn-by-sarah-j-maas/' },
+      { a:'manon', b:'dorian', t:'pareja', label:'pareja', books:['tog5'], src:'https://reactormag.com/through-the-looking-glass-reading-sarah-j-maass-throne-of-glass-empire-of-storms/' },
+      { a:'bryce', b:'danika', t:'amistad', label:'mejores amigas', books:['c1'], src:'https://bookishgoblin.com/crescent-city-characters/' },
+      { a:'bryce', b:'ruhn', t:'familia', label:'medio hermanos', books:['c1'], src:'https://bookishgoblin.com/crescent-city-characters/' },
+      { a:'bryce', b:'hunt', t:'pareja', label:'pareja', books:['c1'], src:'https://www.bookseriesrecaps.com/what-happened-in-house-of-earth-and-blood/' },
+      { a:'ruhn', b:'lidia', t:'pareja', label:'pareja', books:['c2'], src:'https://www.today.com/today/amp/rcna135734' }] },
+
+  cosmere:{ chars:[
+      { id:'vin', name:'Vin', sym:'spike', hair:'#1a1612', skin:'#efcfae', coat:'#2a2a33', look:'short' },
+      { id:'elend', name:'Elend', sym:'book', hair:'#5a4030', skin:'#efcfae', coat:'#e6e0d0', look:'short' },
+      { id:'tindwyl', name:'Tindwyl', sym:'ring', hair:'#3a2a20', skin:'#c08b5c', coat:'#8a5a2b', look:'bun' },
+      { id:'wax', name:'Wax', sym:'spike', hair:'#3a2a20', skin:'#e7c09c', coat:'#4a3a2a', look:'short' },
+      { id:'wayne', name:'Wayne', sym:'coat', hair:'#7a5a3a', skin:'#e7c09c', coat:'#6a5a3a', look:'short' },
+      { id:'steris', name:'Steris', sym:'book', hair:'#d6b36a', skin:'#f1d6bc', coat:'#5a5a7a', look:'bun' },
+      { id:'marasi', name:'Marasi', sym:'eye', hair:'#2a1f18', skin:'#efcfae', coat:'#7a3a3a', look:'long' }],
+    rels:[
+      { a:'kelsier', b:'marsh', t:'familia', label:'hermanos', books:['mb1'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Well_of_Ascension' },
+      { a:'kelsier', b:'vin', t:'mentor', label:'la recluta', books:['mb1'], src:'https://reactormag.com/mistborn-era-2-everything-you-need-to-know-before-reading-the-last-metal/' },
+      { a:'vin', b:'elend', t:'pareja', label:'pareja', books:['mb2'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Well_of_Ascension' },
+      { a:'sazed', b:'tindwyl', t:'amistad', label:'Guardianes', books:['mb2'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Well_of_Ascension' },
+      { a:'wax', b:'wayne', t:'amistad', label:'mejores amigos', books:['mb4'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Alloy_of_Law' },
+      { a:'wax', b:'steris', t:'pareja', label:'compromiso', books:['mb4'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Alloy_of_Law' },
+      { a:'steris', b:'marasi', t:'familia', label:'medio hermanas', books:['mb4'], src:'https://en.wikipedia.org/wiki/Mistborn:_The_Alloy_of_Law' },
+      { a:'hoid', b:'sigzil', t:'mentor', label:'maestro', books:['s1', 'sun'], src:'https://coppermind.net/wiki/Nomad' }] },
+
+  grisha:{ chars:[
+      { id:'mal', name:'Mal', sym:'eye', hair:'#3a2a20', skin:'#e7c09c', coat:'#4a5a3a', look:'short' },
+      { id:'baghra', name:'Baghra', sym:'shadow', hair:'#6a6a6a', skin:'#e6c6a8', coat:'#3a3030', look:'bun' },
+      { id:'kaz', name:'Kaz', sym:'coin', hair:'#1a1612', skin:'#efcfae', coat:'#1f1f22', look:'short' },
+      { id:'inej', name:'Inej', sym:'dagger', hair:'#1a1612', skin:'#b07a50', coat:'#3a2a4a', look:'long' },
+      { id:'matthias', name:'Matthias', sym:'paw', hair:'#e0c88a', skin:'#efcfae', coat:'#5a6a7a', look:'short' },
+      { id:'jesper', name:'Jesper', sym:'star', hair:'#1a1612', skin:'#7a4f33', coat:'#6a8a3a', look:'short' },
+      { id:'wylan', name:'Wylan', sym:'flame', hair:'#c9783a', skin:'#efcfae', coat:'#3a4a6a', look:'short' },
+      { id:'davidk', name:'David', sym:'ring', hair:'#5a4030', skin:'#efcfae', coat:'#6a5a4a', look:'short' },
+      { id:'tolya', name:'Tolya', sym:'heart', hair:'#1a1612', skin:'#c09070', coat:'#3a3a5a', look:'short' },
+      { id:'tamar', name:'Tamar', sym:'sword', hair:'#1a1612', skin:'#c09070', coat:'#5a3a3a', look:'short' }],
+    rels:[
+      { a:'alina', b:'mal', t:'pareja', label:'se casan', books:['g3'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' },
+      { a:'alina', b:'darkling', t:'rival', label:'romance y enemigos', books:['g1'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' },
+      { a:'darkling', b:'baghra', t:'familia', label:'madre e hijo', books:['g2'], src:'https://www.sparknotes.com/lit/siege-and-storm/characters/' },
+      { a:'alina', b:'nikolai', t:'amistad', label:'compromiso de farsa', books:['g2'], src:'https://www.sparknotes.com/lit/siege-and-storm/characters/' },
+      { a:'genya', b:'davidk', t:'pareja', label:'pareja', books:['g2'], src:'https://www.sparknotes.com/lit/siege-and-storm/characters/' },
+      { a:'tolya', b:'tamar', t:'familia', label:'gemelos', books:['g2'], src:'https://www.sparknotes.com/lit/siege-and-storm/characters/' },
+      { a:'kaz', b:'inej', t:'pareja', label:'pareja', books:['g5'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' },
+      { a:'nina', b:'matthias', t:'pareja', label:'pareja', books:['g4'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' },
+      { a:'jesper', b:'wylan', t:'pareja', label:'pareja', books:['g5'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' },
+      { a:'nikolai', b:'zoya', t:'pareja', label:'pareja', books:['g7'], src:'https://en.wikipedia.org/wiki/List_of_Grishaverse_characters' }] },
+
+  armentrout:{ chars:[
+      { id:'poppy', name:'Poppy', sym:'flame', hair:'#9b3a22', skin:'#f1d6bc', coat:'#e6e0d0', look:'long' },
+      { id:'casteel', name:'Casteel', sym:'crown', hair:'#1a1612', skin:'#c9946a', coat:'#2a2a2a', look:'short' },
+      { id:'kieran', name:'Kieran', sym:'paw', hair:'#1a1612', skin:'#7a4f33', coat:'#3a3a3a', look:'short' },
+      { id:'malik', name:'Malik', sym:'shadow', hair:'#2a1f18', skin:'#c9946a', coat:'#4a2a2a', look:'short' },
+      { id:'vikter', name:'Vikter', sym:'sword', hair:'#b0a090', skin:'#e7c09c', coat:'#3a3a4a', look:'short' }],
+    rels:[
+      { a:'poppy', b:'casteel', t:'pareja', label:'almas gemelas', books:['b1'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'poppy', b:'vikter', t:'mentor', label:'como un padre', books:['b1'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'casteel', b:'malik', t:'familia', label:'hermanos', books:['b1'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'poppy', b:'kieran', t:'vinculo', label:'la Unión', books:['b4'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'nyktos', b:'sera', t:'pareja', label:'Primigenio y Consorte', books:['f3'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'nyktos', b:'ires', t:'familia', label:'padre e hijo', books:['b3'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'sera', b:'ires', t:'familia', label:'madre e hijo', books:['b3'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'ires', b:'poppy', t:'familia', label:'padre e hija', books:['b3'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' },
+      { a:'isbeth', b:'poppy', t:'familia', label:'madre e hija', books:['b3'], src:'https://bookishgoblin.com/from-blood-and-ash-series-recap/' }] },
+
+  elderlings:{ chars:[
+      { id:'fitz', name:'Fitz', sym:'dagger', hair:'#2a1f18', skin:'#e2c2a2', coat:'#3a3a4a', look:'short' },
+      { id:'burrich', name:'Burrich', sym:'paw', hair:'#5a3a20', skin:'#e2c2a2', coat:'#5a4a2a', look:'short' },
+      { id:'molly', name:'Molly', sym:'flame', hair:'#6a3a20', skin:'#f1d6bc', coat:'#7a5a3a', look:'long' },
+      { id:'verity', name:'Verity', sym:'crown', hair:'#3a2a20', skin:'#e2c2a2', coat:'#2a3f5a', look:'short' },
+      { id:'nighteyes', name:'Nighteyes', sym:'paw', hair:null, skin:'#8a8a8a', coat:'#3a3a3a', look:'obj' }],
+    rels:[
+      { a:'fitz', b:'burrich', t:'familia', label:'lo cría', books:['h1'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' },
+      { a:'fitz', b:'chade', t:'mentor', label:'lo entrena', books:['h1'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' },
+      { a:'fitz', b:'verity', t:'familia', label:'tío', books:['h1'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' },
+      { a:'fitz', b:'molly', t:'pareja', label:'primer amor, esposa', books:['h1'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' },
+      { a:'fitz', b:'fool', t:'amistad', label:'su mejor amigo', books:['h1'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' },
+      { a:'fitz', b:'nighteyes', t:'vinculo', label:'el Don', books:['h2'], src:'https://robinhobbelderlings.fandom.com/wiki/FitzChivalry_Farseer' }] },
+
+  arnes:{ chars:[
+      { id:'rhy', name:'Rhy', sym:'crown', hair:'#1a1612', skin:'#a8724a', coat:'#8a2a2a', look:'short' },
+      { id:'alucard', name:'Alucard', sym:'storm', hair:'#3a2a20', skin:'#e7c09c', coat:'#2a4a6a', look:'short' }],
+    rels:[
+      { a:'kell', b:'rhy', t:'familia', label:'hermanos', books:['sm1'], src:'https://shadesofmagic.fandom.com/wiki/Rhy_Maresh' },
+      { a:'kell', b:'rhy', t:'vinculo', label:'vidas unidas', books:['sm1'], src:'https://shadesofmagic.fandom.com/wiki/Rhy_Maresh' },
+      { a:'rhy', b:'alucard', t:'pareja', label:'pareja', books:['sm2'], src:'https://shadesofmagic.fandom.com/wiki/Rhy_Maresh' },
+      { a:'holland', b:'kell', t:'rival', label:'antari', books:['sm1'], src:'https://booksthatslay.com/the-fragile-threads-of-power-summary-characters-and-themes/' }] },
+
+  empyrean:{ chars:[
+      { id:'violet', name:'Violet', sym:'storm', hair:'#3a3a4a', skin:'#f1d6bc', coat:'#1f1f22', look:'long' },
+      { id:'dain', name:'Dain', sym:'eye', hair:'#7a5a3a', skin:'#efcfae', coat:'#2a2a3a', look:'short' },
+      { id:'mira', name:'Mira', sym:'sword', hair:'#5a3a2a', skin:'#efcfae', coat:'#3a3a2a', look:'bun' },
+      { id:'rhiannon', name:'Rhiannon', sym:'heart', hair:'#1a1612', skin:'#7a4f33', coat:'#3a2a2a', look:'long' },
+      { id:'tairn', name:'Tairn', sym:'dragon', hair:null, skin:'#2a2a2a', coat:'#1a1a1a', look:'obj' }],
+    rels:[
+      { a:'violet', b:'xaden', t:'pareja', label:'pareja', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' },
+      { a:'violet', b:'dain', t:'amistad', label:'amigo de la infancia', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' },
+      { a:'violet', b:'mira', t:'familia', label:'hermanas', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' },
+      { a:'violet', b:'rhiannon', t:'amistad', label:'mejores amigas', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' },
+      { a:'violet', b:'tairn', t:'vinculo', label:'su dragón', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' },
+      { a:'violet', b:'andarna', t:'vinculo', label:'su dragona', books:['e1'], src:'https://www.sparknotes.com/lit/fourth-wing/characters/' }] },
+
+  priorato:{ chars:[
+      { id:'tunuva', name:'Tunuva', sym:'flame', hair:'#1a1612', skin:'#7a4f33', coat:'#c9783a', look:'long' },
+      { id:'wulf', name:'Wulf', sym:'sword', hair:'#c9a24a', skin:'#efcfae', coat:'#3a4a3a', look:'short' }],
+    rels:[{ a:'tunuva', b:'wulf', t:'familia', label:'madre e hijo', books:['p0'], src:'https://booksthatslay.com/a-day-of-fallen-night-summary-characters-and-themes/' }] }
+};
+UNIVERSES.forEach(u => { const x = UNI_RELS[u.id]; u.chars = [...(u.chars || []), ...((x && x.chars) || [])]; u.rels = (x && x.rels) || []; });
