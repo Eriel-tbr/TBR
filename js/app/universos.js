@@ -3,7 +3,7 @@
    Cada libro del universo se busca en la colección (título, original o alternativo + autor/a). Si está, manda su estado;
    si no, se puede marcar como leído aquí (state.settings.uniRead['universo:clave'], se sincroniza con los ajustes).
    Una conexión se ve tal cual si has leído todos sus libros; si falta alguno, sale tapada y se destapa al tocarla. */
-const UNI_BOARD = true; // tablero en preparación: hasta que Leyre lo apruebe solo se ve la lista
+const UNI_BOARD = true;
 ui.uniOpen = ui.uniOpen || new Set(); ui.uniShown = ui.uniShown || new Set(); ui.uniMode = ui.uniMode || {}; ui.uniSel = ui.uniSel || {}; ui.uniZoom = ui.uniZoom || {}; ui.uniView = ui.uniView || {}; ui.uniFull = ui.uniFull || '';
 const uniNorm = s => norm(String(s || '').replace(/\([^)]*\)/g, ' '));
 const uniAuthOk = (b, u) => { const a = norm(b.author || ''); return norm(u.author).split(' ').some(w => w.length > 3 && a.includes(w)); };
